@@ -51,16 +51,16 @@ export class PanelSystem extends createSystem({}) {
         dot?.setProperties({ backgroundColor: COLORS.online });
         text?.setProperties({ text: 'Command server online' });
         detail?.setProperties({
-          text: state.clockSynced ? `Round trip ${Math.round(state.rttMs)} ms · clock synced` : 'Syncing clock…',
+          text: state.clockSynced ? `Round trip ${Math.round(state.rttMs)} ms - clock synced` : 'Syncing clock...',
         });
         break;
       case 'connecting':
         dot?.setProperties({ backgroundColor: COLORS.connecting });
-        text?.setProperties({ text: 'Connecting to the command server…' });
+        text?.setProperties({ text: 'Connecting to the command server...' });
         break;
       case 'offline':
         dot?.setProperties({ backgroundColor: COLORS.offline });
-        text?.setProperties({ text: 'Offline · your workspace keeps working' });
+        text?.setProperties({ text: 'Offline - your workspace keeps working' });
         detail?.setProperties({ text: `Retrying in ${Math.ceil(state.retryInMs / 1000)} s` });
         break;
     }

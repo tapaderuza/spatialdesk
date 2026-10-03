@@ -18,7 +18,7 @@
   <div class="subtitle">Your AI-organised workspace, at arm's length.</div>
   <div class="row">
     <div id="status-dot" class="dot"></div>
-    <div id="status-text" class="status">Connecting to the command server…</div>
+    <div id="status-text" class="status">Connecting to the command server...</div>
   </div>
   <div id="status-detail" class="detail">-</div>
   <Button id="xr-button" class="button">
