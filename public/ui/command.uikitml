@@ -1,0 +1,32 @@
+<!--
+  SpatialDesk Command Center: status panel (week 1). Design rules from ROADMAP heuristic B:
+  off-white on dark grey (contrast >= 7:1, no pure white halation), text sized for reading at ~0.7 m,
+  primary buttons large and well separated.
+-->
+<style>
+  .root { flex-direction: column; width: 520px; padding: 28px; background-color: #15181e; border-radius: 28px; }
+  .title { font-size: 34px; font-weight: 700; color: #eef1f5; letter-spacing: -0.4px; }
+  .subtitle { margin-top: 6px; font-size: 20px; color: #b9c2cf; }
+  .row { margin-top: 24px; flex-direction: row; align-items: center; }
+  .dot { width: 18px; height: 18px; border-radius: 9px; background-color: #f2b84b; margin-right: 14px; }
+  .status { font-size: 24px; font-weight: 600; color: #eef1f5; }
+  .detail { margin-top: 8px; font-size: 18px; color: #b9c2cf; }
+  .button { margin-top: 28px; height: 88px; }
+</style>
+<Panel class="root">
+  <div class="title">SpatialDesk Command Center</div>
+  <div class="subtitle">Your AI-organised workspace, at arm's length.</div>
+  <div class="row">
+    <div id="status-dot" class="dot"></div>
+    <div id="status-text" class="status">Connecting to the command server…</div>
+  </div>
+  <div id="status-detail" class="detail">-</div>
+  <Button id="xr-button" class="button">
+    <ButtonIcon><RectangleGoggles></RectangleGoggles></ButtonIcon>
+    <ButtonLabel>Enter workspace</ButtonLabel>
+  </Button>
+  <Button id="exit-button" class="button" style="display: none">
+    <ButtonIcon><LogIn></LogIn></ButtonIcon>
+    <ButtonLabel>Exit to browser</ButtonLabel>
+  </Button>
+</Panel>

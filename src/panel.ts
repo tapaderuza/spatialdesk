@@ -9,7 +9,7 @@ import { createSystem, UIKitMLAsset, VisibilityState } from '@iwsdk/core';
 
 export class PanelSystem extends createSystem({}) {
   init(): void {
-    const panel = this.world.getSceneObject<UIKitMLAsset>('welcome-panel');
+    const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
     const xrButton = panel?.getElementById('xr-button');
     const exitButton = panel?.getElementById('exit-button');
     if (xrButton == null || exitButton == null) {

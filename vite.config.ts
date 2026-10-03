@@ -21,7 +21,11 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: process.env.NODE_ENV !== 'production',
     target: 'esnext',
-    rollupOptions: { input: './index.html' },
+    rollupOptions: {
+      input: './index.html',
+      // The emulator chunk is only fetched with ?emulate; naming it lets the perf gate attribute its cost.
+      output: { manualChunks: (id) => (id.includes('node_modules/iwer') ? 'emulator' : undefined) },
+    },
   },
   esbuild: { target: 'esnext' },
   // @drawcall/uikitml otherwise pulls a second three/@pmndrs/uikit graph

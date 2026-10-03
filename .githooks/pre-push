@@ -1,0 +1,3 @@
+#!/bin/sh
+# Defensive heuristics gate: typecheck, production build, bundle size and the IWER performance budgets.
+npm run ci || { echo "pre-push: npm run ci failed - push blocked"; exit 1; }

@@ -1,0 +1,16 @@
+{
+  "_comment": "Defensive performance budgets (ROADMAP heuristic A), measured in the IWER Quest 3 emulator on the production build with the CPU throttled. Exceeding any of them fails `npm run ci`.",
+  "cpuThrottlingRate": 3,
+  "_throttleRationale": "i7-8750H (dev PC) and Snapdragon XR2 Gen 2 (Quest 3) score alike single-core (~1300-1400 Geekbench 6); 3x covers sustained thermal throttling, the XR2+ variant and browser overhead on the headset.",
+  "warmupSeconds": 4,
+  "measureSeconds": 15,
+  "minFramesMeasured": 120,
+  "appSystemsP95Ms": 3.0,
+  "appSystemsP99Ms": 6.0,
+  "_frameRationale": "The whole frame includes the framework (IWSDK input raycasts, uikit, three.js render). Reference = Meta's own IWSDK starter scene (published as Quest-ready), measured on 2026-10-03 under these exact conditions (prod build, IWER, 3x throttle): p50 18.8 ms, p95 29.4 ms, 72 draw calls, 81,688 triangles. Our scene must never be heavier than that reference.",
+  "framePerFrameP95Ms": 29.4,
+  "allocatedBytesPerFrame": 4096,
+  "drawCalls": 80,
+  "triangles": 120000,
+  "heapUsedMB": 150
+}

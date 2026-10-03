@@ -3,107 +3,74 @@
   "units": "meters",
   "components": {
     "com.iwsdk.components.DomeGradient": {
-      "sky": [0.2423, 0.6172, 0.8308, 1],
-      "equator": [0.6584, 0.7084, 0.7913, 1],
-      "ground": [0.807, 0.7758, 0.7454, 1],
+      "sky": [
+        0.035,
+        0.045,
+        0.07,
+        1
+      ],
+      "equator": [
+        0.09,
+        0.11,
+        0.15,
+        1
+      ],
+      "ground": [
+        0.05,
+        0.055,
+        0.065,
+        1
+      ],
       "intensity": 1
     },
     "com.iwsdk.components.IBLGradient": {
-      "sky": [0.6902, 0.749, 0.7843, 1],
-      "equator": [0.6584, 0.7084, 0.7913, 1],
-      "ground": [0.807, 0.7758, 0.7454, 1],
+      "sky": [
+        0.55,
+        0.6,
+        0.68,
+        1
+      ],
+      "equator": [
+        0.45,
+        0.48,
+        0.55,
+        1
+      ],
+      "ground": [
+        0.3,
+        0.3,
+        0.32,
+        1
+      ],
       "intensity": 1
     }
   },
   "resources": {},
   "nodes": [
     {
-      "id": "environment",
-      "name": "Environment",
+      "id": "command-panel",
+      "name": "Command Panel",
       "content": {
         "type": "asset",
-        "asset": "environment-desk"
+        "asset": "command-panel"
       },
       "transform": {
-        "position": [0, -0.106921583, 0],
-        "rotationDeg": [0, 180, 0]
-      },
-      "components": {
-        "LocomotionEnvironment": {}
-      }
-    },
-    {
-      "id": "plant-sansevieria",
-      "name": "Plant Sansevieria",
-      "content": {
-        "type": "asset",
-        "asset": "plant-sansevieria"
-      },
-      "transform": {
-        "position": [1.2, 0.85, -1.8]
-      },
-      "components": {
-        "RayInteractable": {},
-        "DistanceGrabbable": {
-          "movementMode": "MoveFromTarget"
-        }
-      }
-    },
-    {
-      "id": "robot",
-      "name": "Robot",
-      "content": {
-        "type": "asset",
-        "asset": "robot"
-      },
-      "transform": {
-        "position": [-1.2, 0.95, -1.8],
+        "position": [
+          0,
+          1.35,
+          -0.75
+        ],
         "scale": 0.5
-      },
-      "components": {
-        "AudioSource": {
-          "src": "./audio/chime.mp3",
-          "maxInstances": 3,
-          "playbackMode": "fade-restart"
-        },
-        "RayInteractable": {},
-        "Robot": {}
-      }
-    },
-    {
-      "id": "welcome-panel",
-      "name": "Welcome Panel",
-      "content": {
-        "type": "asset",
-        "asset": "welcome-panel"
-      },
-      "transform": {
-        "position": [0, 1.6, -2],
-        "scale": 0.4
       },
       "components": {
         "RayInteractable": {},
         "ScreenSpace": {
           "top": "20px",
           "left": "20px",
-          "width": "25vw",
-          "height": "40%"
+          "width": "30vw",
+          "height": "45%"
         }
       }
-    },
-    {
-      "id": "webxr-banner",
-      "name": "WebXR Banner",
-      "content": {
-        "type": "asset",
-        "asset": "webxr-banner"
-      },
-      "transform": {
-        "position": [0, 1, 1.8],
-        "rotationDeg": [0, 180, 0],
-        "scale": [1, -1, 1]
-      },
-      "components": {}
     }
   ]
 }

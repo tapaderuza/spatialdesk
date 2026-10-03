@@ -7,13 +7,16 @@
 
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
-import { PanelSystem } from './panel.js';
-import { RobotSystem } from './robot.js';
+import { APP_SYSTEMS } from './app-systems.js';
+import { installPerfProbe } from './perf/probe.js';
+import { maybeInstallEmulator } from './emulator.js';
+
+await maybeInstallEmulator();
 
 World.create(
   document.getElementById('scene-container') as HTMLDivElement,
   projectOptions,
 ).then((world) => {
-  world.registerSystem(RobotSystem);
-  world.registerSystem(PanelSystem);
+  for (const system of APP_SYSTEMS) world.registerSystem(system);
+  if (new URLSearchParams(location.search).has('perf')) installPerfProbe(world, APP_SYSTEMS);
 });
