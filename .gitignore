@@ -42,6 +42,9 @@ pnpm-debug.log*
 server/**/build/
 server/.gradle/
 server/.kotlin/
+server/infra/cdk-outputs.json
+server/infra/cdk.context.json
+server/infra/cdk.out/
 server/kotlin-js-store/
 test-results/
 yarn-debug.log*

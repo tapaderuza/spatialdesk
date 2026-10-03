@@ -1,0 +1,6 @@
+{
+  "app": "node cdk-app.mjs",
+  "watch": {
+    "include": ["src/main/**"]
+  }
+}
