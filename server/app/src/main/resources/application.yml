@@ -1,0 +1,22 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+spring:
+  application:
+    name: spatialdesk
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+spatialdesk:
+  # Each judge gets an anonymous session; caps protect the server and the bill (ScreenDesk lesson).
+  sessions:
+    max-active: 500
+    per-ip-per-hour: 30

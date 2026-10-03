@@ -39,6 +39,10 @@ npm-debug.log*
 pids/
 playwright-report/
 pnpm-debug.log*
+server/**/build/
+server/.gradle/
+server/.kotlin/
+server/kotlin-js-store/
 test-results/
 yarn-debug.log*
 yarn-error.log*

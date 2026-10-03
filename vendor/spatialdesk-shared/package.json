@@ -1,0 +1,13 @@
+{
+  "name": "spatialdesk-shared",
+  "version": "0.0.0-unspecified",
+  "main": "spatialdesk-shared.mjs",
+  "types": "spatialdesk-shared.d.mts",
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

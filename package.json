@@ -16,7 +16,10 @@
     "test:perf": "playwright test",
     "perf:profile": "node -e \"process.env.PERF_PROFILE='1';require('child_process').execSync('npx playwright test tests/profile.spec.ts',{stdio:'inherit'})\"",
     "check:size": "node scripts/check-size.mjs",
-    "ci": "npm run typecheck && npm run test:perf && npm run check:size"
+    "ci": "npm run typecheck && npm run test:perf && npm run check:size",
+    "shared:sync": "node scripts/sync-shared.mjs",
+    "test:e2e": "node -e \"process.env.E2E=process.env.E2E||'1';require('child_process').execSync('npx playwright test tests/e2e.spec.ts',{stdio:'inherit',env:process.env})\"",
+    "server:run": "java -Xmx256m -jar server/app/build/libs/app.jar"
   },
   "dependencies": {
     "@iwsdk/core": "1.0.1",
@@ -24,7 +27,8 @@
     "@pmndrs/uikit-horizon": "^1.0.74",
     "@pmndrs/uikit-lucide": "^1.0.74",
     "iwer": "^2.5.0",
-    "three": "npm:super-three@0.181.0"
+    "three": "npm:super-three@0.181.0",
+    "spatialdesk-shared": "file:vendor/spatialdesk-shared"
   },
   "devDependencies": {
     "@iwsdk/cli": "1.0.1",
