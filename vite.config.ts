@@ -8,6 +8,10 @@
 import { iwsdkDev } from '@iwsdk/vite-plugin-dev';
 import { defineConfig } from 'vite';
 
+// Emulator in your own browser is all we use: don't launch (or download) the plugin's managed Chromium.
+// `npm run dev` (the iwsdk CLI) can still override this through its own flags.
+process.env.IWSDK_DEV_OPEN ??= 'false';
+
 export default defineConfig({
   // No headset in this project (emulator only): localhost over HTTP is already a secure context for WebXR,
   // so no self-signed certificate is needed.
