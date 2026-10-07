@@ -34,6 +34,11 @@ enum class Intent(val label: String) {
     @SerialName("clear_done") ClearDone("clear done"),
     @SerialName("summarise") Summarise("summarise"),
     @SerialName("custom") Custom("custom request"),
+
+    // Week 4: the agent reacting to what just happened (see PlanRequest.context).
+    @SerialName("next_block") NextBlock("next block"),
+    @SerialName("replan") Replan("replan"),
+    @SerialName("regroup") Regroup("regroup"),
 }
 
 @Serializable
@@ -44,6 +49,8 @@ data class PlanRequest(
     /** The user's clock, already formatted ("Tuesday 2026-10-07 09:10 (UTC+02:00)"): plans fit the hours left. */
     val localTime: String? = null,
     val viewer: Pose? = null,
+    /** What just happened, from the headset's own observation ("timer X finished", "Y is running over"). */
+    val context: String? = null,
 )
 
 /** One step of a plan: an engine op (exactly what the headset will apply) and the reason shown to the user. */
@@ -93,16 +100,17 @@ class Planner(
         val started = System.nanoTime()
         val elapsed = { (System.nanoTime() - started) / 1_000_000 }
         val now = clock.millis().toDouble()
-        val user = Prompt.user(request)
+        val facts = Guardrails.facts(request, now)
+        val user = Prompt.user(request, now, facts.lines)
         var feedback: String? = null
         for (attempt in 1..2) {
             val proposed = try {
                 model.propose(Prompt.SYSTEM, user, feedback)
             } catch (e: AiUnavailableException) {
                 log.warn("agent model unavailable: {}", e.message)
-                return fallback(request, now, elapsed(), attempt, e.message ?: "The AI service is unavailable right now")
+                return fallback(request, now, facts, elapsed(), attempt, e.message ?: "The AI service is unavailable right now")
             }
-            when (val checked = check(request, proposed, now)) {
+            when (val checked = check(request, proposed, now, facts)) {
                 is Checked.Valid -> {
                     log.info("agent plan intent={} steps={} attempt={} ms={}", request.intent, checked.steps.size, attempt, elapsed())
                     return PlanResponse(true, proposed.summary.trim(), checked.steps, modelId, elapsed(), attempt)
@@ -113,12 +121,12 @@ class Planner(
                 }
             }
         }
-        return fallback(request, now, elapsed(), 2, "The AI's plan did not pass validation")
+        return fallback(request, now, facts, elapsed(), 2, "The AI's plan did not pass validation")
     }
 
-    private fun fallback(request: PlanRequest, now: Double, ms: Long, attempts: Int, why: String): PlanResponse {
-        val plan = builtIn.plan(request)
-        return when (val checked = check(request, plan, now)) {
+    private fun fallback(request: PlanRequest, now: Double, facts: Guardrails.Facts, ms: Long, attempts: Int, why: String): PlanResponse {
+        val plan = builtIn.plan(request, facts)
+        return when (val checked = check(request, plan, now, facts)) {
             is Checked.Valid -> PlanResponse(true, plan.summary, checked.steps, BUILT_IN, ms, attempts, note = "$why, so the built-in planner made this plan.")
             is Checked.Invalid -> PlanResponse(false, attempts = attempts, latencyMs = ms, error = "$why. ${checked.reason}")
         }
@@ -129,13 +137,15 @@ class Planner(
         class Invalid(val reason: String) : Checked()
     }
 
-    private fun check(request: PlanRequest, plan: ModelPlan, now: Double): Checked {
+    private fun check(request: PlanRequest, plan: ModelPlan, now: Double, facts: Guardrails.Facts): Checked {
         if (plan.steps.size > MAX_STEPS) return Checked.Invalid("The plan has ${plan.steps.size} steps; use at most $MAX_STEPS.")
         val normalised = Normaliser(request.workspace).normalise(plan.steps)
         if (normalised.isEmpty()) {
-            return if (request.intent == Intent.Summarise || (request.intent == Intent.Custom && plan.summary.isNotBlank())) Checked.Valid(emptyList())
+            val maySkip = request.intent == Intent.Summarise || request.intent == Intent.Regroup || request.intent == Intent.Custom
+            return if (maySkip && plan.summary.isNotBlank()) Checked.Valid(emptyList())
             else Checked.Invalid("The plan has no steps. Call submit_plan with at least one step.")
         }
+        Guardrails.violation(request, facts, normalised.map { it.first })?.let { return Checked.Invalid(it) }
         val ops = normalised.mapIndexed { i, (json, _) ->
             val name = json["op"]?.jsonPrimitive?.contentOrNull
             if (name !in AGENT_OPS) return Checked.Invalid("Step ${i + 1} uses '$name', which is not allowed. Allowed: ${AGENT_OPS.joinToString()}.")
@@ -241,20 +251,26 @@ class Normaliser(private val workspace: Workspace) {
 object Prompt {
     val SYSTEM: String = Prompt::class.java.getResource("/agent/system-prompt.txt")!!.readText()
     const val MAX_TEXT = 600
+    const val MAX_CONTEXT = 300
 
-    fun user(request: PlanRequest): String = buildString {
+    fun user(request: PlanRequest, nowMs: Double? = null, facts: List<String> = emptyList()): String = buildString {
         request.localTime?.let { append("Local time: ").append(it.take(80)).append(".\n") }
-        append(describe(request.workspace))
+        append(describe(request.workspace, nowMs))
+        request.context?.trim()?.take(MAX_CONTEXT)?.takeIf { it.isNotEmpty() }?.let { append("What just happened: ").append(it).append('\n') }
+        if (facts.isNotEmpty()) {
+            append("Facts for this request (checked by the app, plans that ignore them are rejected):\n")
+            facts.forEach { append("- ").append(it).append('\n') }
+        }
         append("\nIntent: ").append(request.intent.label).append(".\n")
         val text = request.text?.trim()?.take(MAX_TEXT)
         if (!text.isNullOrEmpty()) append("User says: \"").append(text.replace('"', '\'')).append("\"\n")
         else append("The user did not add any text: work from the workspace as it is.\n")
     }
 
-    fun describe(ws: Workspace): String = buildString {
+    fun describe(ws: Workspace, nowMs: Double? = null): String = buildString {
         val boards = ws.boards.sortedByDescending { it.id == ws.focusBoardId }
         append(if (boards.isEmpty()) "Workspace: no boards yet.\n" else "Workspace:\n")
-        boards.forEachIndexed { i, board -> append(i + 1).append(". ").append(boardLine(board, board.id == ws.focusBoardId)).append('\n') }
+        boards.forEachIndexed { i, board -> append(i + 1).append(". ").append(boardLine(board, board.id == ws.focusBoardId, nowMs)).append('\n') }
         val timers = ws.timers.joinToString { t ->
             val state = when (t.state) {
                 TimerState.Running -> "running"
@@ -267,18 +283,24 @@ object Prompt {
         append("Room for ${4 - ws.boards.size} more boards and ${3 - ws.timers.size} more timers.\n")
     }
 
-    private fun boardLine(board: Board, focus: Boolean): String {
-        val columns = board.columns.joinToString { column ->
+    private fun boardLine(board: Board, focus: Boolean, nowMs: Double?): String {
+        val columns = board.columns.mapIndexed { c, column ->
+            // Cards between the first and last column are in progress: say for how long, so the model can tell a
+            // card that just had one block from one that is running over its estimate.
+            val inProgress = c in 1 until board.columns.size - 1
             val cards = column.cards.take(12).joinToString { card ->
                 buildString {
                     append('"').append(card.title).append('"')
                     card.minutes?.let { append(' ').append(it).append(" min") }
                     if (card.priority != Priority.Normal) append(' ').append(card.priority.name.lowercase())
+                    if (inProgress && nowMs != null && card.since != null) {
+                        append(", in progress ").append(((nowMs - card.since!!) / 60_000).toInt().coerceAtLeast(0)).append(" min")
+                    }
                 }
             }
             "\"${column.title}\" (${column.cards.size} cards${if (cards.isEmpty()) "" else ": $cards"})"
         }
-        return "\"${board.title}\"${if (focus) " [focus board]" else ""} columns: $columns"
+        return "\"${board.title}\"${if (focus) " [focus board]" else ""} columns: ${columns.joinToString()}"
     }
 }
 
@@ -287,15 +309,25 @@ object Prompt {
  * Plain rules, honest summaries: it never pretends to be the AI.
  */
 class BuiltInPlanner {
-    fun plan(request: PlanRequest): ModelPlan {
+    fun plan(request: PlanRequest, facts: Guardrails.Facts = Guardrails.Facts(emptyList(), emptyList())): ModelPlan {
         val ws = request.workspace
         val focus = ws.boards.firstOrNull { it.id == ws.focusBoardId }
+        if (request.intent == Intent.NextBlock && facts.unfinished.isNotEmpty()) {
+            val card = facts.unfinished.first()
+            return ModelPlan(
+                "A five-minute break, then back to \"${card.title}\".",
+                listOf(step("start_timer", "A short break after a focus block") { put("minutes", 5); put("label", "Break") }),
+            )
+        }
         return when (request.intent) {
             Intent.PlanMyDay, Intent.Custom -> planDay(ws, tasks(request.text))
             Intent.Prioritise -> prioritise(focus)
             Intent.Focus -> focusOn(focus)
             Intent.ClearDone -> ModelPlan("Cleared the last column of every board.", listOf(step("clear_done", "Finished cards out of the way")))
             Intent.Summarise -> ModelPlan(summary(ws), emptyList())
+            Intent.NextBlock -> focusOn(focus, skipping = request.context)
+            Intent.Replan -> prioritise(focus)
+            Intent.Regroup -> ModelPlan("Your boards already have a clear place each; nothing to regroup.", emptyList())
         }
     }
 
@@ -341,9 +373,11 @@ class BuiltInPlanner {
         return ModelPlan("Sorted \"${column.title}\" by priority, quick tasks first among equals.", steps)
     }
 
-    private fun focusOn(board: Board?): ModelPlan {
+    /** [skipping] is the context line: a card it names (the block that just ended) is not picked again. */
+    private fun focusOn(board: Board?, skipping: String? = null): ModelPlan {
         val doing = board?.columns?.getOrNull(1)
-        val card = doing?.cards?.firstOrNull() ?: board?.columns?.firstOrNull()?.cards?.firstOrNull()
+        val open = (doing?.cards.orEmpty() + board?.columns?.firstOrNull()?.cards.orEmpty()).filter { skipping == null || !skipping.contains(it.title) }
+        val card = open.firstOrNull()
             ?: return ModelPlan("Nothing to focus on yet: add a task first.", emptyList())
         val steps = buildList {
             if (doing != null && doing.cards.none { it.id == card.id }) {

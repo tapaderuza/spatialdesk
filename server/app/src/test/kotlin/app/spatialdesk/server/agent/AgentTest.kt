@@ -133,6 +133,49 @@ class PlannerTest {
     }
 
     @Test
+    fun `what just happened reaches the prompt, and the next block skips the card that just ended`() {
+        val request = PlanRequest(Intent.NextBlock, null, starter, context = "The 25-minute timer on \"Press Focus 25\" just finished.")
+        assertTrue("What just happened: The 25-minute timer on \"Press Focus 25\" just finished." in Prompt.user(request))
+        val plan = BuiltInPlanner().plan(request)
+        val timer = plan.steps.first { it["op"]?.jsonPrimitive?.content == "start_timer" }
+        assertEquals("c5", timer["card"]?.jsonPrimitive?.content, "not c6, the card whose block just ended")
+        assertTrue(planner(Scripted(ModelPlan("Tidy already.", emptyList()))).plan(PlanRequest(Intent.Regroup, null, starter)).ok, "regroup may change nothing")
+    }
+
+    @Test
+    fun `guardrails - an unfinished card never goes to Done, and a replan starts no timers`() {
+        val now = clock.millis().toDouble()
+        val ws = (
+            WorkspaceEngine.applyAll(
+                Workspace(),
+                listOf(Op.CreateBoard("Today", cards = listOf(NewCard("Write report", column = "Doing", minutes = 120), NewCard("Call Ana", minutes = 15)))),
+                now - 25 * 60_000,
+            ) as EngineResult.Success
+            ).state
+        val next = PlanRequest(Intent.NextBlock, null, ws, context = "The 25-minute timer on \"Write report\" just finished.")
+        assertTrue("\"Write report\" has used 25 of its 120 estimated minutes" in Prompt.user(next, now, Guardrails.facts(next, now).lines))
+
+        val model = Scripted(
+            ModelPlan("Done.", steps("""[{"op":"move_card","card":"Write report","column":"Done","why":"Timer ended"}]""")),
+            ModelPlan("Break.", steps("""[{"op":"start_timer","minutes":5,"label":"Break","why":"Rest"}]""")),
+        )
+        val response = planner(model).plan(next)
+        assertTrue(response.ok)
+        assertEquals(2, response.attempts)
+        assertTrue(model.feedback[1]!!.contains("is not finished"), model.feedback[1])
+
+        val replanModel = Scripted(
+            ModelPlan("x", steps("""[{"op":"start_timer","minutes":25,"card":"Call Ana","why":"x"}]""")),
+            ModelPlan("y", steps("""[{"op":"update_card","card":"Call Ana","priority":"high","why":"Quick win first"}]""")),
+        )
+        planner(replanModel).plan(PlanRequest(Intent.Replan, null, ws, context = "\"Write report\" is running over."))
+        assertTrue(replanModel.feedback[1]!!.contains("never starts timers"), replanModel.feedback[1])
+
+        val offline = planner { _, _, _ -> throw AiUnavailableException("The AI service is busy") }.plan(next)
+        assertEquals("Break", offline.steps.single().op["label"]?.jsonPrimitive?.content, "the built-in planner also suggests the break")
+    }
+
+    @Test
     fun `summarise needs no steps`() {
         val response = planner(Scripted(ModelPlan("Two open cards.", emptyList()))).plan(request(Intent.Summarise, null))
         assertTrue(response.ok)

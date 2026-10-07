@@ -27,4 +27,7 @@ Recipes by intent:
 - focus: move the most important open card to "Doing" if it is not there, start_timer 25 on it, then arrange_space focus.
 - clear done: one clear_done step per board with cards in its last column.
 - summarise: steps is empty. The summary says in two sentences what is on the user's plate and what to do next.
+- next block: a focus timer just ended (see "What just happened"). The card is finished only if the user said so or its estimate is used up (compare "in progress" with its minutes). Finished: move it to the last column, move the next most important open card to "Doing" and start_timer 25 on it. Not finished: start_timer 5 with label "Break" and nothing else (the user continues after the break). Never more than three steps.
+- replan: something changed (see "What just happened"): adjust the rest of the day with the fewest moves: reorder with move_card index, move cards between the first two columns, update_card estimates or priority. Never move a card to the last column, never start timers, never create boards. At most five steps.
+- regroup: give each board one clear theme by moving cards between boards (move_card with board), then focus_board the main one. You cannot delete boards. If the boards are already tidy, steps is empty and the summary says so.
 - anything else: do what the user asks with the fewest steps.

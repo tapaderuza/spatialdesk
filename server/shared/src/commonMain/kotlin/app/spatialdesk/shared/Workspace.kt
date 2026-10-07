@@ -21,8 +21,18 @@ enum class Priority {
     @SerialName("high") High,
 }
 
+/**
+ * [since] is when the card entered its current column (epoch ms; null in saves from before it existed): it lets the
+ * agent notice work running over its estimate.
+ */
 @Serializable
-data class Card(val id: String, val title: String, val minutes: Int? = null, val priority: Priority = Priority.Normal)
+data class Card(
+    val id: String,
+    val title: String,
+    val minutes: Int? = null,
+    val priority: Priority = Priority.Normal,
+    val since: Double? = null,
+)
 
 @Serializable
 data class Column(val id: String, val title: String, val cards: List<Card> = emptyList())

@@ -154,8 +154,19 @@ class WorkspaceTest {
     fun `update_card changes priority, estimate and title in place`() {
         val ws = Workspace().run(today, Op.UpdateCard("review pr", priority = Priority.High, minutes = 30, title = "Review PR 42"))
         val card = ws.boards.single().columns.first { it.title == "Doing" }.cards.single()
-        assertEquals(Card("c6", "Review PR 42", 30, Priority.High), card)
+        assertEquals(Card("c6", "Review PR 42", 30, Priority.High, since = now), card)
         assertTrue("estimate" in ws.refuse(Op.UpdateCard("Review PR 42", minutes = 0)).error)
+    }
+
+    @Test
+    fun `a card's clock starts when it enters a column, and survives reordering`() {
+        var ws = Workspace().run(today)
+        val since = { title: String -> ws.boards.single().columns.flatMap { it.cards }.first { it.title == title }.since }
+        assertEquals(now, since("Write report"))
+        ws = ws.run(Op.MoveCard("Write report", column = "Doing"), at = now + 60_000)
+        assertEquals(now + 60_000, since("Write report"), "a new column restarts it")
+        ws = ws.run(Op.MoveCard("Write report", column = "Doing", index = 0), at = now + 120_000)
+        assertEquals(now + 60_000, since("Write report"), "reordering keeps it")
     }
 
     @Test

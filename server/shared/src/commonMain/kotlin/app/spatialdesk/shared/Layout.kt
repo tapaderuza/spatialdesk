@@ -25,6 +25,9 @@ object Layout {
     const val BOARD_HEIGHT = 0.5
     const val TIMER_WIDTH = 0.24
     const val TIMER_HEIGHT = 0.16
+    /** The command panel keeps its natural UIKit size (public/ui/command.uikitml); these bound it for layout checks. */
+    const val COMMAND_WIDTH = 0.36
+    const val COMMAND_HEIGHT = 0.64
 
     private class Slot(val yawDeg: Double, val distance: Double, val dy: Double)
 

@@ -95,7 +95,7 @@ object WorkspaceEngine {
                 val column = card.column?.let { board.column(it) } ?: board.columns.first()
                 val (next, cardId) = newId(ws, "c")
                 ws = next
-                board = board.withCard(column.id, Card(cardId, cleanText(card.title, "A card title"), checkMinutes(card.minutes), card.priority), null)
+                board = board.withCard(column.id, Card(cardId, cleanText(card.title, "A card title"), checkMinutes(card.minutes), card.priority, nowMs), null)
             }
 
             if (!makeFocus) return ws.copy(boards = ws.boards + board)
@@ -111,7 +111,7 @@ object WorkspaceEngine {
             val title = cleanText(op.title, "A card title")
             val minutes = checkMinutes(op.minutes)
             val (ws, cardId) = newId(start, "c")
-            return ws.replaceBoard(board.withCard(column.id, Card(cardId, title, minutes, op.priority), op.index))
+            return ws.replaceBoard(board.withCard(column.id, Card(cardId, title, minutes, op.priority, nowMs), op.index))
         }
 
         private fun updateCard(ws: Workspace, op: Op.UpdateCard): Workspace {
@@ -135,7 +135,9 @@ object WorkspaceEngine {
             val target = op.board?.let { ws.board(it) } ?: ws.boards[from.board]
             val column = target.column(op.column)
             val without = ws.withoutCard(from)
-            return without.replaceBoard(without.board(target.id).withCard(column.id, card, op.index))
+            // Reordering within a column keeps the clock; a new column starts it again.
+            val moved = if (ws.boards[from.board].columns[from.column].id == column.id) card else card.copy(since = nowMs)
+            return without.replaceBoard(without.board(target.id).withCard(column.id, moved, op.index))
         }
 
         private fun clearDone(ws: Workspace, op: Op.ClearDone): Workspace {
