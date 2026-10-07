@@ -140,6 +140,7 @@ function describe(op: Op | undefined): string {
   switch (op?.op) {
     case 'create_board': return 'new board';
     case 'add_card': return 'new card';
+    case 'update_card': return 'edit card';
     case 'move_card': return 'move card';
     case 'remove_card': return 'remove card';
     case 'clear_done': return 'clear done';

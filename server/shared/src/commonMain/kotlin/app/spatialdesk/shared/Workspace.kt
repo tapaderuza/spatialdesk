@@ -108,6 +108,17 @@ sealed class Op {
         val index: Int? = null,
     ) : Op()
 
+    /** Retitles or re-estimates a card, or changes its priority (the agent's "prioritise"). */
+    @Serializable
+    @SerialName("update_card")
+    data class UpdateCard(
+        val card: String,
+        val board: String? = null,
+        val title: String? = null,
+        val minutes: Int? = null,
+        val priority: Priority? = null,
+    ) : Op()
+
     @Serializable
     @SerialName("move_card")
     data class MoveCard(val card: String, val column: String, val board: String? = null, val index: Int? = null) : Op()

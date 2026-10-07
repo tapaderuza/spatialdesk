@@ -151,6 +151,14 @@ class WorkspaceTest {
     }
 
     @Test
+    fun `update_card changes priority, estimate and title in place`() {
+        val ws = Workspace().run(today, Op.UpdateCard("review pr", priority = Priority.High, minutes = 30, title = "Review PR 42"))
+        val card = ws.boards.single().columns.first { it.title == "Doing" }.cards.single()
+        assertEquals(Card("c6", "Review PR 42", 30, Priority.High), card)
+        assertTrue("estimate" in ws.refuse(Op.UpdateCard("Review PR 42", minutes = 0)).error)
+    }
+
+    @Test
     fun `clear_done empties only the last column`() {
         val ws = Workspace().run(today, Op.ClearDone())
         assertEquals(emptyList(), ws.titles("Today", "Done"))

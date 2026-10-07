@@ -37,6 +37,7 @@ object WorkspaceEngine {
         fun apply(ws: Workspace, op: Op): Workspace = when (op) {
             is Op.CreateBoard -> createBoard(ws, op)
             is Op.AddCard -> addCard(ws, op)
+            is Op.UpdateCard -> updateCard(ws, op)
             is Op.MoveCard -> moveCard(ws, op)
             is Op.RemoveCard -> ws.withoutCard(ws.locateCard(op.card, op.board))
             is Op.ClearDone -> clearDone(ws, op)
@@ -111,6 +112,21 @@ object WorkspaceEngine {
             val minutes = checkMinutes(op.minutes)
             val (ws, cardId) = newId(start, "c")
             return ws.replaceBoard(board.withCard(column.id, Card(cardId, title, minutes, op.priority), op.index))
+        }
+
+        private fun updateCard(ws: Workspace, op: Op.UpdateCard): Workspace {
+            val at = ws.locateCard(op.card, op.board)
+            val board = ws.boards[at.board]
+            val card = board.columns[at.column].cards[at.card]
+            val updated = card.copy(
+                title = op.title?.let { cleanText(it, "A card title") } ?: card.title,
+                minutes = op.minutes?.let { checkMinutes(it) } ?: card.minutes,
+                priority = op.priority ?: card.priority,
+            )
+            val columns = board.columns.mapIndexed { c, column ->
+                if (c != at.column) column else column.copy(cards = column.cards.mapIndexed { i, k -> if (i == at.card) updated else k })
+            }
+            return ws.replaceBoard(board.copy(columns = columns))
         }
 
         private fun moveCard(ws: Workspace, op: Op.MoveCard): Workspace {

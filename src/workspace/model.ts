@@ -66,6 +66,7 @@ export interface NewCard {
 export type Op =
   | { op: 'create_board'; title: string; columns?: string[]; cards?: NewCard[]; focus?: boolean }
   | { op: 'add_card'; board: string; title: string; column?: string; minutes?: number; priority?: Priority; index?: number }
+  | { op: 'update_card'; card: string; board?: string; title?: string; minutes?: number; priority?: Priority }
   | { op: 'move_card'; card: string; column: string; board?: string; index?: number }
   | { op: 'remove_card'; card: string; board?: string }
   | { op: 'clear_done'; board?: string }

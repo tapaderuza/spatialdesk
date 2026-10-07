@@ -20,3 +20,12 @@ spatialdesk:
   sessions:
     max-active: 500
     per-ip-per-hour: 30
+  # The planning agent: Amazon Nova on Bedrock with forced tool use; every plan is validated by the shared
+  # engine before the headset sees it. Quotas bound the Bedrock bill for the whole competition.
+  agent:
+    mode: ${SPATIALDESK_AGENT_MODE:bedrock}
+    model: ${SPATIALDESK_AGENT_MODEL:us.amazon.nova-2-lite-v1:0}
+    region: us-east-1
+    per-session-per-hour: 20
+    per-day: 300
+    timeout-seconds: 8

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.spring.boot)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -20,6 +21,10 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.jackson.module.kotlin)
     implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.serialization.json) // the agent speaks the shared module's JSON
+    // The planning agent: Amazon Nova on Bedrock (Converse API, forced tool use).
+    implementation(platform(libs.aws.sdk.bom))
+    implementation(libs.aws.sdk.bedrockruntime)
     testImplementation(libs.spring.boot.starter.test)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
