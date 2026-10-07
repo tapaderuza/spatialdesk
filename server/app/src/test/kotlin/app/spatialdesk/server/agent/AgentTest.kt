@@ -71,6 +71,7 @@ class PlannerTest {
         assertTrue(response.ok, response.error)
         assertEquals("test-model", response.source)
         assertEquals(1, response.attempts)
+        assertEquals("true", response.steps[0].op["focus"]?.jsonPrimitive?.content, "the board the agent creates comes within reach")
         assertEquals("Today", response.steps[1].op["board"]?.jsonPrimitive?.content)
         assertEquals("25", response.steps[2].op["minutes"]?.jsonPrimitive?.content)
         val gym = response.steps[0].op["cards"]!!.jsonArray[1].jsonObject

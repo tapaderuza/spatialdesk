@@ -33,6 +33,8 @@ object Layout {
     private val FAR = listOf(Slot(-85.0, 2.4, 0.2), Slot(-85.0, 2.6, 1.1), Slot(115.0, 2.4, 0.2))
     private val TIMERS = listOf(Slot(0.0, 0.66, 0.24), Slot(-23.0, 0.66, 0.24), Slot(23.0, 0.66, 0.24))
     private val COMMAND = Slot(50.0, 0.55, -0.24)
+    /** The agent's plan preview: a modal card in front of the focus board, gone once applied or discarded. */
+    private val PREVIEW = Slot(0.0, 0.5, -0.05)
 
     val parkedSlots: Int get() = PARKED.size
     val timerSlots: Int get() = TIMERS.size
@@ -47,6 +49,8 @@ object Layout {
     fun timer(anchor: Pose, index: Int): Pose = place(anchor, TIMERS[index.mod(TIMERS.size)])
 
     fun command(anchor: Pose): Pose = place(anchor, COMMAND)
+
+    fun preview(anchor: Pose): Pose = place(anchor, PREVIEW)
 
     /** Slot [distance] metres from the eyes along [Slot.yawDeg], turned and tilted to face them. */
     private fun place(anchor: Pose, slot: Slot): Pose {

@@ -15,6 +15,7 @@
   .buttons { flex-direction: row; gap: 1; }
   .btn { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .chips-title { margin-bottom: -0.4; font-size: 1.4; font-weight: 700; color: #9cc3ff; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
 </style>
 <div id="command-root" class="root">
@@ -25,13 +26,18 @@
   </div>
   <div id="status-detail" class="detail">-</div>
   <div id="notice" class="notice">Tap a card to pick it up, then tap where it goes.</div>
+  <div class="chips-title">Ask the AI</div>
   <div class="buttons">
-    <div id="arrange-button" class="btn"><div class="label">Bring to me</div></div>
-    <div id="focus-button" class="primary"><div class="label">Focus 25</div></div>
+    <div id="plan-button" class="primary"><div class="label">Plan my day</div></div>
+    <div id="prioritise-button" class="primary"><div class="label">Prioritise</div></div>
   </div>
   <div class="buttons">
-    <div id="undo-button" class="btn"><div id="undo-label" class="label">Undo</div></div>
+    <div id="focus-button" class="btn"><div class="label">Focus 25</div></div>
     <div id="clear-button" class="btn"><div class="label">Clear done</div></div>
+  </div>
+  <div class="buttons">
+    <div id="arrange-button" class="btn"><div class="label">Bring to me</div></div>
+    <div id="undo-button" class="btn"><div id="undo-label" class="label">Undo</div></div>
   </div>
   <div class="buttons">
     <div id="xr-button" class="primary"><div class="label">Enter workspace</div></div>

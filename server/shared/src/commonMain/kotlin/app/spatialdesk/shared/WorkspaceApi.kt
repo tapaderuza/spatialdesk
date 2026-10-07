@@ -60,6 +60,12 @@ object Workspaces {
         return WorkspaceJson.encodeToString(Pose.serializer(), Layout.command(anchor))
     }
 
+    /** Where the agent's plan preview goes for this workspace's anchor. */
+    fun previewPose(stateJson: String): String {
+        val anchor = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson).anchor }.getOrDefault(Layout.DEFAULT_ANCHOR)
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.preview(anchor))
+    }
+
     private fun encode(ws: Workspace): String = WorkspaceJson.encodeToString(Workspace.serializer(), ws)
 
     private fun result(r: ApplyResult): String = WorkspaceJson.encodeToString(ApplyResult.serializer(), r)

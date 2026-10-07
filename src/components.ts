@@ -1,4 +1,4 @@
 import { defineComponents } from '@iwsdk/core';
-import { PinnedHandle, PinnedItem } from './workspace/components.js';
+import { AgentPanel, PinnedHandle, PinnedItem } from './workspace/components.js';
 
-export default defineComponents([PinnedItem, PinnedHandle]);
+export default defineComponents([PinnedItem, PinnedHandle, AgentPanel]);

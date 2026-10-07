@@ -17,6 +17,18 @@ export type LinkState =
 
 const CLOSE_UNKNOWN_SESSION = 4404;
 
+let active: BackendLink | null = null;
+
+/** The live session id, for HTTP calls that need one (the agent); null while connecting or offline. */
+export function activeSession(): string | null {
+  return active?.session ?? null;
+}
+
+/** The server no longer knows our session (it restarted): drop it, and the link reconnects with a fresh one. */
+export function forgetActiveSession(): void {
+  active?.forgetSession();
+}
+
 export class BackendLink {
   readonly clock = new ClockSync(8);
   private socket: WebSocket | null = null;
@@ -29,10 +41,21 @@ export class BackendLink {
   constructor(private readonly onState: (state: LinkState) => void, private readonly base = location.origin) {}
 
   start(): void {
+    active = this;
     void this.connect();
   }
 
+  get session(): string | null {
+    return this.sessionId;
+  }
+
+  forgetSession(): void {
+    this.sessionId = null;
+    this.socket?.close(1000);
+  }
+
   stop(): void {
+    if (active === this) active = null;
     this.stopped = true;
     window.clearTimeout(this.pingTimer);
     this.socket?.close(1000);

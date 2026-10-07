@@ -1,10 +1,12 @@
-import { createSystem, UIKitMLAsset, Vector3, VisibilityState, type UIKit } from '@iwsdk/core';
+import { createSystem, UIKitMLAsset, VisibilityState, type UIKit } from '@iwsdk/core';
 import { Workspaces } from 'spatialdesk-shared';
+import { AgentSystem } from './agent/agent-system.js';
 import { BackendLink, type LinkState } from './backend/link.js';
 import { PanelHits } from './ui/panel-hits.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
 import { workspace, type Notice } from './workspace/store.js';
+import { viewerPose } from './workspace/viewer.js';
 
 const engine = Workspaces.getInstance();
 
@@ -27,8 +29,6 @@ export class PanelSystem extends createSystem({}) {
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
   private placeFrames = 0;
   private anchorCheckFrames = 0;
-  private readonly eye = new Vector3();
-  private readonly forward = new Vector3();
 
   init(): void {
     const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
@@ -67,8 +67,11 @@ export class PanelSystem extends createSystem({}) {
     const xrButton = element('xr-button');
     const exitButton = element('exit-button');
     const buttons: Record<string, { element: UIKit.Text | null; base: string; action: () => void }> = {
+      // Intent chips: the AI ones open a plan to review; Focus 25 and Clear done act at once (no AI needed).
+      plan: { element: element('plan-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('plan_my_day') },
+      prioritise: { element: element('prioritise-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('prioritise') },
       arrange: { element: element('arrange-button'), base: BUTTON.base, action: () => this.bringToMe() },
-      focus: { element: element('focus-button'), base: BUTTON.primary, action: () => this.focus25() },
+      focus: { element: element('focus-button'), base: BUTTON.base, action: () => this.focus25() },
       undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() },
       clear: {
         element: element('clear-button'),
@@ -113,16 +116,8 @@ export class PanelSystem extends createSystem({}) {
     if (this.anchorCheckFrames > 0 && --this.anchorCheckFrames === 0) this.reanchorIfFar();
   }
 
-  /**
-   * The user's eye pose (yaw only): what "bring everything to me" arranges around. In the browser the camera is a
-   * preview camera behind the user, so the layout keeps the default anchor it was designed around.
-   */
-  viewerPose(): Pose {
-    if (this.world.visibilityState.value === VisibilityState.NonImmersive) return { x: 0, y: 1.6, z: 0, yaw: 0, pitch: 0 };
-    const camera = this.world.camera;
-    camera.getWorldPosition(this.eye);
-    camera.getWorldDirection(this.forward);
-    return { x: this.eye.x, y: this.eye.y, z: this.eye.z, yaw: Math.atan2(-this.forward.x, -this.forward.z), pitch: 0 };
+  private viewerPose(): Pose {
+    return viewerPose(this.world);
   }
 
   private bringToMe(): void {

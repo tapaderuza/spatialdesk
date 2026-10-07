@@ -11,3 +11,6 @@ export const PinnedItem = createComponent('PinnedItem', {
 export const PinnedHandle = createComponent('PinnedHandle', {
   item: { type: Types.String, default: '' },
 });
+
+/** The agent's plan preview panel (one per world). */
+export const AgentPanel = createComponent('AgentPanel', {});

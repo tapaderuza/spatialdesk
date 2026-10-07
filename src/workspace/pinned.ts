@@ -133,7 +133,7 @@ export class PinnedPanel {
   setHandleVisible(visible: boolean): void {
     const bar = this.handle.object3D! as Object3D & { pointerEvents?: string };
     bar.visible = visible;
-    bar.pointerEvents = visible ? 'auto' : 'none';
+    bar.pointerEvents = visible ? undefined : 'none';
   }
 
   dispose(): void {

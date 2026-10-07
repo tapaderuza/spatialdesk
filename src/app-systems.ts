@@ -1,4 +1,5 @@
 import type { World } from '@iwsdk/core';
+import { AgentSystem } from './agent/agent-system.js';
 import { PanelSystem } from './panel.js';
 import { BoardSystem } from './workspace/boards.js';
 import { PinnedSystem } from './workspace/pinned.js';
@@ -11,4 +12,4 @@ import { TimerSystem } from './workspace/timers.js';
  */
 type SystemClass = Parameters<World['registerSystem']>[0];
 
-export const APP_SYSTEMS: readonly SystemClass[] = [PinnedSystem, BoardSystem, TimerSystem, PanelSystem];
+export const APP_SYSTEMS: readonly SystemClass[] = [PinnedSystem, BoardSystem, TimerSystem, AgentSystem, PanelSystem];

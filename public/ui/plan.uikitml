@@ -1,0 +1,40 @@
+<!--
+  The agent's plan, shown before anything changes. Centimetres at real size (44 x 50 cm), placed half a metre in
+  front of the user like a card handed over. Five step rows (the rest summarised), the source (Amazon Nova or the
+  built-in planner, never blurred), and Apply / Discard at 7 cm tall. Hover is painted by src/agent/agent-system.ts.
+-->
+<style>
+  .root { flex-direction: column; width: 44; height: 50; padding-top: 2; padding-bottom: 2; padding-left: 2; padding-right: 2; gap: 0.8; background-color: #15181e; border-radius: 2.4; border-width: 0.4; border-color: #5b8def; }
+  .header { flex-direction: row; align-items: center; justify-content: space-between; height: 3.4; }
+  .title { font-size: 2.4; font-weight: 700; color: #eef1f5; }
+  .source { flex-shrink: 1; margin-left: 1; font-size: 1.4; color: #9cc3ff; }
+  .summary { height: 6.4; font-size: 1.7; color: #eef1f5; overflow: hidden; }
+  .steps { flex-direction: column; gap: 0.5; height: 21; }
+  .step { flex-direction: column; justify-content: center; height: 3.8; padding-left: 1.2; padding-right: 1.2; border-radius: 1; background-color: #1d222a; overflow: hidden; }
+  .step-title { font-size: 1.5; font-weight: 700; color: #eef1f5; }
+  .step-why { font-size: 1.3; color: #b9c2cf; }
+  .note { height: 2.4; font-size: 1.4; color: #f2b84b; }
+  .buttons { flex-direction: row; gap: 1.2; height: 7; }
+  .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
+  .primary { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
+</style>
+<div id="plan-root" class="root">
+  <div class="header">
+    <div id="plan-title" class="title">AI plan</div>
+    <div id="plan-source" class="source">Amazon Nova</div>
+  </div>
+  <div id="plan-summary" class="summary">Planning...</div>
+  <div class="steps">
+    <div id="step-0" class="step"><div id="step-0-title" class="step-title">Step</div><div id="step-0-why" class="step-why">Why</div></div>
+    <div id="step-1" class="step"><div id="step-1-title" class="step-title">Step</div><div id="step-1-why" class="step-why">Why</div></div>
+    <div id="step-2" class="step"><div id="step-2-title" class="step-title">Step</div><div id="step-2-why" class="step-why">Why</div></div>
+    <div id="step-3" class="step"><div id="step-3-title" class="step-title">Step</div><div id="step-3-why" class="step-why">Why</div></div>
+    <div id="step-4" class="step"><div id="step-4-title" class="step-title">Step</div><div id="step-4-why" class="step-why">Why</div></div>
+  </div>
+  <div id="plan-note" class="note"></div>
+  <div class="buttons">
+    <div id="plan-apply" class="primary"><div id="plan-apply-label" class="label">Apply</div></div>
+    <div id="plan-discard" class="btn"><div id="plan-discard-label" class="label">Discard</div></div>
+  </div>
+</div>

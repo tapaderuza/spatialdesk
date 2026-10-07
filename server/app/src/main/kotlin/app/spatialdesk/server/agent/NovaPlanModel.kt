@@ -117,6 +117,7 @@ class NovaPlanModel(private val bedrock: BedrockRuntimeClient, private val model
                   "board": {"type": "string"},
                   "title": {"type": "string"},
                   "columns": {"type": "array", "items": {"type": "string"}},
+                  "focus": {"type": "boolean", "description": "create_board only: bring the new board within reach."},
                   "cards": {"type": "array", "items": {"type": "object", "properties": {
                     "title": {"type": "string"}, "column": {"type": "string"}, "minutes": {"type": "integer"},
                     "priority": {"type": "string", "enum": ["low", "normal", "high"]}

@@ -172,6 +172,7 @@ class Planner(
 class Normaliser(private val workspace: Workspace) {
     fun normalise(steps: List<JsonObject>): List<Pair<JsonObject, String>> {
         var lastBoard: String? = workspace.boards.firstOrNull { it.id == workspace.focusBoardId }?.title
+        var createdOne = false
         return steps.mapNotNull { raw ->
             val why = raw["why"]?.jsonPrimitive?.contentOrNull?.trim().orEmpty().ifEmpty { "Part of the plan" }
             val op = raw["op"]?.jsonPrimitive?.contentOrNull
@@ -179,6 +180,9 @@ class Normaliser(private val workspace: Workspace) {
             when (op) {
                 "create_board" -> {
                     fields["title"]?.jsonPrimitive?.contentOrNull?.let { lastBoard = it }
+                    // The board an agent creates is the one the user works on next: in front, unless it said otherwise.
+                    if (!createdOne && "focus" !in fields) fields["focus"] = JsonPrimitive(true)
+                    createdOne = true
                     (fields["cards"] as? JsonArray)?.let { cards ->
                         fields["cards"] = buildJsonArray {
                             for (card in cards) {

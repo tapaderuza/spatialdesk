@@ -116,6 +116,7 @@ export declare namespace Workspaces {
             load(json: string): Nullable<string>;
             apply(stateJson: string, opsJson: string, nowMs: number, viewerJson: Nullable<string>): string;
             commandPose(stateJson: string): string;
+            previewPose(stateJson: string): string;
             private constructor();
         }
     }
