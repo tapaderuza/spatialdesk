@@ -1,0 +1,21 @@
+<!--
+  SpatialDesk timer, pinned in space. Centimetres; the app sizes the document to 24 x 16 cm. Three buttons of
+  at least 6.4 x 6.2 cm (ROADMAP heuristic A). Done state: the app flashes the background and sounds a chime.
+-->
+<style>
+  .timer { flex-direction: column; width: 24; height: 16; padding-top: 1.2; padding-bottom: 1.2; padding-left: 1.2; padding-right: 1.2; gap: 0.5; border-radius: 2; background-color: #15181e; border-width: 0.3; border-color: #2c333d; }
+  .label { height: 2; font-size: 1.7; color: #b9c2cf; }
+  .time { height: 4.4; font-size: 4.2; font-weight: 700; color: #eef1f5; }
+  .buttons { flex-direction: row; height: 6.2; gap: 0.8; }
+  .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; cursor: pointer; }
+  .btn-label { font-size: 1.8; font-weight: 600; color: #eef1f5; }
+</style>
+<div id="timer" class="timer">
+  <div id="label" class="label">Focus</div>
+  <div id="time" class="time">25:00</div>
+  <div class="buttons">
+    <div id="toggle" class="btn"><div id="toggle-label" class="btn-label">Pause</div></div>
+    <div id="add" class="btn"><div class="btn-label">+5</div></div>
+    <div id="dismiss" class="btn"><div class="btn-label">Close</div></div>
+  </div>
+</div>

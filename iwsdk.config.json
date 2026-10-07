@@ -24,20 +24,22 @@
       "far": 200,
       "camera": {
         "position": [
-          -4,
-          1.5,
-          -6
+          0,
+          1.62,
+          0.42
         ],
         "lookAt": [
           0,
-          1.1,
-          -1.8
+          1.42,
+          -0.9
         ]
       }
     },
     "features": {
       "locomotion": false,
-      "grabbing": true,
+      "grabbing": {
+        "useHandPinchForGrab": true
+      },
       "physics": false,
       "sceneUnderstanding": false,
       "environmentRaycast": false,

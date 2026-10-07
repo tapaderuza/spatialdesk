@@ -56,11 +56,11 @@
       },
       "transform": {
         "position": [
-          0,
-          1.35,
-          -0.75
+          -0.421,
+          1.36,
+          -0.354
         ],
-        "scale": 0.5
+        "scale": 1
       },
       "components": {
         "RayInteractable": {},
@@ -69,7 +69,8 @@
           "left": "20px",
           "width": "30vw",
           "height": "45%"
-        }
+        },
+        "PokeInteractable": {}
       }
     }
   ]

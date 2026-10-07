@@ -1,4 +1,4 @@
 import { defineComponents } from '@iwsdk/core';
+import { PinnedHandle, PinnedItem } from './workspace/components.js';
 
-// SpatialDesk components (Board, Card, Timer, Agent) are added here as the workspace grows.
-export default defineComponents([]);
+export default defineComponents([PinnedItem, PinnedHandle]);

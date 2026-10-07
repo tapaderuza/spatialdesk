@@ -100,3 +100,23 @@ export declare namespace Protocol {
         }
     }
 }
+export declare abstract class Workspaces {
+    static readonly getInstance: () => typeof Workspaces.$metadata$.type;
+    private constructor();
+}
+export declare namespace Workspaces {
+    /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+    namespace $metadata$ {
+        abstract class type extends KtSingleton<constructor>() {
+            private constructor();
+        }
+        abstract class constructor {
+            get schema(): number;
+            empty(): string;
+            load(json: string): Nullable<string>;
+            apply(stateJson: string, opsJson: string, nowMs: number, viewerJson: Nullable<string>): string;
+            commandPose(stateJson: string): string;
+            private constructor();
+        }
+    }
+}
