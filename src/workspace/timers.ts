@@ -27,6 +27,9 @@ const COLOR = {
 
 type Element = UIKit.Text;
 
+/** Told when a running timer reaches zero (the agent suggests what comes next). */
+export const timerFinishedListeners = new Set<(timer: Timer) => void>();
+
 class TimerView {
   readonly pinned: PinnedPanel;
   readonly cleanups: (() => void)[] = [];
@@ -194,6 +197,7 @@ export class TimerSystem extends createSystem({}) {
     this.toTimer.set(timer.pose.x, timer.pose.y, timer.pose.z).sub(this.head).normalize();
     this.right.set(1, 0, 0).applyQuaternion(this.headRotation);
     chime(Math.max(-1, Math.min(1, this.toTimer.dot(this.right))));
+    for (const listener of timerFinishedListeners) listener(timer);
   }
 }
 

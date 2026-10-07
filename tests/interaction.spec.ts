@@ -343,3 +343,65 @@ test('AI plan: chip, preview card, apply as one undo step, discard leaves everyt
   expect(await page.evaluate(() => (window as Win).__workspace.state.boards.length)).toBe(2);
   expect(errors).toEqual([]);
 });
+
+const nova = (summary: string, steps: unknown[]) => ({ ok: true, summary, steps, source: 'us.amazon.nova-2-lite-v1:0', latencyMs: 900, attempts: 1 });
+
+test('explainable agent: undo one step and what depended on it, past later changes; own suggestions; nudges', async ({ page }) => {
+  const requests: any[] = [];
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
+  await page.route('**/api/agent/plan', async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    if (body.intent === 'plan_my_day') return route.fulfill({ json: PLAN });
+    if (body.intent === 'next_block') return route.fulfill({ json: nova('A short break.', [{ op: { op: 'start_timer', minutes: 5, label: 'Break' }, why: 'Rest after the block' }]) });
+    if (body.intent === 'replan') return route.fulfill({ json: nova('Quick win first.', [{ op: { op: 'move_card', card: 'Long task', column: 'Someday', index: 0 }, why: 'Park it for now' }]) });
+    return route.fulfill({ status: 400, json: { ok: false, error: `unexpected ${body.intent}` } });
+  });
+  const errors = await openWorkspace(page);
+  const phase = (p: string) => page.waitForFunction((want) => (window as Win).__agent.state.phase === want, p, { timeout: 20_000 });
+  const ws = () => page.evaluate(() => (window as Win).__workspace.state);
+
+  // An AI plan, then a change by hand after it.
+  await tap(page, 'command:plan-button');
+  await phase('preview');
+  await tap(page, 'agent:plan-apply');
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'add_card', board: 'Ideas', title: 'Later idea' }));
+
+  // The notice line opens "what the AI did"; undoing step 1 (the board) also undoes step 2 (its timer).
+  await tap(page, 'command:notice');
+  await phase('log');
+  await tap(page, 'agent:step-0-undo');
+  let state = await ws();
+  expect(state.boards.map((b: any) => b.title)).toEqual(['Getting started', 'Ideas']);
+  expect(state.timers.length).toBe(0);
+  expect(state.boards[1].columns[0].cards.map((c: any) => c.title)).toContain('Later idea'); // the later hand change survives
+  expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Also undone, as it depended on it');
+  expect(await page.evaluate(() => (window as Win).__agent.state.action.steps.map((s: any) => s.undone))).toEqual([true, true, false]);
+
+  // Undo the rest of the plan; nothing of it is left, so the card closes.
+  await tap(page, 'agent:plan-apply');
+  await phase('idle');
+  expect(await page.evaluate(() => (window as Win).__workspace.agentActions().length)).toBe(0);
+
+  // A timer ends: the agent suggests the next block on its own, and only shows the card once it is ready.
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 0.1, label: 'Deep work' }));
+  await phase('suggestion');
+  const next = requests[requests.length - 1];
+  expect(next.intent).toBe('next_block');
+  expect(next.context).toContain('"Deep work" just finished');
+  await tap(page, 'agent:plan-apply');
+  state = await ws();
+  expect(state.timers.map((t: any) => `${t.label} ${t.state}`)).toEqual(['Deep work done', 'Break running']);
+
+  // Work running over its estimate: a nudge waits on the notice line; one tap takes it to the agent.
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'add_card', board: 'Ideas', column: 'Next', title: 'Long task', minutes: 30 }));
+  const nudge = await page.evaluate(() => (window as Win).__agent.watch(Date.now() + 3 * 3600_000));
+  expect(nudge.intent).toBe('replan');
+  await tap(page, 'command:notice');
+  await phase('preview');
+  const replan = requests[requests.length - 1];
+  expect(replan.intent).toBe('replan');
+  expect(replan.context).toContain('"Long task" is running over');
+  await tap(page, 'agent:plan-discard');
+  expect(errors).toEqual([]);
+});

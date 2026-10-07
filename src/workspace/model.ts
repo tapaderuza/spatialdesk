@@ -17,6 +17,8 @@ export interface Card {
   title: string;
   minutes?: number;
   priority: Priority;
+  /** When the card entered its current column (epoch ms). */
+  since?: number;
 }
 
 export interface Column {

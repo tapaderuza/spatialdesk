@@ -14,6 +14,8 @@ const engine = Workspaces.getInstance();
 const COLORS = { online: '#5ee0a0', connecting: '#f2b84b', offline: '#ff8a7a' } as const;
 const BUTTON = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff' } as const;
 const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
+// The notice line: amber text and border while the agent has a nudge waiting there.
+const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
 const IDLE_NOTICE = 'Tap a card to pick it up, then tap where it goes.';
 const NOTICE_MS = 8000;
 /** Entering XR this far from the stored anchor re-arranges the workspace around the user. */
@@ -49,6 +51,17 @@ export class PanelSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => this.link?.stop());
 
     this.cleanupFuncs.push(workspace.onNotice((n) => this.showNotice(n, notice)));
+    // The agent's nudges ("X is running over") wait on the notice line, in amber, until tapped or replaced.
+    const agent = this.world.getSystem(AgentSystem);
+    if (agent) {
+      this.cleanupFuncs.push(
+        agent.onNudge((nudge) => {
+          if (!nudge) return;
+          if (this.noticeTimer) clearTimeout(this.noticeTimer);
+          notice?.setProperties({ text: panelText(nudge.text), color: NOTICE.nudge, borderColor: NOTICE.nudge });
+        }),
+      );
+    }
     const paintUndo = () =>
       undoLabel?.setProperties({
         text: workspace.undoLabel ? `Undo ${workspace.undoLabel}` : 'Undo',
@@ -70,6 +83,16 @@ export class PanelSystem extends createSystem({}) {
       // Intent chips: the AI ones open a plan to review; Focus 25 and Clear done act at once (no AI needed).
       plan: { element: element('plan-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('plan_my_day') },
       prioritise: { element: element('prioritise-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('prioritise') },
+      log: { element: element('log-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.openLog() },
+      // The notice line is a control too: a nudge goes to the agent, otherwise it explains what the AI last did.
+      notice: {
+        element: notice,
+        base: NOTICE.base,
+        action: () => {
+          const agent = this.world.getSystem(AgentSystem);
+          if (!agent?.acceptNudge()) agent?.openLog();
+        },
+      },
       arrange: { element: element('arrange-button'), base: BUTTON.base, action: () => this.bringToMe() },
       focus: { element: element('focus-button'), base: BUTTON.base, action: () => this.focus25() },
       undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() },
@@ -162,7 +185,7 @@ export class PanelSystem extends createSystem({}) {
 
   private showNotice(notice: Notice, element: UIKit.Text | null): void {
     (window as unknown as { __notice: Notice }).__notice = notice; // read by the Playwright tests
-    element?.setProperties({ text: panelText(notice.text), color: notice.error ? TEXT.error : TEXT.normal });
+    element?.setProperties({ text: panelText(notice.text), color: notice.error ? TEXT.error : TEXT.normal, borderColor: NOTICE.base });
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
     this.noticeTimer = setTimeout(() => element?.setProperties({ text: IDLE_NOTICE, color: TEXT.dim }), NOTICE_MS);
   }

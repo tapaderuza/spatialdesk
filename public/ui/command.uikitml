@@ -11,7 +11,7 @@
   .dot { width: 1.2; height: 1.2; border-radius: 0.6; background-color: #f2b84b; }
   .status { flex-shrink: 1; font-size: 1.6; font-weight: 700; color: #eef1f5; }
   .detail { font-size: 1.4; color: #b9c2cf; }
-  .notice { min-height: 5; padding-top: 1; padding-bottom: 1; padding-left: 1.2; padding-right: 1.2; border-radius: 1.2; background-color: #1d222a; font-size: 1.6; color: #eef1f5; }
+  .notice { min-height: 6.2; border-width: 0.3; border-color: #1d222a; padding-top: 1; padding-bottom: 1; padding-left: 1.2; padding-right: 1.2; border-radius: 1.2; background-color: #1d222a; font-size: 1.6; color: #eef1f5; }
   .buttons { flex-direction: row; gap: 1; }
   .btn { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
@@ -30,6 +30,7 @@
   <div class="buttons">
     <div id="plan-button" class="primary"><div class="label">Plan my day</div></div>
     <div id="prioritise-button" class="primary"><div class="label">Prioritise</div></div>
+    <div id="log-button" class="btn"><div class="label">AI log</div></div>
   </div>
   <div class="buttons">
     <div id="focus-button" class="btn"><div class="label">Focus 25</div></div>

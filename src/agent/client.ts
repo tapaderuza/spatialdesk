@@ -5,7 +5,7 @@
 import { activeSession, forgetActiveSession } from '../backend/link.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
 
-export type Intent = 'plan_my_day' | 'prioritise' | 'focus' | 'clear_done' | 'summarise' | 'custom';
+export type Intent = 'plan_my_day' | 'prioritise' | 'focus' | 'clear_done' | 'summarise' | 'custom' | 'next_block' | 'replan' | 'regroup';
 
 export interface PlanStep {
   op: Op;
@@ -30,10 +30,11 @@ const OFFLINE: AgentPlan = {
   error: 'The AI needs the command server, which is offline. Your workspace still works by hand.',
 };
 
-export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose): Promise<AgentPlan> {
+/** [context] says what just happened (a timer ended, a card is running over), for the agent's own suggestions. */
+export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string): Promise<AgentPlan> {
   const session = await waitForSession(4000);
   if (!session) return OFFLINE;
-  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer });
+  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context });
   try {
     let res = await post(session, body);
     if (res.status === 401) {

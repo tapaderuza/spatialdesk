@@ -32,17 +32,48 @@ export interface DispatchOptions {
   label?: string;
   /** Shown on the command panel when the change applies. */
   notice?: string;
+  /** An AI plan: recorded with each step's reason, so it can be explained and undone step by step. */
+  agent?: { intent: string; summary: string; source: string; steps: { label: string; why: string }[] };
 }
 
 export type DispatchResult = { ok: true; created: string[] } | { ok: false; error: string; opIndex?: number };
 
-const UNDO_DEPTH = 50;
+/** An applied AI plan, as the "what the AI did" view shows it. */
+export interface AgentAction {
+  id: number;
+  atMs: number;
+  intent: string;
+  summary: string;
+  source: string;
+  steps: { label: string; why: string; undone: boolean }[];
+}
+
+/**
+ * One applied change. The journal keeps every change since load with the state after it, so undo can reach back
+ * past later changes: undoing one step of an earlier AI plan replays everything after it, in order, with the
+ * original clock and viewer; whatever no longer applies (it depended on the undone step) is dropped and named.
+ */
+interface Entry {
+  id: number;
+  ops: Op[];
+  nowMs: number;
+  viewer: string | null;
+  label: string;
+  kind: 'user' | 'system' | 'agent';
+  after: string;
+  agent?: Omit<AgentAction, 'id' | 'atMs'>;
+}
+
+const JOURNAL_DEPTH = 60;
 const SAVE_DELAY_MS = 400;
 
 export class WorkspaceStore {
   private json = engine.empty();
   state: Workspace = JSON.parse(this.json) as Workspace;
-  private readonly undoStack: { json: string; label: string }[] = [];
+  /** State before journal[0]; journal[i].after is the state after entry i. */
+  private base = this.json;
+  private readonly journal: Entry[] = [];
+  private nextEntryId = 1;
   private readonly listeners = new Set<(change: Change) => void>();
   private readonly noticeListeners = new Set<(notice: Notice) => void>();
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -56,10 +87,12 @@ export class WorkspaceStore {
     const valid = saved == null ? null : engine.load(saved);
     if (valid != null) {
       this.replace(valid, 'load', []);
+      this.base = this.json;
       return;
     }
     const seeded = JSON.parse(engine.apply(this.json, JSON.stringify(STARTER), Date.now(), null)) as ApplyResult;
     if (seeded.ok && seeded.state) this.replace(JSON.stringify(seeded.state), 'load', seeded.created);
+    this.base = this.json;
     this.scheduleSave();
   }
 
@@ -72,32 +105,113 @@ export class WorkspaceStore {
       this.notify({ text: error, error: true });
       return { ok: false, error, opIndex: result.opIndex };
     }
-    if (options.undoable !== false) {
-      this.undoStack.push({ json: this.json, label: options.label ?? describe(list[0]) });
-      if (this.undoStack.length > UNDO_DEPTH) this.undoStack.shift();
-    }
-    this.replace(JSON.stringify(result.state), options.undoable === false ? 'system' : 'user', result.created);
+    const after = JSON.stringify(result.state);
+    const kind = options.agent ? 'agent' : options.undoable === false ? 'system' : 'user';
+    this.journal.push({
+      id: this.nextEntryId++,
+      ops: list,
+      nowMs: Date.now(),
+      viewer,
+      label: options.label ?? describe(list[0]),
+      kind,
+      after,
+      agent: options.agent && { ...options.agent, steps: options.agent.steps.map((s) => ({ ...s, undone: false })) },
+    });
+    if (this.journal.length > JOURNAL_DEPTH) this.base = this.journal.shift()!.after;
+    this.replace(after, kind === 'system' ? 'system' : 'user', result.created);
     if (options.notice) this.notify({ text: options.notice, error: false });
     this.scheduleSave();
     return { ok: true, created: result.created };
   }
 
   get canUndo(): boolean {
-    return this.undoStack.length > 0;
+    return this.lastUndoable() >= 0;
   }
 
   /** What the next undo would revert, for the button label. */
   get undoLabel(): string | null {
-    return this.undoStack[this.undoStack.length - 1]?.label ?? null;
+    return this.journal[this.lastUndoable()]?.label ?? null;
   }
 
+  /** Undoes the latest change the user (or the AI on their behalf) made; timers ringing are not undo steps. */
   undo(): boolean {
-    const step = this.undoStack.pop();
-    if (!step) return false;
-    this.replace(step.json, 'undo', []);
-    this.notify({ text: `Undone: ${step.label}`, error: false });
-    this.scheduleSave();
+    const i = this.lastUndoable();
+    if (i < 0) return false;
+    const label = this.journal[i].label;
+    this.rebuild(i, () => null, `Undone: ${label}`);
     return true;
+  }
+
+  /** Applied AI plans, newest first. */
+  agentActions(): AgentAction[] {
+    return this.journal
+      .filter((e) => e.agent)
+      .map((e) => ({ id: e.id, atMs: e.nowMs, ...e.agent! }))
+      .reverse();
+  }
+
+  /** Undoes a whole AI plan, even after later changes (they are replayed on top). */
+  undoAction(id: number): boolean {
+    const i = this.journal.findIndex((e) => e.id === id);
+    if (i < 0) return false;
+    this.rebuild(i, () => null, `Undone: ${this.journal[i].agent?.summary ?? this.journal[i].label}`);
+    return true;
+  }
+
+  /** Undoes one step of an AI plan; steps that depended on it go too, and the notice says which. */
+  undoAgentStep(id: number, step: number): boolean {
+    const i = this.journal.findIndex((e) => e.id === id);
+    const entry = this.journal[i];
+    if (!entry?.agent || !entry.agent.steps[step] || entry.agent.steps[step].undone) return false;
+    const steps = entry.agent.steps.map((s, k) => ({ ...s, undone: s.undone || k === step }));
+    this.rebuild(i, () => ({ ...entry, agent: { ...entry.agent!, steps } }), `Undone: ${entry.agent.steps[step].label}`);
+    return true;
+  }
+
+  private lastUndoable(): number {
+    for (let i = this.journal.length - 1; i >= 0; i--) if (this.journal[i].kind !== 'system') return i;
+    return -1;
+  }
+
+  /**
+   * Replaces journal[i] (or removes it when [change] returns null), then replays every later entry from the state
+   * before it, with each entry's own clock and viewer. AI plans replay step by step, so a step that no longer applies
+   * is marked undone while the rest stays; any other entry that no longer applies is dropped. Both are reported.
+   */
+  private rebuild(i: number, change: (entry: Entry) => Entry | null, notice: string): void {
+    let state = i === 0 ? this.base : this.journal[i - 1].after;
+    const dropped: string[] = [];
+    const replaced = change(this.journal[i]);
+    const tail = [...(replaced ? [replaced] : []), ...this.journal.slice(i + 1)];
+    const kept: Entry[] = [];
+    for (const entry of tail) {
+      if (entry.agent) {
+        const steps = entry.agent.steps.map((s) => ({ ...s }));
+        entry.ops.forEach((op, k) => {
+          if (steps[k].undone) return;
+          const result = JSON.parse(engine.apply(state, JSON.stringify([op]), entry.nowMs, entry.viewer)) as ApplyResult;
+          if (result.ok && result.state) {
+            state = JSON.stringify(result.state);
+          } else {
+            steps[k].undone = true;
+            dropped.push(steps[k].label);
+          }
+        });
+        if (steps.some((s) => !s.undone)) kept.push({ ...entry, agent: { ...entry.agent, steps }, after: state });
+        continue;
+      }
+      const result = JSON.parse(engine.apply(state, JSON.stringify(entry.ops), entry.nowMs, entry.viewer)) as ApplyResult;
+      if (result.ok && result.state) {
+        state = JSON.stringify(result.state);
+        kept.push({ ...entry, after: state });
+      } else if (entry.kind !== 'system') {
+        dropped.push(entry.label);
+      }
+    }
+    this.journal.splice(i, this.journal.length - i, ...kept);
+    this.replace(state, 'undo', []);
+    this.notify({ text: dropped.length ? `${notice}. Also undone, as it depended on it: ${dropped.join(', ')}.` : notice, error: false });
+    this.scheduleSave();
   }
 
   subscribe(listener: (change: Change) => void): () => void {
