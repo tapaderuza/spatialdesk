@@ -1,6 +1,7 @@
 import { createSystem, UIKitMLAsset, Vector3, VisibilityState, type UIKit } from '@iwsdk/core';
 import { Workspaces } from 'spatialdesk-shared';
 import { BackendLink, type LinkState } from './backend/link.js';
+import { PanelHits } from './ui/panel-hits.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
 import { workspace, type Notice } from './workspace/store.js';
@@ -31,7 +32,12 @@ export class PanelSystem extends createSystem({}) {
 
   init(): void {
     const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
-    const element = (id: string) => panel?.getElementById<UIKit.Text>(id) ?? null;
+    const element = (id: string) => {
+      const found = panel?.getElementById<UIKit.Text>(id) ?? null;
+      if (found) found.name = `command:${id}`; // addressable from tests and the IWSDK CLI
+      return found;
+    };
+    const root = element('command-root');
     const dot = element('status-dot');
     const text = element('status-text');
     const detail = element('status-detail');
@@ -58,22 +64,34 @@ export class PanelSystem extends createSystem({}) {
       }),
     );
 
-    this.button(element('arrange-button'), BUTTON.base, () => this.bringToMe());
-    this.button(element('focus-button'), BUTTON.primary, () => this.focus25());
-    this.button(element('undo-button'), BUTTON.base, () => workspace.undo());
-    this.button(element('clear-button'), BUTTON.base, () =>
-      workspace.dispatch({ op: 'clear_done' }, { notice: 'Cleared the last column of every board.' }),
-    );
-
     const xrButton = element('xr-button');
     const exitButton = element('exit-button');
+    const buttons: Record<string, { element: UIKit.Text | null; base: string; action: () => void }> = {
+      arrange: { element: element('arrange-button'), base: BUTTON.base, action: () => this.bringToMe() },
+      focus: { element: element('focus-button'), base: BUTTON.primary, action: () => this.focus25() },
+      undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() },
+      clear: {
+        element: element('clear-button'),
+        base: BUTTON.base,
+        action: () => workspace.dispatch({ op: 'clear_done' }, { notice: 'Cleared the last column of every board.' }),
+      },
+      xr: { element: xrButton, base: BUTTON.primary, action: () => this.world.launchXR() },
+      exit: { element: exitButton, base: BUTTON.base, action: () => this.world.exitXR() },
+    };
+    if (root) {
+      // One listener on the panel root (see PanelHits); hover painted by hand (a UIKitML :hover style sticks).
+      const controls = Object.entries(buttons).flatMap(([key, b]) => (b.element ? [[key, b.element] as const] : []));
+      new PanelHits(root, controls, {
+        click: (key) => buttons[key].action(),
+        hover: (key, hovered) => buttons[key].element?.setProperties({ borderColor: hovered ? BUTTON.hover : buttons[key].base }),
+      }, this.cleanupFuncs);
+    }
+
     if (!this.world.xrEnabled) {
       xrButton?.setProperties({ display: 'none' });
       exitButton?.setProperties({ display: 'none' });
       return;
     }
-    this.button(xrButton, BUTTON.primary, () => this.world.launchXR());
-    this.button(exitButton, BUTTON.base, () => this.world.exitXR());
     this.cleanupFuncs.push(
       this.world.visibilityState.subscribe((visibilityState) => {
         const is2D = visibilityState === VisibilityState.NonImmersive;
@@ -145,25 +163,6 @@ export class PanelSystem extends createSystem({}) {
     object.position.set(pose.x, pose.y, pose.z);
     object.rotation.order = 'YXZ';
     object.rotation.set(pose.pitch, pose.yaw, 0);
-  }
-
-  /** Click plus hover painted by hand (a UIKitML :hover style sticks on restyled elements). */
-  private button(target: UIKit.Text | null, base: string, onClick: () => void): void {
-    if (!target) return;
-    const click = (event: { stopPropagation?: () => void }) => {
-      event.stopPropagation?.();
-      onClick();
-    };
-    const enter = () => target.setProperties({ borderColor: BUTTON.hover });
-    const leave = () => target.setProperties({ borderColor: base });
-    target.addEventListener('click', click);
-    target.addEventListener('pointerenter', enter);
-    target.addEventListener('pointerleave', leave);
-    this.cleanupFuncs.push(() => {
-      target.removeEventListener('click', click);
-      target.removeEventListener('pointerenter', enter);
-      target.removeEventListener('pointerleave', leave);
-    });
   }
 
   private showNotice(notice: Notice, element: UIKit.Text | null): void {

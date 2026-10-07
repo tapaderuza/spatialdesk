@@ -187,12 +187,26 @@ const STORE_NAME = 'workspace';
 const KEY = 'current';
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+const OPEN_TIMEOUT_MS = 2000;
+
 function db(): Promise<IDBDatabase> {
   dbPromise ??= new Promise((resolve, reject) => {
+    // An open can stall (blocked by another tab's upgrade, a stuck storage layer): start fresh rather than wait.
+    const timer = setTimeout(() => reject(new Error('IndexedDB open timed out')), OPEN_TIMEOUT_MS);
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      clearTimeout(timer);
+      resolve(request.result);
+    };
+    request.onerror = () => {
+      clearTimeout(timer);
+      reject(request.error);
+    };
+    request.onblocked = () => {
+      clearTimeout(timer);
+      reject(new Error('IndexedDB open blocked'));
+    };
   });
   return dbPromise;
 }

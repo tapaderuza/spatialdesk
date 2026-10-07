@@ -5,6 +5,7 @@
  * Panels are only touched when the workspace or the selection changes, never per frame.
  */
 import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { PanelHits } from '../ui/panel-hits.js';
 import { BOARD_SIZE, panelText, type Board, type Card, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
 import { workspace } from './store.js';
@@ -74,7 +75,6 @@ class BoardView {
   private readonly hovered = new Set<string>();
   /** First visible page per column, for columns with more cards than slots. */
   private readonly pages = new Array<number>(COLUMNS).fill(0);
-  private lastCardTap = 0;
 
   constructor(
     readonly system: BoardSystem,
@@ -185,7 +185,6 @@ class BoardView {
    * within reach; with a card held, a tap drops the card in the column under the ray.
    */
   tapCard(c: number, k: number): void {
-    this.lastCardTap = performance.now();
     if (!this.isFocus()) {
       this.tapParked(c);
       return;
@@ -208,8 +207,6 @@ class BoardView {
   }
 
   tapColumn(c: number): void {
-    if (performance.now() - this.lastCardTap < 250) return; // the same tap, bubbling up from a card
-    this.lastCardTap = performance.now();
     if (!this.isFocus()) {
       this.tapParked(c);
       return;
@@ -227,7 +224,7 @@ class BoardView {
 
   /** Any other tap on the board (title, padding): on a parked board, bring it within reach. */
   tapBoard(): void {
-    if (performance.now() - this.lastCardTap < 250 || this.isFocus()) return;
+    if (this.isFocus()) return;
     this.tapParked(null);
   }
 
@@ -257,23 +254,6 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
     element.name = `${view.id}:${id}`; // addressable from tests and the IWSDK CLI
     return element;
   };
-  const on = (element: Element, key: string, handler: () => void) => {
-    const click = (event: { stopPropagation?: () => void }) => {
-      event.stopPropagation?.();
-      handler();
-    };
-    const enter = () => view.setHover(key, true);
-    const leave = () => view.setHover(key, false);
-    element.addEventListener('click', click);
-    element.addEventListener('pointerenter', enter);
-    element.addEventListener('pointerleave', leave);
-    view.cleanups.push(() => {
-      element.removeEventListener('click', click);
-      element.removeEventListener('pointerenter', enter);
-      element.removeEventListener('pointerleave', leave);
-    });
-  };
-
   const slots: Slots = {
     root: get('board'),
     title: get('title'),
@@ -290,12 +270,21 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
       })),
     })),
   };
-  on(slots.root, 'board', () => view.tapBoard());
-  on(slots.focus, 'focus', () => view.tapFocus());
-  slots.columns.forEach((column, c) => {
-    on(column.box, `col-${c}`, () => view.tapColumn(c));
-    column.cards.forEach((card, k) => on(card.box, `card-${c}-${k}`, () => view.tapCard(c, k)));
-  });
+  // One listener on the board root (see PanelHits): cards first, then columns, then the board itself.
+  const controls: [string, Element][] = [['focus', slots.focus]];
+  slots.columns.forEach((column, c) => column.cards.forEach((card, k) => controls.push([`card-${c}-${k}`, card.box])));
+  slots.columns.forEach((column, c) => controls.push([`col-${c}`, column.box]));
+  controls.push(['board', slots.root]);
+  new PanelHits(slots.root, controls, {
+    click: (key) => {
+      const [kind, c, k] = key.split('-');
+      if (kind === 'card') view.tapCard(Number(c), Number(k));
+      else if (kind === 'col') view.tapColumn(Number(c));
+      else if (kind === 'focus') view.tapFocus();
+      else view.tapBoard();
+    },
+    hover: (key, hovered) => view.setHover(key, hovered),
+  }, view.cleanups);
   return slots;
 }
 
@@ -359,6 +348,8 @@ export class BoardSystem extends createSystem({}) {
         this.views.set(board.id, view);
       }
       view.pinned.place(board.pose);
+      // A 6 cm bar 1.45 m away is too small for a shaky ray: parked boards are brought within reach, then moved.
+      view.pinned.setHandleVisible(board.id === state.focusBoardId);
       view.render();
     }
   }

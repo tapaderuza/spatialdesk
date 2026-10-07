@@ -7,9 +7,14 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * Where things go, relative to the user's anchor (eye position and facing). The numbers follow the comfort rules in
- * docs (ROADMAP heuristic A): what you work with sits within arm's reach (0.55-0.65 m), slightly below eye level and
- * leaning back toward the eyes; what you only glance at is parked further out, where a pinch ray still reaches it.
+ * Where things go, relative to the user's anchor (eye position and facing). The numbers follow the comfort rules
+ * (ROADMAP heuristic A): what you work with sits within arm's reach (0.55-0.66 m), the focus board slightly below eye
+ * level and leaning back toward the eyes; what you only glance at is parked further out, where a pinch ray still
+ * reaches it.
+ *
+ * The sides have one job each, so no pinch ray has to cross a near panel to reach a far one (the synthetic-noise
+ * test in tests/interaction.spec.ts measures exactly this): the left is the console (command panel), the right is
+ * the shelf (parked boards), and timers sit in a row just above the focus board, always in view.
  */
 object Layout {
     /** Eyes of a seated or standing adult at the origin, facing -Z: the IWSDK default view. */
@@ -24,9 +29,9 @@ object Layout {
     private class Slot(val yawDeg: Double, val distance: Double, val dy: Double)
 
     private val FOCUS = Slot(0.0, 0.62, -0.17)
-    private val PARKED = listOf(Slot(52.0, 1.45, 0.08), Slot(-52.0, 1.45, 0.08), Slot(0.0, 1.7, 0.45))
-    private val FAR = listOf(Slot(80.0, 2.4, 0.2), Slot(-80.0, 2.4, 0.2), Slot(0.0, 2.8, 1.0))
-    private val TIMERS = listOf(Slot(-50.0, 0.55, -0.3), Slot(-50.0, 0.55, -0.13), Slot(-70.0, 0.55, -0.215))
+    private val PARKED = listOf(Slot(-58.0, 1.45, 0.05), Slot(-58.0, 1.6, 0.62), Slot(92.0, 1.45, 0.05))
+    private val FAR = listOf(Slot(-85.0, 2.4, 0.2), Slot(-85.0, 2.6, 1.1), Slot(115.0, 2.4, 0.2))
+    private val TIMERS = listOf(Slot(0.0, 0.66, 0.24), Slot(-23.0, 0.66, 0.24), Slot(23.0, 0.66, 0.24))
     private val COMMAND = Slot(50.0, 0.55, -0.24)
 
     val parkedSlots: Int get() = PARKED.size

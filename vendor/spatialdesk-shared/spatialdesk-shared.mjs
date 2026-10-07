@@ -275,9 +275,9 @@ function Layout() {
   this.w1a_1 = 0.24;
   this.x1a_1 = 0.16;
   this.y1a_1 = new Slot(0.0, 0.62, -0.17);
-  this.z1a_1 = listOf([new Slot(52.0, 1.45, 0.08), new Slot(-52.0, 1.45, 0.08), new Slot(0.0, 1.7, 0.45)]);
-  this.a1b_1 = listOf([new Slot(80.0, 2.4, 0.2), new Slot(-80.0, 2.4, 0.2), new Slot(0.0, 2.8, 1.0)]);
-  this.b1b_1 = listOf([new Slot(-50.0, 0.55, -0.3), new Slot(-50.0, 0.55, -0.13), new Slot(-70.0, 0.55, -0.215)]);
+  this.z1a_1 = listOf([new Slot(-58.0, 1.45, 0.05), new Slot(-58.0, 1.6, 0.62), new Slot(92.0, 1.45, 0.05)]);
+  this.a1b_1 = listOf([new Slot(-85.0, 2.4, 0.2), new Slot(-85.0, 2.6, 1.1), new Slot(115.0, 2.4, 0.2)]);
+  this.b1b_1 = listOf([new Slot(0.0, 0.66, 0.24), new Slot(-23.0, 0.66, 0.24), new Slot(23.0, 0.66, 0.24)]);
   this.c1b_1 = new Slot(50.0, 0.55, -0.24);
 }
 protoOf(Layout).d1b = function () {

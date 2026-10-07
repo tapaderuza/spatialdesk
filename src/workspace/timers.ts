@@ -4,6 +4,7 @@
  * flashes, and a short chime plays, panned toward where the timer is pinned so you can tell which one rang.
  */
 import { createSystem, Quaternion, Vector3, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { PanelHits } from '../ui/panel-hits.js';
 import { panelText, TIMER_SIZE, type Timer, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
 import { workspace } from './store.js';
@@ -106,34 +107,23 @@ class TimerView {
       element.name = `${this.timer.id}:${id}`;
       return element;
     };
-    const on = (id: string, handler: () => void) => {
-      const element = get(id);
-      const listener = (event: { stopPropagation?: () => void }) => {
-        event.stopPropagation?.();
+    const box = get('timer');
+    const buttons = [['toggle', get('toggle')], ['add', get('add')], ['dismiss', get('dismiss')]] as const;
+    // One listener on the panel root (see PanelHits); hover painted by hand (a UIKitML :hover style sticks).
+    new PanelHits(box, buttons, {
+      click: (key) => {
         unlockAudio();
-        handler();
-      };
-      // Hover painted by hand: a UIKitML :hover style sticks on restyled elements (see boards.ts).
-      const enter = () => element.setProperties({ borderColor: COLOR.buttonHover });
-      const leave = () => element.setProperties({ borderColor: COLOR.button });
-      element.addEventListener('click', listener);
-      element.addEventListener('pointerenter', enter);
-      element.addEventListener('pointerleave', leave);
-      this.cleanups.push(() => {
-        element.removeEventListener('click', listener);
-        element.removeEventListener('pointerenter', enter);
-        element.removeEventListener('pointerleave', leave);
-      });
-    };
-    on('toggle', () => {
-      const t = this.timer;
-      if (t.state === 'running') workspace.dispatch({ op: 'pause_timer', timer: t.id });
-      else if (t.state === 'paused') workspace.dispatch({ op: 'resume_timer', timer: t.id });
-      else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000) }, { label: 'restart timer' });
-    });
-    on('add', () => workspace.dispatch({ op: 'add_time', timer: this.timer.id, minutes: SNOOZE_MINUTES }));
-    on('dismiss', () => workspace.dispatch({ op: 'dismiss_timer', timer: this.timer.id }, { notice: 'Timer closed.' }));
-    return { box: get('timer'), label: get('label'), time: get('time'), toggle: get('toggle-label') };
+        const t = this.timer;
+        if (key === 'add') workspace.dispatch({ op: 'add_time', timer: t.id, minutes: SNOOZE_MINUTES });
+        else if (key === 'dismiss') workspace.dispatch({ op: 'dismiss_timer', timer: t.id }, { notice: 'Timer closed.' });
+        else if (t.state === 'running') workspace.dispatch({ op: 'pause_timer', timer: t.id });
+        else if (t.state === 'paused') workspace.dispatch({ op: 'resume_timer', timer: t.id });
+        else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000) }, { label: 'restart timer' });
+      },
+      hover: (key, hovered) =>
+        buttons.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.buttonHover : COLOR.button }),
+    }, this.cleanups);
+    return { box, label: get('label'), time: get('time'), toggle: get('toggle-label') };
   }
 }
 

@@ -64,6 +64,7 @@ export class PinnedPanel {
     this.material = new MeshStandardMaterial({ color: HANDLE_COLOR, roughness: 0.55, metalness: 0.1 });
     const bar = new Mesh(new BoxGeometry(handleWidth, HANDLE_HEIGHT, 0.014), this.material);
     bar.rotation.order = 'YXZ';
+    bar.name = `${item}:handle`;
     this.handle = world.createTransformEntity(bar);
     this.handle.addComponent(RayInteractable);
     this.handle.addComponent(PinnedHandle, { item });
@@ -125,7 +126,14 @@ export class PinnedPanel {
 
   setVisible(visible: boolean): void {
     this.root.object3D!.visible = visible;
-    this.handle.object3D!.visible = visible;
+    this.setHandleVisible(visible);
+  }
+
+  /** A hidden bar also stops taking rays (pointer-events skips objects marked 'none'). */
+  setHandleVisible(visible: boolean): void {
+    const bar = this.handle.object3D! as Object3D & { pointerEvents?: string };
+    bar.visible = visible;
+    bar.pointerEvents = visible ? 'auto' : 'none';
   }
 
   dispose(): void {

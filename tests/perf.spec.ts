@@ -5,6 +5,7 @@
  */
 import { expect, test } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { populateWorstCase } from './workload.js';
 
 interface Budgets {
   cpuThrottlingRate: number;
@@ -46,6 +47,8 @@ test('XR scene stays within the Quest performance budgets', async ({ page }) => 
   // Enter the immersive session in the emulator (same call the "Enter XR" button makes).
   await page.evaluate(() => (window as any).__perf.launchXR());
   await page.waitForFunction(() => (window as any).__perf.snapshot().inXR, null, { timeout: 30_000 });
+
+  await populateWorstCase(page); // measured on the heaviest workspace the engine allows
 
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: budgets.cpuThrottlingRate });

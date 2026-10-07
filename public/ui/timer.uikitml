@@ -7,8 +7,8 @@
   .label { height: 2; font-size: 1.7; color: #b9c2cf; }
   .time { height: 4.4; font-size: 4.2; font-weight: 700; color: #eef1f5; }
   .buttons { flex-direction: row; height: 6.2; gap: 0.8; }
-  .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; cursor: pointer; }
-  .btn-label { font-size: 1.8; font-weight: 600; color: #eef1f5; }
+  .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
+  .btn-label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
 </style>
 <div id="timer" class="timer">
   <div id="label" class="label">Focus</div>
