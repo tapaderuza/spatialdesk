@@ -33,6 +33,7 @@ import software.amazon.awscdk.services.ecs.LogDrivers
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck
+import software.amazon.awscdk.services.iam.PolicyStatement
 import software.amazon.awscdk.services.logs.RetentionDays
 import software.amazon.awscdk.services.s3.BlockPublicAccess
 import software.amazon.awscdk.services.s3.Bucket
@@ -59,6 +60,9 @@ class SpatialDeskStack(scope: Construct, id: String, props: StackProps) : Stack(
         const val SITE_DIR = "../../dist"
         /** AWS-managed CloudFront origin-facing prefix list in us-east-1 (com.amazonaws.global.cloudfront.origin-facing). */
         const val CLOUDFRONT_ORIGIN_PREFIX_LIST = "pl-3b927c52"
+        /** The agent's model (chosen by measurement, see NovaPlanModel) and the inference profile it is called through. */
+        const val AGENT_MODEL = "amazon.nova-2-lite-v1:0"
+        const val AGENT_PROFILE = "us.$AGENT_MODEL"
     }
 
     init {
@@ -89,10 +93,24 @@ class SpatialDeskStack(scope: Construct, id: String, props: StackProps) : Stack(
                 ApplicationLoadBalancedTaskImageOptions.builder()
                     .image(ContainerImage.fromAsset("../app", AssetImageProps.builder().platform(Platform.LINUX_AMD64).build()))
                     .containerPort(8080)
+                    .environment(mapOf("SPATIALDESK_AGENT_MODEL" to AGENT_PROFILE))
                     .logDriver(LogDrivers.awsLogs(AwsLogDriverProps.builder().streamPrefix("server").logRetention(RetentionDays.TWO_WEEKS).build()))
                     .build(),
             )
             .build()
+        // The planning agent may call exactly one model: Nova 2 Lite through the US cross-region inference profile
+        // (the profile itself, and the model in the regions it routes to). Converse needs bedrock:InvokeModel only.
+        server.taskDefinition.taskRole.addToPrincipalPolicy(
+            PolicyStatement.Builder.create()
+                .actions(listOf("bedrock:InvokeModel"))
+                .resources(
+                    listOf(
+                        "arn:aws:bedrock:${this.region}:${this.account}:inference-profile/$AGENT_PROFILE",
+                        "arn:aws:bedrock:*::foundation-model/$AGENT_MODEL",
+                    ),
+                )
+                .build(),
+        )
         server.targetGroup.configureHealthCheck(HealthCheck.builder().path("/actuator/health/liveness").healthyHttpCodes("200").build())
         // Headsets reconnect on their own: no need to wait the default 5 minutes for old connections to drain.
         server.targetGroup.setAttribute("deregistration_delay.timeout_seconds", "30")
