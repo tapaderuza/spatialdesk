@@ -289,3 +289,57 @@ test('manual flow: pick, drop, undo, Focus 25, reload, a timer rings', async ({ 
   expect(quick).toBe('done');
   expect(errors).toEqual([]);
 });
+
+/** A plan as the command server returns it (the server and Bedrock are covered by server tests and the e2e). */
+const PLAN = {
+  ok: true,
+  summary: 'Your day as two tasks, the report first. A 25-minute timer starts on it.',
+  steps: [
+    {
+      op: { op: 'create_board', title: 'Today', focus: true, cards: [{ title: 'Write the report', column: 'Doing', minutes: 90 }, { title: 'Call Ana', minutes: 15 }] },
+      why: 'One board for today',
+    },
+    { op: { op: 'start_timer', minutes: 25, card: 'Write the report' }, why: 'A first pomodoro' },
+    { op: { op: 'arrange_space', layout: 'focus' }, why: 'Other boards step back' },
+  ],
+  source: 'us.amazon.nova-2-lite-v1:0',
+  latencyMs: 1500,
+  attempts: 1,
+};
+
+test('AI plan: chip, preview card, apply as one undo step, discard leaves everything', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
+  await page.route('**/api/agent/plan', async (route) => {
+    requests++;
+    const body = route.request().postDataJSON();
+    expect(route.request().headers()['x-session']).toBe('test-session-0000000000');
+    expect(body.intent).toBe('plan_my_day');
+    expect(body.workspace.boards.length).toBe(2); // the headset sends its whole workspace
+    await route.fulfill({ json: PLAN });
+  });
+  const errors = await openWorkspace(page);
+
+  await tap(page, 'command:plan-button');
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
+  expect(requests).toBe(1);
+  expect(await page.evaluate(() => (window as Win).__workspace.state.boards.length)).toBe(2); // nothing changed yet
+
+  await tap(page, 'agent:plan-apply');
+  const applied = await page.evaluate(() => {
+    const ws = (window as Win).__workspace.state;
+    return { focus: ws.boards.find((b: any) => b.id === ws.focusBoardId)?.title, timers: ws.timers.length, undo: (window as Win).__workspace.undoLabel };
+  });
+  expect(applied).toEqual({ focus: 'Today', timers: 1, undo: 'AI plan' });
+
+  await tap(page, 'command:undo-button'); // the whole plan is one undo step
+  expect(await page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => b.title))).toEqual(['Getting started', 'Ideas']);
+  expect(await page.evaluate(() => (window as Win).__workspace.state.timers.length)).toBe(0);
+
+  await tap(page, 'command:plan-button');
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
+  await tap(page, 'agent:plan-discard');
+  expect(await page.evaluate(() => (window as Win).__agent.state.phase)).toBe('idle');
+  expect(await page.evaluate(() => (window as Win).__workspace.state.boards.length)).toBe(2);
+  expect(errors).toEqual([]);
+});

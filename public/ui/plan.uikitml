@@ -32,7 +32,7 @@
     <div id="step-3" class="step"><div id="step-3-title" class="step-title">Step</div><div id="step-3-why" class="step-why">Why</div></div>
     <div id="step-4" class="step"><div id="step-4-title" class="step-title">Step</div><div id="step-4-why" class="step-why">Why</div></div>
   </div>
-  <div id="plan-note" class="note"></div>
+  <div id="plan-note" class="note">-</div>
   <div class="buttons">
     <div id="plan-apply" class="primary"><div id="plan-apply-label" class="label">Apply</div></div>
     <div id="plan-discard" class="btn"><div id="plan-discard-label" class="label">Discard</div></div>

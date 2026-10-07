@@ -31,8 +31,8 @@ const COLOR = {
   mark: { low: '#4c5664', normal: '#7f8b9b', high: '#ff8a7a' },
 } as const;
 
-/** Characters that fit two lines of a card, by how many columns share the 72 cm width. */
-const CARD_CHARS = [0, 64, 44, 32, 24] as const;
+/** Characters that fit two lines of a card (1.9 cm Inter, minutes label beside it), by columns sharing 72 cm. */
+const CARD_CHARS = [0, 56, 36, 24, 17] as const;
 
 let held: { boardId: string; cardId: string } | null = null;
 
@@ -64,7 +64,7 @@ interface Slots {
     title: Element;
     count: Element;
     more: Element;
-    cards: { box: Element; mark: Element; text: Element }[];
+    cards: { box: Element; mark: Element; text: Element; min: Element }[];
   }[];
 }
 
@@ -119,7 +119,8 @@ class BoardView {
         this.paintCard(c, k);
         if (!card) return;
         cardSlot.mark.setProperties({ backgroundColor: COLOR.mark[card.priority] });
-        cardSlot.text.setProperties({ text: fit(panelText(cardLabel(card)), maxChars) });
+        cardSlot.text.setProperties({ text: fit(panelText(card.title), maxChars) });
+        cardSlot.min.setProperties({ text: minutesLabel(card) });
       });
     });
   }
@@ -267,6 +268,7 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
         box: get(`card-${c}-${k}`),
         mark: get(`card-${c}-${k}-mark`),
         text: get(`card-${c}-${k}-text`),
+        min: get(`card-${c}-${k}-min`),
       })),
     })),
   };
@@ -288,8 +290,10 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
   return slots;
 }
 
-function cardLabel(card: Card): string {
-  return card.minutes ? `${card.title} (${card.minutes} min)` : card.title;
+/** The estimate in its own small label, so it never pushes the title onto a third line. */
+function minutesLabel(card: Card): string {
+  if (!card.minutes) return '';
+  return card.minutes >= 60 ? `${Math.floor(card.minutes / 60)}h${card.minutes % 60 ? String(card.minutes % 60).padStart(2, '0') : ''}` : `${card.minutes}m`;
 }
 
 /** Shortens at a word boundary so a title never spills past two lines of its card. */
