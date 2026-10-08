@@ -20,6 +20,8 @@ import {
 } from '@iwsdk/core';
 import { Workspaces } from 'spatialdesk-shared';
 import { PanelHits } from '../ui/panel-hits.js';
+import { idleBorder, onSettings, settings } from '../ui/settings.js';
+import { play } from '../ui/sounds.js';
 import { AgentPanel } from '../workspace/components.js';
 import { panelText, type Pose, type Timer } from '../workspace/model.js';
 import { workspace, type AgentAction } from '../workspace/store.js';
@@ -104,6 +106,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     // Plans undone from elsewhere (the Undo button) change what "what the AI did" shows.
     this.cleanupFuncs.push(workspace.subscribe(() => this.mode === 'log' && this.refreshLog()));
     this.cleanupFuncs.push(installDayInput(this.world, () => void this.run('plan_my_day')));
+    this.cleanupFuncs.push(onSettings(() => this.render()));
     this.cleanupFuncs.push(() => this.cleanups.forEach((cleanup) => cleanup()));
     (window as unknown as { __agent: AgentSystem }).__agent = this; // driven by the Playwright tests
   }
@@ -142,6 +145,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.mode = !plan.ok ? 'error' : this.quiet ? 'suggestion' : 'preview';
     if (this.quiet) this.show();
     this.render();
+    this.speak(plan.ok ? plan.summary ?? '' : plan.error ?? '');
   }
 
   apply(): void {
@@ -173,6 +177,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       return;
     }
     this.timings.applied = performance.now();
+    play('apply');
     this.close();
   }
 
@@ -237,6 +242,13 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     void this.run(intent, '', { context, auto: true });
   }
 
+  /** Reads the agent's words aloud when the user asked for it; the card always shows the same words as text. */
+  private speak(text: string): void {
+    if (!settings.readAloud || !text || typeof speechSynthesis === 'undefined') return;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  }
+
   private setNudge(nudge: Nudge | null): void {
     this.nudge = nudge;
     for (const listener of this.nudgeListeners) listener(nudge);
@@ -252,14 +264,15 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
   private undoStep(k: number): void {
     const action = this.action;
     if (this.mode !== 'log' || !action || !action.steps[k] || action.steps[k].undone) return;
-    workspace.undoAgentStep(action.id, k); // the store's change refreshes this view
+    if (workspace.undoAgentStep(action.id, k)) play('undo'); // the store's change refreshes this view
   }
 
   private render(): void {
     const slots = this.slots;
     if (!slots) return;
     const showUndo = this.mode === 'log';
-    slots.steps.forEach((row) => row.undo.setProperties({ display: showUndo ? 'flex' : 'none' }));
+    slots.steps.forEach((row) => row.undo.setProperties({ display: showUndo ? 'flex' : 'none', borderColor: idleBorder(COLOR.base) }));
+    slots.discard.setProperties({ borderColor: idleBorder(COLOR.base) });
 
     if (this.mode === 'log' && this.action) {
       const a = this.action;
@@ -362,13 +375,13 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
         else if (key === 'apply') this.mode === 'log' ? this.undoWhole() : this.apply();
         else this.undoStep(Number(key.slice(5)));
       },
-      hover: (key, hovered) => controls.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.hover : base[key] }),
+      hover: (key, hovered) => controls.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.hover : idleBorder(base[key]) }),
     }, this.cleanups);
     return slots;
   }
 
   private undoWhole(): void {
-    if (this.action) workspace.undoAction(this.action.id); // refreshLog closes the card once nothing is left
+    if (this.action && workspace.undoAction(this.action.id)) play('undo'); // refreshLog closes the card once nothing is left
   }
 
   private show(): void {

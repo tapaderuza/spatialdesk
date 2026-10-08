@@ -56,12 +56,12 @@ interface Target {
 async function collectTargets(page: Page) {
   return page.evaluate(() => {
     const w = (window as Win).__world;
-    const interactive = /^(card-\d-\d|col-\d|focus|board|toggle|add|dismiss|handle|[a-z]+-button)$/;
-    const roots = /^(board|timer|command-root|handle)$/;
+    const interactive = /^(card-\d-\d|col-\d|focus|board|toggle|add|dismiss|handle|[a-z]+-button|coach-skip)$/;
+    const roots = /^(board|timer|command-root|coach-root|handle)$/;
     const out: any[] = [];
     w.scene.updateMatrixWorld(true);
     w.scene.traverse((o: any) => {
-      const m = /^(b\d+|t\d+|command):(.+)$/.exec(o.name ?? '');
+      const m = /^(b\d+|t\d+|command|coach):(.+)$/.exec(o.name ?? '');
       if (!m || !(interactive.test(m[2]) || roots.test(m[2]))) return;
       if (o.isVisible && !o.isVisible.value) return; // UIKit element hidden with display: none
       if (!o.isVisible) for (let p = o; p; p = p.parent) if (p.visible === false) return; // plain meshes
@@ -89,7 +89,7 @@ async function collectTargets(page: Page) {
         u,
         v,
         chain,
-        interactive: interactive.test(m[2]) && m[2] !== 'command-root',
+        interactive: interactive.test(m[2]) && m[2] !== 'command-root' && m[2] !== 'coach-root',
         root: roots.test(m[2]),
       });
     });

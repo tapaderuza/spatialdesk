@@ -9,6 +9,9 @@
   .buttons { flex-direction: row; height: 6.2; gap: 0.8; }
   .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .btn-label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
+  .label:dark { color: #ffffff; }
+  .time:dark { color: #ffffff; }
+  .btn-label:dark { color: #ffffff; }
 </style>
 <div id="timer" class="timer">
   <div id="label" class="label">Focus</div>

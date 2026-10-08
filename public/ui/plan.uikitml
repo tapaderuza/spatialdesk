@@ -22,6 +22,13 @@
   .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .primary { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
+  .root:dark { background-color: #000000; border-color: #ffffff; }
+  .title:dark { color: #ffffff; }
+  .source:dark { color: #ffffff; }
+  .step:dark { background-color: #000000; }
+  .step-why:dark { color: #ffffff; }
+  .note:dark { color: #ffd400; }
+  .label:dark { color: #ffffff; }
 </style>
 <div id="plan-root" class="root">
   <div class="header">

@@ -8,6 +8,7 @@
  * on pointer events only, without allocating.
  */
 import { Matrix4, Vector3, type UIKit } from '@iwsdk/core';
+import { play, unlockAudio } from './sounds.js';
 
 type Element = UIKit.Text;
 
@@ -41,7 +42,10 @@ export class PanelHits<K extends string> {
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
       const key = this.hit(event.point);
-      if (key != null) this.handlers.click(key);
+      if (key == null) return;
+      unlockAudio();
+      play('tap');
+      this.handlers.click(key);
     };
     const move = (event: PanelPointerEvent) => this.setHover(event.pointerId ?? 0, this.hit(event.point));
     const leave = (event: PanelPointerEvent) => this.setHover(event.pointerId ?? 0, null);

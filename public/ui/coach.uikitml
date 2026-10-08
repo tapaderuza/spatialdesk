@@ -1,0 +1,17 @@
+<!--
+  First-run coach: one line above the focus board, the step to do next, and Skip (11 x 7.6 cm). Centimetres at real
+  size (44 x 10). The app highlights the target of each step in amber (src/onboarding/coach.ts).
+-->
+<style>
+  .root { flex-direction: row; align-items: center; gap: 1; width: 44; height: 10; padding-left: 1.6; padding-right: 1.2; background-color: #15181e; border-radius: 2; border-width: 0.4; border-color: #f2b84b; }
+  .text { flex-grow: 1; flex-shrink: 1; font-size: 1.9; color: #eef1f5; }
+  .skip { flex-shrink: 0; width: 11; height: 7.6; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
+  .skip-label { font-size: 1.7; font-weight: 700; color: #eef1f5; }
+  .root:dark { background-color: #000000; }
+  .text:dark { color: #ffffff; }
+  .skip-label:dark { color: #ffffff; }
+</style>
+<div id="coach-root" class="root">
+  <div id="coach-text" class="text">Tap a card to pick it up.</div>
+  <div id="coach-skip" class="skip"><div class="skip-label">Skip</div></div>
+</div>

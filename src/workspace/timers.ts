@@ -5,6 +5,8 @@
  */
 import { createSystem, Quaternion, Vector3, type UIKit, type UIKitDocument } from '@iwsdk/core';
 import { PanelHits } from '../ui/panel-hits.js';
+import { idleBorder } from '../ui/settings.js';
+import { audioContext, unlockAudio } from '../ui/sounds.js';
 import { panelText, TIMER_SIZE, type Timer, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
 import { workspace } from './store.js';
@@ -124,7 +126,7 @@ class TimerView {
         else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000) }, { label: 'restart timer' });
       },
       hover: (key, hovered) =>
-        buttons.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.buttonHover : COLOR.button }),
+        buttons.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.buttonHover : idleBorder(COLOR.button) }),
     }, this.cleanups);
     return { box, label: get('label'), time: get('time'), toggle: get('toggle-label') };
   }
@@ -201,21 +203,10 @@ export class TimerSystem extends createSystem({}) {
   }
 }
 
-// A soft three-note chime, synthesised (no audio files to load). The AudioContext starts on the first gesture.
-let audio: AudioContext | null = null;
-
-function unlockAudio(): void {
-  try {
-    audio ??= new AudioContext();
-    if (audio.state === 'suspended') void audio.resume();
-  } catch {
-    audio = null; // no Web Audio: the visual flash still tells the user
-  }
-}
-
+// A soft three-note chime, synthesised (no audio files to load), on the shared AudioContext (src/ui/sounds.ts).
 function chime(pan: number): void {
-  if (!audio) return;
-  const ctx = audio;
+  const ctx = audioContext();
+  if (!ctx) return;
   const panner = ctx.createStereoPanner();
   panner.pan.value = pan;
   panner.connect(ctx.destination);

@@ -6,6 +6,8 @@
  */
 import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
 import { PanelHits } from '../ui/panel-hits.js';
+import { idleBorder, onSettings } from '../ui/settings.js';
+import { play } from '../ui/sounds.js';
 import { BOARD_SIZE, panelText, type Board, type Card, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
 import { workspace } from './store.js';
@@ -35,6 +37,15 @@ const COLOR = {
 const CARD_CHARS = [0, 56, 36, 24, 17] as const;
 
 let held: { boardId: string; cardId: string } | null = null;
+let coach: { boardId: string; key: string } | null = null;
+let repaintBoards: (() => void) | null = null;
+const COACH_BORDER = '#f2b84b';
+
+/** The onboarding coach outlines one card or column ("card-0-0", "col-1") on a board; null clears it. */
+export function setCoachTarget(target: { boardId: string; key: string } | null): void {
+  coach = target;
+  repaintBoards?.();
+}
 
 /** The picked-up card, if any (the command panel's Focus 25 times that card). */
 export function heldCard(): Card | null {
@@ -142,7 +153,7 @@ class BoardView {
     const isFocus = workspace.state.focusBoardId === this.id;
     this.slots?.focus.setProperties({
       display: isFocus ? 'none' : 'flex',
-      borderColor: this.hovered.has('focus') ? COLOR.focusHover : COLOR.focus,
+      borderColor: this.hovered.has('focus') ? COLOR.focusHover : idleBorder(COLOR.focus),
     });
   }
 
@@ -155,7 +166,7 @@ class BoardView {
     box.setProperties({
       display: 'flex',
       backgroundColor: dropTarget ? COLOR.dropColumn : COLOR.column,
-      borderColor: dropTarget ? (hovered ? COLOR.dropHover : COLOR.dropBorder) : hovered ? COLOR.columnHover : COLOR.column,
+      borderColor: dropTarget ? (hovered ? COLOR.dropHover : COLOR.dropBorder) : hovered ? COLOR.columnHover : this.coached(`col-${c}`) ? COACH_BORDER : idleBorder(COLOR.column),
     });
   }
 
@@ -172,8 +183,12 @@ class BoardView {
     box.setProperties({
       display: 'flex',
       backgroundColor: isHeld ? COLOR.heldCard : COLOR.card,
-      borderColor: isHeld ? COLOR.heldBorder : hovered ? COLOR.cardHover : COLOR.card,
+      borderColor: isHeld ? COLOR.heldBorder : hovered ? COLOR.cardHover : this.coached(`card-${c}-${k}`) ? COACH_BORDER : idleBorder(COLOR.card),
     });
+  }
+
+  private coached(key: string): boolean {
+    return coach != null && coach.boardId === this.id && coach.key === key;
   }
 
   private isFocus(): boolean {
@@ -197,6 +212,7 @@ class BoardView {
     if (!board || !column || !card) return;
     if (held == null) {
       held = { boardId: board.id, cardId: card.id };
+      play('pick');
       workspace.notify({ text: `Holding "${panelText(card.title)}". Tap a column to drop it.`, error: false });
       this.system.renderAll();
     } else if (held.cardId === card.id) {
@@ -309,6 +325,9 @@ export class BoardSystem extends createSystem({}) {
 
   init(): void {
     this.cleanupFuncs.push(workspace.subscribe(({ state }) => this.sync(state)));
+    this.cleanupFuncs.push(onSettings(() => this.renderAll())); // high contrast changes the outlines
+    repaintBoards = () => this.renderAll();
+    this.cleanupFuncs.push(() => (repaintBoards = null));
     this.sync(workspace.state);
     this.cleanupFuncs.push(() => {
       for (const view of this.views.values()) view.dispose();
@@ -329,7 +348,8 @@ export class BoardSystem extends createSystem({}) {
       { op: 'move_card', card: card.id, board: board.id, column: columnId, index },
       { label: 'move card', notice: `Moved "${panelText(card.title)}" to ${panelText(column?.title ?? 'column')}.` },
     );
-    if (!result.ok) this.renderAll();
+    if (result.ok) play('drop');
+    else this.renderAll();
   }
 
   renderAll(): void {

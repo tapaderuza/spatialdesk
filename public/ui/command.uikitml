@@ -17,6 +17,13 @@
   .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
   .chips-title { margin-bottom: -0.4; font-size: 1.4; font-weight: 700; color: #9cc3ff; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
+  .root:dark { background-color: #000000; border-color: #ffffff; }
+  .title:dark { color: #ffffff; }
+  .status:dark { color: #ffffff; }
+  .detail:dark { color: #ffffff; }
+  .chips-title:dark { color: #ffd400; }
+  .notice:dark { background-color: #000000; }
+  .label:dark { color: #ffffff; }
 </style>
 <div id="command-root" class="root">
   <div class="title">SpatialDesk Command</div>
@@ -39,6 +46,11 @@
   <div class="buttons">
     <div id="arrange-button" class="btn"><div class="label">Bring to me</div></div>
     <div id="undo-button" class="btn"><div id="undo-label" class="label">Undo</div></div>
+  </div>
+  <div class="buttons">
+    <div id="contrast-button" class="btn"><div class="label">Contrast</div></div>
+    <div id="sound-button" class="btn"><div class="label">Sound</div></div>
+    <div id="voice-button" class="btn"><div class="label">Read aloud</div></div>
   </div>
   <div class="buttons">
     <div id="xr-button" class="primary"><div class="label">Enter workspace</div></div>

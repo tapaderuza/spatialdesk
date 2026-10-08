@@ -21,6 +21,14 @@
   .card-text { flex-grow: 1; flex-shrink: 1; font-size: 1.9; color: #eef1f5; }
   .card-min { flex-shrink: 0; margin-left: 0.6; font-size: 1.5; color: #b9c2cf; }
   .more { height: 2.6; padding-left: 0.6; font-size: 1.7; color: #96a0ae; }
+  .board:dark { background-color: #000000; border-color: #ffffff; }
+  .title:dark { color: #ffffff; }
+  .column-title:dark { color: #ffffff; }
+  .column-count:dark { color: #ffffff; }
+  .card-text:dark { color: #ffffff; }
+  .card-min:dark { color: #ffffff; }
+  .more:dark { color: #ffffff; }
+  .focus-label:dark { color: #ffffff; }
 </style>
 <div id="board" class="board">
   <div class="header">

@@ -14,3 +14,6 @@ export const PinnedHandle = createComponent('PinnedHandle', {
 
 /** The agent's plan preview panel (one per world). */
 export const AgentPanel = createComponent('AgentPanel', {});
+
+/** The first-run coach banner (one per world). */
+export const CoachPanel = createComponent('CoachPanel', {});

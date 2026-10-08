@@ -3,6 +3,8 @@ import { Workspaces } from 'spatialdesk-shared';
 import { AgentSystem } from './agent/agent-system.js';
 import { BackendLink, type LinkState } from './backend/link.js';
 import { PanelHits } from './ui/panel-hits.js';
+import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
+import { play } from './ui/sounds.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
 import { workspace, type Notice } from './workspace/store.js';
@@ -16,6 +18,15 @@ const BUTTON = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff' } as cons
 const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 // The notice line: amber text and border while the agent has a nudge waiting there.
 const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
+const COACH_BORDER = '#f2b84b';
+let commandHighlight: string | null = null;
+let repaintCommand: (() => void) | null = null;
+
+/** The onboarding coach outlines one command panel button ("focus", "plan"...); null clears it. */
+export function setCommandHighlight(key: string | null): void {
+  commandHighlight = key;
+  repaintCommand?.();
+}
 const IDLE_NOTICE = 'Tap a card to pick it up, then tap where it goes.';
 const NOTICE_MS = 8000;
 /** Entering XR this far from the stored anchor re-arranges the workspace around the user. */
@@ -59,6 +70,7 @@ export class PanelSystem extends createSystem({}) {
           if (!nudge) return;
           if (this.noticeTimer) clearTimeout(this.noticeTimer);
           notice?.setProperties({ text: panelText(nudge.text), color: NOTICE.nudge, borderColor: NOTICE.nudge });
+          play('nudge');
         }),
       );
     }
@@ -95,7 +107,11 @@ export class PanelSystem extends createSystem({}) {
       },
       arrange: { element: element('arrange-button'), base: BUTTON.base, action: () => this.bringToMe() },
       focus: { element: element('focus-button'), base: BUTTON.base, action: () => this.focus25() },
-      undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() },
+      undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() && play('undo') },
+      // Settings: each toggle shows its state as its colour (blue = on).
+      contrast: { element: element('contrast-button'), base: BUTTON.base, action: () => toggleSetting('highContrast') },
+      sound: { element: element('sound-button'), base: BUTTON.base, action: () => toggleSetting('sound') },
+      voice: { element: element('voice-button'), base: BUTTON.base, action: () => toggleSetting('readAloud') },
       clear: {
         element: element('clear-button'),
         base: BUTTON.base,
@@ -109,8 +125,18 @@ export class PanelSystem extends createSystem({}) {
       const controls = Object.entries(buttons).flatMap(([key, b]) => (b.element ? [[key, b.element] as const] : []));
       new PanelHits(root, controls, {
         click: (key) => buttons[key].action(),
-        hover: (key, hovered) => buttons[key].element?.setProperties({ borderColor: hovered ? BUTTON.hover : buttons[key].base }),
+        hover: (key, hovered) =>
+          buttons[key].element?.setProperties({ borderColor: hovered ? BUTTON.hover : key === commandHighlight ? COACH_BORDER : idleBorder(buttons[key].base) }),
       }, this.cleanupFuncs);
+      const toggles: [keyof Settings, string][] = [['highContrast', 'contrast'], ['sound', 'sound'], ['readAloud', 'voice']];
+      const paint = () => {
+        for (const [key, b] of Object.entries(buttons)) if (key !== 'notice') b.element?.setProperties({ borderColor: key === commandHighlight ? COACH_BORDER : idleBorder(b.base) });
+        for (const [setting, key] of toggles) buttons[key].element?.setProperties({ backgroundColor: settings[setting] ? BUTTON.primary : BUTTON.base });
+      };
+      paint();
+      this.cleanupFuncs.push(onSettings(paint));
+      repaintCommand = paint;
+      this.cleanupFuncs.push(() => (repaintCommand = null));
     }
 
     if (!this.world.xrEnabled) {
@@ -186,6 +212,7 @@ export class PanelSystem extends createSystem({}) {
   private showNotice(notice: Notice, element: UIKit.Text | null): void {
     (window as unknown as { __notice: Notice }).__notice = notice; // read by the Playwright tests
     element?.setProperties({ text: panelText(notice.text), color: notice.error ? TEXT.error : TEXT.normal, borderColor: NOTICE.base });
+    if (notice.error) play('error');
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
     this.noticeTimer = setTimeout(() => element?.setProperties({ text: IDLE_NOTICE, color: TEXT.dim }), NOTICE_MS);
   }
