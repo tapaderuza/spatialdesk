@@ -49,3 +49,6 @@ server/kotlin-js-store/
 test-results/
 yarn-debug.log*
 yarn-error.log*
+
+# Submission video build (scripts/make-video.mjs)
+.video/

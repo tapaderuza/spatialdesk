@@ -26,7 +26,7 @@ import { AgentPanel } from '../workspace/components.js';
 import { panelText, type Pose, type Timer } from '../workspace/model.js';
 import { workspace, type AgentAction } from '../workspace/store.js';
 import { timerFinishedListeners } from '../workspace/timers.js';
-import { viewerPose } from '../workspace/viewer.js';
+import { deskPose } from '../workspace/viewer.js';
 import { describeStep, requestPlan, sourceLabel, type AgentPlan, type Intent } from './client.js';
 import { dayText, installDayInput } from './day-input.js';
 import { findNudge, timerContext, type Nudge } from './watcher.js';
@@ -133,7 +133,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.startedAt = this.timings.requested = performance.now();
     this.shownTenths = -1;
     if (!this.quiet) this.show();
-    const plan = await requestPlan(intent, text, workspace.state, viewerPose(this.world), options.context);
+    const plan = await requestPlan(intent, text, workspace.state, deskPose(this.world), options.context);
     if (this.mode !== 'thinking') return; // closed while waiting
     this.timings.previewed = performance.now();
     if (this.quiet && (!plan.ok || plan.steps.length === 0)) {
@@ -159,7 +159,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       plan.steps.map((step) => step.op),
       {
         label: 'AI plan',
-        viewer: viewerPose(this.world),
+        viewer: deskPose(this.world),
         notice: `${plan.summary ?? 'Plan applied.'} Tap here to see why, or undo a step.`,
         agent: {
           intent: this.intent,

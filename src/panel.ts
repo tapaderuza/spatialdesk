@@ -8,7 +8,7 @@ import { play } from './ui/sounds.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
 import { workspace, type Notice } from './workspace/store.js';
-import { viewerPose } from './workspace/viewer.js';
+import { deskPose, viewerPose } from './workspace/viewer.js';
 
 const engine = Workspaces.getInstance();
 
@@ -165,12 +165,13 @@ export class PanelSystem extends createSystem({}) {
     if (this.anchorCheckFrames > 0 && --this.anchorCheckFrames === 0) this.reanchorIfFar();
   }
 
-  private viewerPose(): Pose {
-    return viewerPose(this.world);
+  /** What a press on this panel arranges around: the user is looking at the panel then, not ahead (viewer.ts). */
+  private deskPose(): Pose {
+    return deskPose(this.world);
   }
 
   private bringToMe(): void {
-    workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: this.viewerPose(), notice: 'Everything is back around you.' });
+    workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: this.deskPose(), notice: 'Everything is back around you.' });
   }
 
   /** A 25-minute timer (for the picked-up card, if any), and the other boards move out of the way. */
@@ -183,7 +184,7 @@ export class PanelSystem extends createSystem({}) {
         { op: 'arrange_space', layout: 'focus' },
       ],
       {
-        viewer: this.viewerPose(),
+        viewer: this.deskPose(),
         label: 'focus 25',
         notice: card ? `Focus 25 on "${panelText(card.title)}". The other boards stepped back.` : 'Focus 25 started. The other boards stepped back.',
       },
@@ -191,7 +192,7 @@ export class PanelSystem extends createSystem({}) {
   }
 
   private reanchorIfFar(): void {
-    const viewer = this.viewerPose();
+    const viewer = viewerPose(this.world);
     const anchor = workspace.state.anchor;
     const turn = Math.abs(Math.atan2(Math.sin(viewer.yaw - anchor.yaw), Math.cos(viewer.yaw - anchor.yaw)));
     if (Math.hypot(viewer.x - anchor.x, viewer.z - anchor.z) > REANCHOR_METRES || turn > REANCHOR_RADIANS || Math.abs(viewer.y - anchor.y) > REANCHOR_METRES) {
