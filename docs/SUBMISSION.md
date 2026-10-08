@@ -54,6 +54,39 @@ IWER emulator stands in for the headset. Click **Enter workspace**, then click t
 The AI runs live on Amazon Bedrock. Each session can ask for 20 plans an hour. If the AI is ever unavailable, a
 built-in planner answers instead and says so on the card.
 
+## Video (YouTube)
+
+Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under 3 minutes, captions burned in).
+
+- **Title:** SpatialDesk Command Center: an AI agent for a hands-first workspace on Meta Quest
+- **Visibility:** Public (or Unlisted, if the rules allow it). The judges must be able to open it without signing in.
+- **Subtitles:** upload `.video/captions.srt` as English subtitles as well.
+- **Description:**
+
+  SpatialDesk Command Center is a hands-first workspace for Meta Quest, delivered as WebXR. Describe your day and
+  an AI agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus timers around you, explains every step,
+  and lets you undo any one of them. It also suggests what to do next when a focus block ends.
+
+  Recorded in Meta's IWER Quest 3 emulator against the production app. Timers run in seconds in this video (the
+  ?fast option). Voice-over generated locally with Piper.
+
+  Try it: https://d2p3027seoreck.cloudfront.net (add ?emulate on a desktop)
+
+  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction.
+
+## Images (gallery)
+
+From `.video/gallery/`, all taken from the recording, without captions:
+
+1. `1-plan-preview.png`: the agent's plan, each step with its reason
+2. `2-today-board.png`: the Today board with its focus timer
+3. `3-agent-suggestion.png`: the agent's own suggestion when the block ends
+4. `4-ai-log.png`: the AI log, with an Undo per step
+5. `5-high-contrast.png`: high contrast mode
+6. `6-guided-start.png`: the guided start
+
+`0-title.png` works as the thumbnail.
+
 ## About the project
 
 ### Inspiration
