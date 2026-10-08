@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { pressXR, turnHead, type Win } from './helpers.js';
 
 const target = process.env.E2E_URL;
@@ -30,7 +31,7 @@ const phase = (page: Page, p: string) => page.waitForFunction((want) => (window 
 const online = (page: Page) =>
   page.waitForFunction(() => (window as Win).__link?.kind === 'online' && (window as Win).__agent, null, { timeout: 60_000 });
 
-test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', async ({ page }) => {
+test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', async ({ page }, testInfo) => {
   test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
   test.setTimeout(300_000);
   const started = Date.now(); // the video starts with the page, a moment before this
@@ -140,7 +141,8 @@ test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', as
   await pause(page, 2);
   await settle();
 
-  if (process.env.MARKERS) writeFileSync(process.env.MARKERS, JSON.stringify({ video: await page.video()!.path(), beats }, null, 2));
+  // Playwright saves the video there once the page closes.
+  if (process.env.MARKERS) writeFileSync(process.env.MARKERS, JSON.stringify({ video: join(testInfo.outputDir, 'video.webm'), beats }, null, 2));
   const seconds = (Date.now() - started) / 1000;
   console.log(`DEMO ${seconds.toFixed(0)} s`);
   expect(seconds).toBeLessThan(narration ? 240 : 180); // narrated, the edit checks the final cut (< 180 s)

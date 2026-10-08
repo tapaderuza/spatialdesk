@@ -88,7 +88,7 @@ const graph = [
   `[0:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=out:st=${TITLE_S - fade}:d=${fade}[v0]`,
   `[1:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v1]`,
   `[2:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v2]`,
-  `[v0][v1][v2]concat=n=3:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H90000000,Outline=5,Shadow=0,MarginV=22'[v]`,
+  `[v0][v1][v2]concat=n=3:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H38000000,Outline=6,Shadow=0,MarginV=22'[v]`,
   ...voice.map((v, i) => `[${i + 3}:a]aresample=48000,adelay=${Math.round(v.start * 1000)}:all=1[a${i}]`),
   `${voice.map((_, i) => `[a${i}]`).join('')}amix=inputs=${voice.length}:normalize=0,apad[a]`,
 ].join(';');
