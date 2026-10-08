@@ -7,7 +7,7 @@ import { idleBorder, onSettings, settings, toggleSetting, type Settings } from '
 import { play } from './ui/sounds.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
-import { workspace, type Notice } from './workspace/store.js';
+import { TIMER_SCALE, workspace, type Notice } from './workspace/store.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
 
 const engine = Workspaces.getInstance();
@@ -62,6 +62,7 @@ export class PanelSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => this.link?.stop());
 
     this.cleanupFuncs.push(workspace.onNotice((n) => this.showNotice(n, notice)));
+    if (TIMER_SCALE !== 1) this.showNotice({ text: 'Fast timers are on: every minute runs as one second.', error: false }, notice);
     // The agent's nudges ("X is running over") wait on the notice line, in amber, until tapped or replaced.
     const agent = this.world.getSystem(AgentSystem);
     if (agent) {

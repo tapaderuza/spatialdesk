@@ -62,6 +62,31 @@ test('accessibility: high contrast outlines every control and turns text white; 
   expect(errors).toEqual([]);
 });
 
+test("judges: ?fast runs timers in seconds, so the agent's own suggestion shows up in a short session", async ({ page }) => {
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
+  await page.route('**/api/agent/plan', (route) =>
+    route.fulfill({
+      json: {
+        ok: true,
+        summary: 'A short break.',
+        steps: [{ op: { op: 'start_timer', minutes: 5, label: 'Break' }, why: 'The report is not finished' }],
+        source: 'us.amazon.nova-2-lite-v1:0',
+        latencyMs: 900,
+        attempts: 1,
+      },
+    }),
+  );
+  const errors = await openWorkspace(page, '?fast');
+  expect(await page.evaluate(() => (window as Win).__notice?.text)).toContain('Fast timers');
+  await tap(page, 'command:focus-button');
+  expect(await page.evaluate(() => (window as Win).__workspace.state.timers[0].durationMs)).toBe(25_000); // Focus 25: 25 s
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'suggestion', null, { timeout: 40_000 });
+  await tap(page, 'agent:plan-apply');
+  const timers = await page.evaluate(() => (window as Win).__workspace.state.timers.map((t: any) => `${t.label} ${t.durationMs}`));
+  expect(timers).toContain('Break 6000'); // 5 minutes: the engine's 6 s minimum
+  expect(errors).toEqual([]);
+});
+
 test('hardening: a spent quota and an unreachable server are explained, never broken', async ({ page }) => {
   await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
   await page.route('**/api/agent/plan', (route) =>

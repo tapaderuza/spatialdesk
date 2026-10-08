@@ -1,0 +1,155 @@
+# Devpost submission: SpatialDesk Command Center
+
+Paste each block into the matching Devpost field. Devpost's form could not be read automatically (it blocks
+scripted access), so match the blocks to the fields as they appear; the texts are written to be recombined.
+
+- **Competition:** Meta VR Start Developer Competition 2026 (start-developer-competition-26.devpost.com)
+- **Track:** Productivity. **Division:** New.
+- **Special awards:** Best Agentic Interaction (main), Accessibility (if the form lets you tick more than one).
+- **Deadline:** 18 Nov 2026, 12:00 PT (21:00 in Spain).
+
+## Project name
+
+SpatialDesk Command Center
+
+## Elevator pitch (200 characters max)
+
+A hands-first workspace for Meta Quest. Describe your day; an AI agent builds boards and focus timers around you,
+explains every step, and lets you undo any one.
+
+## Try it out (links)
+
+- App (WebXR, opens in Meta Quest Browser): https://d2p3027seoreck.cloudfront.net
+- Same app with timers in seconds, for a short session: https://d2p3027seoreck.cloudfront.net/?fast
+- Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
+- Video: (YouTube link once uploaded)
+- Code: (GitHub link, if a repository is shared)
+
+## Built with
+
+webxr, meta-immersive-web-sdk, iwer, three.js, typescript, kotlin, kotlin-multiplatform, spring-boot,
+amazon-bedrock, amazon-nova, aws-cdk, aws-fargate, cloudfront, playwright
+
+## Testing instructions for judges
+
+1. On a Quest, open **https://d2p3027seoreck.cloudfront.net/?fast** in Meta Quest Browser and tap **Enter workspace**.
+   No install and no account; hands or controllers both work. Sit down: the layout is designed for seated use.
+   `?fast` makes timers run in seconds instead of minutes (Focus 25 lasts 25 seconds), so you can see what the agent
+   does when a block ends. Without it, everything runs in real minutes.
+2. A short guided start shows three steps: pick a card up, drop it in *Doing*, start *Focus 25*. It takes under a
+   minute, or you can tap **Skip**.
+3. Tap **Plan my day** on the left panel. The agent proposes a plan on a card in front of you, each step with its
+   reason. Tap **Apply**. Before entering, you can also type or dictate your day in the *Describe your day* box on
+   the page.
+4. Work by hand: tap or pinch a card to pick it up, then tap a column to drop it. Grab a board's bar to move it
+   anywhere.
+5. When the focus timer ends, the agent suggests the next block on its own (or a break, if the task is not
+   finished). One tap accepts it.
+6. **AI log** shows every action the agent took, with the reason and an **Undo** for each step.
+7. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
+
+Without a Quest, open https://d2p3027seoreck.cloudfront.net/?emulate&fast in Chrome or Edge on a desktop. Meta's
+IWER emulator stands in for the headset. Click **Enter workspace**, then click the panels with the mouse.
+
+The AI runs live on Amazon Bedrock. Each session can ask for 20 plans an hour. If the AI is ever unavailable, a
+built-in planner answers instead and says so on the card.
+
+## About the project
+
+### Inspiration
+
+A headset can surround you with more screens than any desk, yet most productivity in VR is still flat windows
+floating in space, with a chat box bolted on. We wanted the opposite: a workspace that is spatial by design, and an
+AI that works *on* that space rather than talking about it, without ever taking control away from the person
+wearing it.
+
+### What it does
+
+You sit down, put the headset on and describe your day: "Finish the quarterly report, review two pull requests,
+call the dentist, gym at 18:00." SpatialDesk turns that into a workspace around you. A *Today* board sits at arm's
+length, the rest of your boards wait at the sides, and a 25-minute focus timer starts on the most important task.
+
+- **The agent acts on the space.** Its answers are plans made of real operations: create a board, move or edit a
+  card, start a timer, arrange the space. Each step comes with a reason, and nothing changes until you tap
+  *Apply*.
+- **It notices things on its own.** When a focus block ends, it suggests the next one, or a break if the task is not
+  finished. When a task runs over its estimate, it offers to replan. When a board gets crowded, it offers to
+  regroup it. Each suggestion waits for one tap.
+- **Everything is explained and reversible.** The *AI log* lists every action with its reason and an *Undo* per
+  step. Undo works even after you have changed things since. If a later step depended on the one you undo, that
+  goes too, and the app tells you.
+- **Hands first, seated, accessible.**
+  - Every target is at least 6 cm and within reach.
+  - The board you work on sits 62 cm away, slightly below the eyes.
+  - Looking at a side panel to tap it never moves your desk.
+  - There is a guided start of under a minute, high contrast, spatial sound cues and read-aloud plans.
+
+### How we built it
+
+- **Client:** Meta's Immersive Web SDK (TypeScript, three.js, UIKit panels), delivered as WebXR so it opens from a
+  link. The workspace is stored in IndexedDB and works offline.
+- **One engine, two runtimes:** the workspace rules (boards, cards, timers, the seated layout and every operation)
+  are a Kotlin Multiplatform module. The headset runs it compiled to JavaScript, and the server runs the same code on
+  the JVM.
+- **The agent:** Spring Boot calls Amazon Nova 2 Lite on Bedrock with one forced tool, `submit_plan`, whose steps are
+  the engine's own operations. Before the headset sees a plan, the server:
+  1. fixes the model's usual slips;
+  2. checks guardrails computed from the workspace (a task at 25 of 120 minutes is not done; a replan starts no
+     timers);
+  3. validates the plan on the engine;
+  4. retries once with the exact error.
+
+  If that still fails, a built-in planner answers, and the card says so.
+- **AWS, all in CDK:**
+  - S3 and CloudFront serve the app.
+  - A load balancer reachable only from CloudFront fronts the server on Fargate.
+  - The server's role may call that one model and nothing else.
+  - Quotas keep the cost of the whole competition bounded.
+- **Tested end to end in Meta's IWER Quest 3 emulator with Playwright.** Every quality claim is an automated check:
+  - frame budgets on a CPU throttled 3x, held no heavier than Meta's own IWSDK starter scene;
+  - hit rates under hand-tracking jitter;
+  - seated layout invariants;
+  - a guided start of under a minute;
+  - a plan applied in under 4 seconds against production.
+
+  The demo video is a recorded run of that same test suite, with a locally generated voice-over and captions.
+
+### Challenges we ran into
+
+- **Building for a headset without one.** We turned every comfort and performance claim into a test that fails the
+  build. The frame budget is set against Meta's own starter scene measured on the same machine, so "it should run
+  fine on a Quest" is not a guess.
+- **Hand-sized UI that stays fast.** Listening for pointer events on every button made the framework raycast every
+  element on every frame (9 fps). One listener per panel with a rectangle hit test brought the app's own cost under
+  half a millisecond per frame.
+- **An agent that is right, not just fluent.** Nova 2 Lite kept marking unfinished work as done when a timer
+  ended. A longer prompt did not fix it. The server now computes facts ("25 of 120 minutes used: not finished") and
+  rejects plans that contradict them, feeding the reason back for one retry.
+- **Undoing one step out of order.** Undo is a journal of operations replayed with their original clock and
+  position. Any single step can be removed later, and anything that depended on it is reported.
+- **Seated reality.** You look at the panel you are tapping. Our first version re-anchored the workspace to wherever
+  the head pointed, so a tap on the side panel swung the whole desk 50°. A head-turning test caught it, and the desk
+  now keeps its heading through glances.
+
+### Accomplishments that we're proud of
+
+- An agent you can audit: every action has a reason and its own undo.
+- The same engine validates the AI on the server and runs the workspace in the headset.
+- Quality numbers instead of adjectives, measured in the emulator on the production build:
+  - 0.4 ms per frame for the app's own systems;
+  - 74 draw calls and a 2.25 MB bundle;
+  - a hit rate of 95 % or more under jitter;
+  - plans in about 2 seconds.
+
+### What we learned
+
+- Agents become trustworthy when their output is a structured plan the app can check, show and undo, not text.
+- Facts computed by the app ground the model better than longer prompts.
+- With WebXR and IWER, a full XR product can be designed, tested and recorded from a desktop.
+
+### What's next
+
+- Calendar import, so the day plans itself from real events.
+- Sync across devices, so the same boards follow you from the headset to the browser.
+- Shared team boards.
+- A Horizon Store listing as an installable web app.

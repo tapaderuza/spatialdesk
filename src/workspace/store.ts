@@ -67,6 +67,20 @@ interface Entry {
 const JOURNAL_DEPTH = 60;
 const SAVE_DELAY_MS = 400;
 
+/**
+ * `?fast`, for judges and demos: timers run in seconds instead of minutes (Focus 25 lasts 25 seconds, never under the
+ * engine's 6-second minimum), so what the agent does when a block ends can be seen in a short session.
+ */
+export const TIMER_SCALE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('fast') ? 1 / 60 : 1;
+const MIN_TIMER_MINUTES = 0.1;
+
+function fastTimers(ops: Op[]): Op[] {
+  if (TIMER_SCALE === 1) return ops;
+  return ops.map((op) =>
+    op.op === 'start_timer' || op.op === 'add_time' ? { ...op, minutes: Math.max(MIN_TIMER_MINUTES, op.minutes * TIMER_SCALE) } : op,
+  );
+}
+
 export class WorkspaceStore {
   private json = engine.empty();
   state: Workspace = JSON.parse(this.json) as Workspace;
@@ -97,7 +111,7 @@ export class WorkspaceStore {
   }
 
   dispatch(ops: Op | Op[], options: DispatchOptions = {}): DispatchResult {
-    const list = Array.isArray(ops) ? ops : [ops];
+    const list = fastTimers(Array.isArray(ops) ? ops : [ops]);
     const viewer = options.viewer ? JSON.stringify(options.viewer) : null;
     const result = JSON.parse(engine.apply(this.json, JSON.stringify(list), Date.now(), viewer)) as ApplyResult;
     if (!result.ok || !result.state) {

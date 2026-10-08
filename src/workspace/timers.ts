@@ -9,7 +9,7 @@ import { idleBorder } from '../ui/settings.js';
 import { audioContext, unlockAudio } from '../ui/sounds.js';
 import { panelText, TIMER_SIZE, type Timer, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
-import { workspace } from './store.js';
+import { TIMER_SCALE, workspace } from './store.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/timer.uikitml`;
 const HANDLE_WIDTH = 0.14;
@@ -123,7 +123,7 @@ class TimerView {
         else if (key === 'dismiss') workspace.dispatch({ op: 'dismiss_timer', timer: t.id }, { notice: 'Timer closed.' });
         else if (t.state === 'running') workspace.dispatch({ op: 'pause_timer', timer: t.id });
         else if (t.state === 'paused') workspace.dispatch({ op: 'resume_timer', timer: t.id });
-        else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000) }, { label: 'restart timer' });
+        else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000 / TIMER_SCALE) }, { label: 'restart timer' });
       },
       hover: (key, hovered) =>
         buttons.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.buttonHover : idleBorder(COLOR.button) }),

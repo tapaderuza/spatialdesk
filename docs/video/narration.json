@@ -1,0 +1,22 @@
+{
+  "_comment": "Voice-over for the submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper, the demo waits for each line to finish before the next beat, and the same text is burned in as captions.",
+  "title": "SpatialDesk Command Center",
+  "subtitle": "A hands-first workspace for Meta Quest, with an AI agent that acts, explains, and can be undone.",
+  "beats": [
+    { "id": "describe", "text": "SpatialDesk is a workspace you wear. Before I put the headset on, I describe my day in my own words. No forms." },
+    { "id": "enter", "text": "Inside, the board I'm working on sits within arm's reach, and everything else waits at the sides." },
+    { "id": "coach", "text": "First-timers get three hands-only steps that teach the basics in under a minute. I've done them, so I skip." },
+    { "id": "plan", "text": "One tap on Plan my day. Amazon Nova 2 Lite answers with a single tool call, and the same Kotlin engine that runs in the headset checks every step." },
+    { "id": "preview", "text": "Nothing changes until I say so. Each step says what it will do, and why." },
+    { "id": "apply", "text": "One tap applies the whole plan: a Today board in front of me, and a twenty-five minute focus timer. One undo would take it all back." },
+    { "id": "hands", "text": "By hand it's just as direct. Pick a card up, drop it in Doing, and it snaps into place. Every target is tested against hand-tracking jitter." },
+    { "id": "timer", "text": "In this video timers run in seconds: add fast to the link to do the same. When the block ends, the agent notices on its own." },
+    { "id": "suggestion", "text": "It knows the report isn't finished, because the app tells it how much of the estimate is used. So it suggests a short break, not a false done." },
+    { "id": "accept", "text": "I accept with one tap. The agent never acts without me." },
+    { "id": "log", "text": "The AI log shows everything the agent did: each step with its reason, and its own undo." },
+    { "id": "undo", "text": "Any single step can be undone, even after later changes. Anything that depended on it goes too, and the app says so." },
+    { "id": "contrast", "text": "High contrast, sound cues and reading plans aloud are one tap away, and they are remembered." },
+    { "id": "arrange", "text": "And if I move, Bring to me gathers the workspace around me again." },
+    { "id": "end", "text": "SpatialDesk. Every claim is checked automatically: frame budgets on a throttled CPU, hand-tracking noise, and an agent with guardrails. Open the link: there is nothing to install." }
+  ]
+}
