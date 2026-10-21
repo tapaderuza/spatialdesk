@@ -9,8 +9,8 @@
  *    never presses whatever was behind it.
  *
  * Head gaze, not eye tracking: WebXR does not expose the eyes, and the head ray is what every Quest user can aim.
- * Per frame, only while hands-free is on and in XR: one plane test per panel, one rectangle test per control on the
- * panel looked at, no allocation.
+ * Only while hands-free is on and in XR: every third frame one plane test per panel and one rectangle test per control
+ * on the panel looked at; every frame the ring follows the head. No allocation per frame.
  */
 import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from './panel-hits.js';
@@ -24,6 +24,8 @@ const SETTLE_MS = 150;
 const REARM_COS = Math.cos((3 * Math.PI) / 180);
 const RETICLE_SIZE = 0.036; // 3.6 cm: about 3.4 degrees at arm's length, the fill readable at a glance
 const SURFACE_OFFSET = 0.004; // in front of the panel, never inside it
+/** Ray tests every third frame: about 40 ms at 72 Hz, nothing next to a one-second dwell. */
+const TEST_EVERY_FRAMES = 3;
 
 /** Controls that are also read (cards, columns, the notice line) wait longer than buttons. */
 function dwellFor(key: string): number {
@@ -63,7 +65,9 @@ export class GazeSystem extends createSystem({}) {
   private material!: ShaderMaterial;
   private panel: GazeTarget | null = null;
   private key: string | null = null;
+  private distance = 0;
   private since = 0;
+  private frame = 0;
   /** The control pressed last, until the gaze leaves it. */
   private spent: { panel: GazeTarget; key: string } | null = null;
   /** True from a press until the head has moved [REARM_COS] away from where it was. */
@@ -99,6 +103,39 @@ export class GazeSystem extends createSystem({}) {
     camera.getWorldDirection(this.direction);
     if (this.settling && this.direction.dot(this.pressedFrom) < REARM_COS) this.settling = false;
 
+    // The ray tests (one plane per panel, then the controls of the one looked at) run every few frames; the ring
+    // follows the head every frame along the last distance found.
+    const testing = ++this.frame % TEST_EVERY_FRAMES === 0 || !this.panel;
+    if (testing && !this.test()) {
+      this.leave(reticle);
+      return;
+    }
+    const panel = this.panel!;
+    const key = this.key;
+    reticle.position.copy(this.direction).multiplyScalar(this.distance - SURFACE_OFFSET).add(this.origin);
+    reticle.lookAt(this.origin);
+    reticle.visible = true;
+
+    let progress = 0;
+    if (key != null && !this.spent && !this.settling) {
+      progress = Math.max(0, (performance.now() - this.since - SETTLE_MS) / dwellFor(key));
+      if (progress >= 1 && testing) {
+        // Pressed only right after a test, so never on a control the gaze has just left.
+        progress = 0;
+        this.spent = { panel, key };
+        this.settling = true;
+        this.pressedFrom.copy(this.direction);
+        this.state.presses++;
+        panel.press(key);
+      }
+    }
+    this.material.uniforms.progress.value = Math.min(progress, 1);
+    this.state.key = key;
+    this.state.progress = progress;
+  }
+
+  /** Finds the nearest panel and the control under the gaze; false when the gaze is on no panel. */
+  private test(): boolean {
     let best: GazeTarget | null = null;
     let distance = Infinity;
     for (let i = 0; i < livePanels.length; i++) {
@@ -108,40 +145,19 @@ export class GazeSystem extends createSystem({}) {
         best = livePanels[i];
       }
     }
-    if (!best) {
-      this.leave(reticle);
-      return;
-    }
+    if (!best) return false;
+    this.distance = distance;
     this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
-    const key = best.hit(this.point);
-    reticle.position.copy(this.direction).multiplyScalar(distance - SURFACE_OFFSET).add(this.origin);
-    reticle.lookAt(this.origin);
-    reticle.visible = true;
-
-    const now = performance.now();
+    const key = best.gazeHit(this.point, best !== this.panel);
     if (best !== this.panel || key !== this.key) {
       if (this.panel !== best) this.panel?.setGazeHover(null);
       best.setGazeHover(key);
       this.panel = best;
       this.key = key;
-      this.since = now;
+      this.since = performance.now();
       if (this.spent && (this.spent.panel !== best || this.spent.key !== key)) this.spent = null;
     }
-    let progress = 0;
-    if (key != null && !this.spent && !this.settling) {
-      progress = Math.max(0, (now - this.since - SETTLE_MS) / dwellFor(key));
-      if (progress >= 1) {
-        progress = 0;
-        this.spent = { panel: best, key };
-        this.settling = true;
-        this.pressedFrom.copy(this.direction);
-        this.state.presses++;
-        best.press(key);
-      }
-    }
-    this.material.uniforms.progress.value = progress;
-    this.state.key = key;
-    this.state.progress = progress;
+    return true;
   }
 
   private leave(reticle: { visible: boolean }): void {

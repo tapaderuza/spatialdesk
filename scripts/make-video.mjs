@@ -46,13 +46,22 @@ if (changed) {
 }
 const durations = Object.fromEntries(script.beats.map(({ id }) => [id, seconds(join(voiceDir, `${id}.wav`))]));
 writeFileSync(join(out, 'durations.json'), JSON.stringify(durations, null, 2));
+// The "say" line is also the browser's microphone: 16 kHz mono, a moment of silence before it and after it (Talk
+// ends on a pause), so the real Amazon Transcribe hears exactly what the video plays.
+const mic = join(voiceDir, 'mic.wav');
+execFileSync('ffmpeg', [
+  '-y', '-loglevel', 'error', '-f', 'lavfi', '-t', '0.3', '-i', 'anullsrc=r=16000:cl=mono', '-i', join(voiceDir, 'say.wav'),
+  '-f', 'lavfi', '-t', '3', '-i', 'anullsrc=r=16000:cl=mono',
+  '-filter_complex', '[1:a]aresample=16000,aformat=sample_fmts=s16:channel_layouts=mono[v];[0:a][v][2:a]concat=n=3:v=0:a=1',
+  '-c:a', 'pcm_s16le', mic,
+]);
 console.log(`${script.beats.length} lines, ${Object.values(durations).reduce((a, b) => a + b, 0).toFixed(1)} s of voice`);
 
 // 2. Recording, paced by the voice.
 const markersFile = join(out, 'markers.json');
 if (!process.argv.includes('--edit')) {
   step(`Recording the demo in IWER against ${url}`);
-  run('npx playwright test tests/demo.spec.ts', { DEMO: '1', E2E_URL: url, NARRATION: join(out, 'durations.json'), MARKERS: markersFile });
+  run('npx playwright test tests/demo.spec.ts', { DEMO: '1', E2E_URL: url, NARRATION: join(out, 'durations.json'), MARKERS: markersFile, MIC: mic });
   copyFileSync(JSON.parse(readFileSync(markersFile, 'utf-8')).video, join(out, 'recording.webm'));
 }
 const marks = JSON.parse(readFileSync(markersFile, 'utf-8')).beats; // [{ id, at }] ms since the recording began
@@ -162,10 +171,10 @@ function cards() {
   </style>`;
   return {
     title: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.subtitle}</p>
-      <div class="tags"><span class="tag">Productivity</span><span class="tag">Agentic Interaction</span><span class="tag">Hands-first WebXR</span></div>
-      <div class="small">Recorded in Meta's IWER Quest 3 emulator. The AI runs live on Amazon Bedrock.</div></div>`,
+      <div class="tags"><span class="tag">Productivity</span><span class="tag">Agentic Interaction</span><span class="tag">Voice and hands-free</span><span class="tag">Hands-first WebXR</span></div>
+      <div class="small">Recorded in Meta's IWER Quest 3 emulator. The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
     end: `${base}<div class="wrap"><h1>${script.title}</h1><p>Open it on a Quest: no install, no account.</p>
       <div class="url">${url.replace(/^https:\/\//, '')}</div>
-      <div class="small">Meta Immersive Web SDK, TypeScript, Kotlin Multiplatform, Spring Boot, Amazon Bedrock (Nova 2 Lite), AWS CDK</div></div>`,
+      <div class="small">Meta Immersive Web SDK, TypeScript, Kotlin Multiplatform, Spring Boot, Amazon Bedrock (Nova 2 Lite), Amazon Transcribe, AWS CDK</div></div>`,
   };
 }

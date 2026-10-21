@@ -1,21 +1,34 @@
 /**
  * The end-to-end demo, under 3 minutes, played in the IWER Quest 3 emulator with the controller ray and the trigger,
  * as a judge would with a headset, and recorded as video for the submission.
- * Needs the command server (Bedrock): local `npm run server:run` + preview proxy, or E2E_URL=https://<cloudfront>.
+ * Needs the command server (Bedrock, Transcribe): local `npm run server:run` + preview proxy, or E2E_URL=https://<cloudfront>.
  *   DEMO=1 npx playwright test tests/demo.spec.ts          (video in test-results/)
  *   node scripts/make-video.mjs                             (the narrated, captioned cut, paced by NARRATION)
- * The voice-over, one line per beat: docs/video/narration.json.
+ * The voice-over, one line per beat: docs/video/narration.json. MIC (a WAV, written by make-video.mjs from the "say"
+ * line) is played into the browser's microphone, so the Talk beat is heard by the real Amazon Transcribe.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pressXR, turnHead, type Win } from './helpers.js';
+import { lookAt, pressXR, turnHead, type Win } from './helpers.js';
 
 const target = process.env.E2E_URL;
+const mic = process.env.MIC;
 test.use({
   ...(target ? { baseURL: target } : {}),
   viewport: { width: 1280, height: 720 },
   video: { mode: 'on', size: { width: 1280, height: 720 } },
+  launchOptions: {
+    args: [
+      '--enable-gpu',
+      '--ignore-gpu-blocklist',
+      '--use-angle=d3d11',
+      '--enable-unsafe-swiftshader',
+      '--use-fake-ui-for-media-stream',
+      '--use-fake-device-for-media-stream',
+      ...(mic ? [`--use-file-for-fake-audio-capture=${mic}%noloop`] : []),
+    ],
+  },
 });
 
 /** Seconds each narrated line lasts (written by scripts/make-video.mjs); without it the demo keeps its own pace. */
@@ -31,7 +44,7 @@ const phase = (page: Page, p: string) => page.waitForFunction((want) => (window 
 const online = (page: Page) =>
   page.waitForFunction(() => (window as Win).__link?.kind === 'online' && (window as Win).__agent, null, { timeout: 60_000 });
 
-test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', async ({ page }, testInfo) => {
+test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-free, streak (< 3 min)', async ({ page }, testInfo) => {
   test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
   test.setTimeout(300_000);
   const started = Date.now(); // the video starts with the page, a moment before this
@@ -59,7 +72,20 @@ test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', as
 
   await page.goto('/?emulate&fast'); // ?fast: timers run in seconds, as judges can use it
   await online(page);
-  await page.evaluate(() => indexedDB.deleteDatabase('spatialdesk'));
+  await page.evaluate(() => {
+    indexedDB.deleteDatabase('spatialdesk');
+    // A few earlier days of use, so the streak and the seven-day strip show what they are for. No last visit: the
+    // start-of-day suggestion is covered by tests/progress.spec.ts, not this story.
+    const key = (n: number) => {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() - n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const day = (blocks: number, minutes: number, done: number) => ({ blocks, minutes, done });
+    localStorage.setItem('spatialdesk.progress', JSON.stringify({ days: { [key(1)]: day(3, 75, 4), [key(2)]: day(2, 50, 3), [key(3)]: day(4, 100, 6), [key(5)]: day(1, 25, 2) } }));
+    localStorage.removeItem('spatialdesk.settings');
+  });
   await page.reload();
   await online(page);
   await pause(page, 1);
@@ -74,21 +100,17 @@ test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', as
   await pause(page, 1.5);
   await settle();
 
-  // 2. Into the workspace.
+  // 2. Into the workspace. The guided start is offered and skipped (accessibility.spec.ts measures it).
   await page.evaluate((fovy) => ((window as Win).__xrDevice.fovy = (fovy * Math.PI) / 180), FOVY_DEG);
   await page.evaluate(() => (window as Win).__world.launchXR());
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
   await turnHead(page, 0, HEAD_PITCH_DEG);
   await beat('enter');
-  await pause(page, 3);
-
-  // 3. The guided start is offered; skipped here (accessibility.spec.ts measures it).
-  await beat('coach');
-  await settle();
+  await pause(page, 2);
   await pressXR(page, 'coach:coach-skip');
   await pause(page, 1);
 
-  // 4. Plan my day: the agent proposes, the user reviews, applies.
+  // 3. Plan my day: the agent proposes, the user reviews, applies.
   await beat('plan');
   await command('plan-button');
   await phase(page, 'preview');
@@ -102,43 +124,71 @@ test('demo: plan my day, work, the agent reacts, explain and undo (< 3 min)', as
   const today = await page.evaluate(() => (window as Win).__workspace.state.focusBoardId as string);
   expect(today).toBeTruthy();
 
-  // 5. Work by hand: pick a card, drop it in Doing.
+  // 4. Work by hand: pick a card, drop it in Doing.
   await beat('hands');
   await pressXR(page, `${today}:card-0-0`);
   await pause(page, 1);
   await pressXR(page, `${today}:col-1`);
   await pause(page, 2);
 
-  // 6. The focus block ends (?fast: 25 seconds): chime, flash, and the agent suggests the next block on its own.
+  // 5. The focus block ends (?fast: 25 seconds): chime, flash, and the agent suggests the next block on its own.
   await beat('timer');
-  await page.waitForFunction((want) => (window as Win).__agent.state.phase === want, 'suggestion', { timeout: 60_000 });
+  await phase(page, 'suggestion');
   await beat('suggestion');
-  await pause(page, 4);
-  await beat('accept');
-  await pressXR(page, 'agent:plan-apply');
   await pause(page, 3);
+  await settle();
+  await pressXR(page, 'agent:plan-discard'); // "Not now": no break timer to ring over what comes next
+  await pause(page, 1);
+
+  // 6. Talk: the line is played into the microphone; the real Transcribe hears it and the agent plans it.
+  await beat('talk');
+  await settle();
+  await turnHead(page, GLANCE_DEG, HEAD_PITCH_DEG, 14);
+  await pressXR(page, 'command:talk-button', 'left');
+  await beat('say');
+  await page.waitForFunction(() => (window as Win).__heard != null, null, { timeout: 30_000 });
+  const heard = await page.evaluate(() => (window as Win).__heard);
+  expect(heard.said).toMatch(/dentist/i);
+  await turnHead(page, 0, HEAD_PITCH_DEG, 14);
+  await phase(page, 'preview');
+  await beat('heard');
+  await pause(page, 3);
+  await pressXR(page, 'agent:plan-apply');
+  await pause(page, 2);
 
   // 7. What did the AI do? Every step with its reason, and an Undo for each.
   await beat('log');
   await command('log-button');
   await phase(page, 'log');
-  await pause(page, 4);
-  await beat('undo');
+  await pause(page, 3);
   await pressXR(page, 'agent:step-0-undo');
   await pause(page, 2);
   await settle();
   await pressXR(page, 'agent:plan-discard');
   await pause(page, 1);
 
-  // 8. High contrast, one tap (and remembered).
-  await beat('contrast');
-  await command('contrast-button');
-  await pause(page, 2);
+  // 8. Hands-free: on with a tap, then the gaze alone brings everything back and turns it off again.
+  await beat('handsfree');
+  await command('handsfree-button');
+  await lookAt(page, 'command:arrange-button', 0, 0, 16);
+  await page.waitForFunction(() => (window as Win).__gaze.presses >= 1, null, { timeout: 5_000 });
+  await pause(page, 1.5);
+  await lookAt(page, 'command:handsfree-button', 0, 0, 12);
+  await page.waitForFunction(() => (window as Win).__gaze.presses >= 2, null, { timeout: 5_000 });
+  await pause(page, 1);
 
-  // 9. Bring everything to me.
-  await beat('arrange');
-  await command('arrange-button');
+  // 9. Progress: today's block, the streak and the last seven days, at the top of the command panel.
+  await beat('streak');
+  await lookAt(page, 'command:status-detail', 0, -1.5, 14);
+  await pause(page, 5);
+  await settle();
+
+  // 10. High contrast, one tap (and remembered).
+  await beat('contrast');
+  await pressXR(page, 'command:contrast-button', 'left');
   await pause(page, 2);
+  await turnHead(page, 0, HEAD_PITCH_DEG, 14);
+  await pause(page, 1);
   await settle();
 
   // Playwright saves the video there once the page closes.

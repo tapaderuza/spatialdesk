@@ -30,22 +30,30 @@ export interface PanelHandlers<K extends string> {
 /** The gaze pointer's id among the hands' pointer ids (which are never negative). */
 const GAZE_POINTER = -1;
 
-/** What the gaze pointer needs from a panel; it only ever presses a key that hit() gave it. */
+/** What the gaze pointer needs from a panel; it only ever presses a key that gazeHit() gave it. */
 export interface GazeTarget {
   rayDistance(origin: Vector3, direction: Vector3): number;
-  hit(point: Vector3): string | null;
+  gazeHit(point: Vector3, fresh: boolean): string | null;
   press(key: string): void;
   setGazeHover(key: string | null): void;
 }
+
+/** How long the gaze reuses a panel's control rectangles before measuring them again (layout may have moved). */
+const RECTS_MAX_AGE_MS = 250;
 
 /** Panels that can be pressed right now or later, in creation order. An array: walked per frame without allocating. */
 export const livePanels: GazeTarget[] = [];
 
 export class PanelHits<K extends string> {
   private readonly inverse = new Matrix4();
+  private readonly rootInverse = new Matrix4();
+  private readonly relative = new Matrix4();
   private readonly local = new Vector3();
   private readonly far = new Vector3();
   private readonly hoverByPointer = new Map<number, K>();
+  /** Each control's rectangle in the root's frame, [minX, maxX, minY, maxY] per control, for the gaze. */
+  private readonly rects: Float32Array;
+  private rectsAt = -Infinity;
 
   /**
    * @param controls most specific first (a card before its column): the first rectangle containing the point wins.
@@ -57,6 +65,7 @@ export class PanelHits<K extends string> {
     cleanups: (() => void)[],
   ) {
     (root as Element & { intersectChildren?: boolean }).intersectChildren = false;
+    this.rects = new Float32Array(controls.length * 4);
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
       const key = this.hit(event.point);
@@ -105,15 +114,52 @@ export class PanelHits<K extends string> {
   rayDistance(origin: Vector3, direction: Vector3): number {
     if (!this.root.isVisible.value || !shown(this.root)) return -1;
     this.root.updateWorldMatrix(true, false);
-    this.inverse.copy(this.root.matrixWorld).invert();
-    const near = this.local.copy(origin).applyMatrix4(this.inverse);
-    const far = this.far.copy(origin).add(direction).applyMatrix4(this.inverse);
+    this.rootInverse.copy(this.root.matrixWorld).invert();
+    const near = this.local.copy(origin).applyMatrix4(this.rootInverse);
+    const far = this.far.copy(origin).add(direction).applyMatrix4(this.rootInverse);
     const dz = far.z - near.z;
     if (near.z <= 0 || dz >= 0) return -1;
     const t = -near.z / dz;
     const x = near.x + t * (far.x - near.x);
     const y = near.y + t * (far.y - near.y);
     return Math.abs(x) <= 0.5 && Math.abs(y) <= 0.5 ? t : -1;
+  }
+
+  /**
+   * hit() for the gaze, right after rayDistance() on this panel: the point is compared with rectangles kept in the
+   * panel's own frame, so a test costs a few comparisons instead of a matrix chain per control. They are measured
+   * again when [fresh] (the gaze just came to this panel) or after RECTS_MAX_AGE_MS. Hidden controls never match.
+   */
+  gazeHit(point: Vector3, fresh: boolean): K | null {
+    const now = performance.now();
+    if (fresh || now - this.rectsAt > RECTS_MAX_AGE_MS) this.measureRects(now);
+    const local = this.local.copy(point).applyMatrix4(this.rootInverse);
+    for (let i = 0; i < this.controls.length; i++) {
+      const [key, element] = this.controls[i];
+      if (!element.isVisible.value) continue;
+      const r = i * 4;
+      if (local.x >= this.rects[r] && local.x <= this.rects[r + 1] && local.y >= this.rects[r + 2] && local.y <= this.rects[r + 3]) return key;
+    }
+    return null;
+  }
+
+  /** Each control's unit square, mapped into the root's frame (UIKit never rotates an element within its panel). */
+  private measureRects(now: number): void {
+    this.rectsAt = now;
+    for (let i = 0; i < this.controls.length; i++) {
+      const element = this.controls[i][1];
+      element.updateWorldMatrix(true, false);
+      this.relative.multiplyMatrices(this.rootInverse, element.matrixWorld);
+      const a = this.local.set(-0.5, -0.5, 0).applyMatrix4(this.relative);
+      const ax = a.x;
+      const ay = a.y;
+      const b = this.local.set(0.5, 0.5, 0).applyMatrix4(this.relative);
+      const r = i * 4;
+      this.rects[r] = Math.min(ax, b.x);
+      this.rects[r + 1] = Math.max(ax, b.x);
+      this.rects[r + 2] = Math.min(ay, b.y);
+      this.rects[r + 3] = Math.max(ay, b.y);
+    }
   }
 
   /** The gaze pointer's hover (null: the gaze left this panel), painted like a hand's. */

@@ -36,7 +36,8 @@ test('XR scene stays within the Quest performance budgets', async ({ page }) => 
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
 
-  await page.goto('/?perf&emulate');
+  // Hands-free on: the gaze ray is tested against every panel each frame, the heaviest our systems get.
+  await page.goto('/?perf&emulate&handsfree');
   await page.waitForFunction(() => 'iwsdkPerf' in window || '__perf' in window, null, { timeout: 60_000 });
   const gpu = await page.evaluate(() => {
     const gl = document.createElement('canvas').getContext('webgl2');

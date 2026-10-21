@@ -11,6 +11,7 @@ and focus timers around you, explains every step it takes, and lets you undo any
 
 - **For a short session:** add `?fast` (or `?emulate&fast`) and timers run in seconds instead of minutes, so you can
   see what the agent does when a focus block ends.
+- **Without hands:** add `?handsfree` to start in hands-free mode, and press *Talk* (by gaze) for voice.
 
 No install, no account. Each visitor gets an anonymous session, and the workspace is stored on the device.
 
@@ -32,6 +33,12 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
   can be grabbed and pinned anywhere; *Bring to me* gathers everything back around you.
 - **Seated and comfortable.** The board you work on sits 62 cm away, slightly below the eyes; everything else waits at
   the sides. Tapping a side panel never swings the workspace toward it.
+- **Talk to it.** *Talk* takes a spoken command ("focus", "undo", "yes", "high contrast on") or a request in your own
+  words, which the agent answers with a plan to review. Audio streams straight to Amazon Transcribe.
+- **Hands-free.** Look at any control and hold your gaze until the ring fills (`?handsfree` starts in this mode).
+  With *Talk*, the whole workspace works without hands or controllers.
+- **A reason to come back.** Today's focus blocks, a streak and the last seven days on the command panel; on a new day
+  with work still open, the agent offers to plan today from it.
 - **Accessible.** A three-step guided start (under a minute, skippable), high contrast mode (white text and outlines),
   sound cues panned toward the panel that made them, and plans read aloud. Settings are remembered.
 
@@ -46,14 +53,16 @@ flowchart LR
   end
   subgraph AWS["AWS (us-east-1, CDK)"]
     CF["CloudFront + S3<br/>static app"]
-    API["Spring Boot on Fargate<br/>/api/agent/plan, sessions, WebSocket"]
+    API["Spring Boot on Fargate<br/>/api/agent/plan, /api/voice/session,<br/>sessions, WebSocket"]
     Engine2["Workspace engine<br/>(same Kotlin, JVM)"]
     Bedrock["Amazon Bedrock<br/>Nova 2 Lite, forced tool use"]
+    Transcribe["Amazon Transcribe<br/>streaming"]
     API --> Engine2
     API --> Bedrock
   end
   Quest -- HTTPS --> CF
   CF -- "/api, /ws" --> API
+  Quest -- "microphone, presigned WSS" --> Transcribe
 ```
 
 - **Client:** Meta Immersive Web SDK 1.0 (TypeScript, three.js, UIKit panels), with the IWER emulator loaded only for
@@ -71,8 +80,13 @@ flowchart LR
 
   If that still fails, a built-in planner answers and says so. Quotas cap each session at 20 plans per hour and the
   whole server at 300 per day.
+- **Voice:** an AudioWorklet turns the microphone into 16 kHz PCM, framed as AWS event stream messages and sent over a
+  WebSocket to Amazon Transcribe that the server presigns (hand-written SigV4, tested against AWS's documented
+  example). No credentials in the browser, no audio through the server; 60 listens per session per hour, 600 a day.
+- **Hands-free:** a system tests the head ray against each panel's plane, then the control rectangles of the panel
+  looked at, and fills a one-draw-call shader ring; no allocation per frame.
 - **Infrastructure:** AWS CDK in Kotlin: S3 + CloudFront for the app; an ALB (reachable only from CloudFront) and
-  Fargate for the server. The task role may invoke that one Nova model and nothing else.
+  Fargate for the server. The task role may invoke that one Nova model and stream to Transcribe, nothing else.
 
 ## How it was verified without a headset
 
@@ -87,6 +101,9 @@ production build:
 | The agent is useful and safe | Planner tests on the server (normaliser, guardrails, retry, fallback). End-to-end against production: a plan applied in under 4 s (typically 1.5-2 s). |
 | First five minutes | The guided start, done with real pointer events, finishes well under a minute (measured: 2 s of input). |
 | Fails gracefully | A spent quota and an unreachable server are explained on the agent card; the workspace is untouched. |
+| Hands-free works and does not misfire | With the head as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
+| Voice works | The command grammar, the event stream framing (CRC-32 check value), the browser capture path against a stand-in Transcribe, and the real Transcribe hearing a Piper-spoken "plan my day" (`tests/e2e-voice.spec.ts`). |
+| A reason to come back | Streaks that survive the morning, the seven-day strip, and the agent's start-of-day plan from yesterday's open work. |
 
 `npm run ci` runs the typecheck, every Playwright gate and the size check; `server/gradlew test` runs the engine,
 layout, server and infrastructure tests.
@@ -119,10 +136,10 @@ node scripts/make-video.mjs    # the demo video: Piper voice-over, IWER recordin
 
 | Path | What |
 |---|---|
-| `src/` | The WebXR app: `workspace/` (boards, timers, store with undo journal), `agent/` (agent card, watcher, client), `onboarding/`, `ui/` (settings, sounds, panel hit testing) |
+| `src/` | The WebXR app: `workspace/` (boards, timers, store with undo journal, progress), `agent/` (agent card, watcher, client), `voice/` (capture, Transcribe framing, command grammar), `onboarding/`, `ui/` (settings, sounds, panel hit testing, hands-free gaze) |
 | `public/ui/*.uikitml` | Panel layouts (boards, timers, command panel, agent card, coach) |
 | `server/shared` | The Kotlin Multiplatform workspace engine, layout and protocol |
-| `server/app` | Spring Boot: sessions, WebSocket, the planning agent |
+| `server/app` | Spring Boot: sessions, WebSocket, the planning agent, presigned voice streams |
 | `server/infra` | AWS CDK stack |
 | `tests/` | Playwright gates in the IWER emulator |
 | `docs/` | Submission texts, demo script and narration |

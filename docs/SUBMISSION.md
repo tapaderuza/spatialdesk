@@ -5,7 +5,10 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 
 - **Competition:** Meta VR Start Developer Competition 2026 (start-developer-competition-26.devpost.com)
 - **Track:** Productivity. **Division:** New.
-- **Special awards:** Best Agentic Interaction (main), Accessibility (if the form lets you tick more than one).
+- **Special awards** (judged across all entries, rules section "Special Awards"):
+  - Best Agentic Interaction: an agent that acts on the space, talks and listens, and suggests on its own.
+  - Best Accessibility Forward Experience: voice for every control, hands-free gaze, high contrast, read-aloud.
+  - Best Reason to Come Back: a streak and a seven-day strip, plus the agent's start-of-day plan from yesterday's open work.
 - **Deadline:** 18 Nov 2026, 12:00 PT (21:00 in Spain).
 
 What the official rules say (read on 2026-10-08):
@@ -29,23 +32,25 @@ What the official rules say (read on 2026-10-08):
 
 SpatialDesk Command Center
 
-## Elevator pitch (200 characters max)
+## Submission tagline (140 characters max)
 
-A hands-first workspace for Meta Quest. Describe your day; an AI agent builds boards and focus timers around you,
-explains every step, and lets you undo any one.
+A hands-first workspace for Meta Quest: say your day and an AI agent builds it around you, explains every step, and lets you undo any one.
+
+(138 characters.)
 
 ## Try it out (links)
 
 - App (WebXR, opens in Meta Quest Browser): https://d2p3027seoreck.cloudfront.net
 - Same app with timers in seconds, for a short session: https://d2p3027seoreck.cloudfront.net/?fast
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
+- Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
 - Video: (YouTube link once uploaded)
 - Code: (GitHub link, if a repository is shared)
 
 ## Built with
 
 webxr, meta-immersive-web-sdk, iwer, three.js, typescript, kotlin, kotlin-multiplatform, spring-boot,
-amazon-bedrock, amazon-nova, aws-cdk, aws-fargate, cloudfront, playwright
+amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate, cloudfront, playwright
 
 ## Testing instructions for judges
 
@@ -63,7 +68,13 @@ amazon-bedrock, amazon-nova, aws-cdk, aws-fargate, cloudfront, playwright
 5. When the focus timer ends, the agent suggests the next block on its own (or a break, if the task is not
    finished). One tap accepts it.
 6. **AI log** shows every action the agent took, with the reason and an **Undo** for each step.
-7. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
+7. **Talk** (top right of the left panel): say a command ("focus", "undo", "yes", "high contrast on") or a request
+   in your own words ("move the dentist call to the top and give me a short break"); the agent answers with a plan
+   to review, and "yes" applies it. The browser asks for the microphone the first time.
+8. **Hands-free** (bottom of the left panel): look at any control and hold your gaze until the ring fills to press
+   it. Together with Talk, the whole workspace works without hands or controllers.
+9. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
+   The top of the panel shows today's focus blocks, your streak and the last seven days.
 
 Without a Quest, open https://d2p3027seoreck.cloudfront.net/?emulate&fast in Chrome or Edge on a desktop. Meta's
 IWER emulator stands in for the headset. Click **Enter workspace**, then click the panels with the mouse.
@@ -80,16 +91,17 @@ Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under
 - **Subtitles:** upload `.video/captions.srt` as English subtitles as well.
 - **Description:**
 
-  SpatialDesk Command Center is a hands-first workspace for Meta Quest, delivered as WebXR. Describe your day and
-  an AI agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus timers around you, explains every step,
-  and lets you undo any one of them. It also suggests what to do next when a focus block ends.
+  SpatialDesk Command Center is a hands-first workspace for Meta Quest, delivered as WebXR. Say your day and an AI
+  agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus timers around you, explains every step, and
+  lets you undo any one of them. It suggests what to do next when a focus block ends, and plans today from
+  yesterday's open work. Every control also works by voice (Amazon Transcribe) and by gaze alone (hands-free).
 
   Recorded in Meta's IWER Quest 3 emulator against the production app. Timers run in seconds in this video (the
   ?fast option). Voice-over generated locally with Piper.
 
   Try it: https://d2p3027seoreck.cloudfront.net (add ?emulate on a desktop)
 
-  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction.
+  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction, Accessibility.
 
 ## Images (gallery)
 
@@ -130,6 +142,13 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   goes too, and the app tells you.
 - **Not a wrapper.** Take the AI away and SpatialDesk is still a complete workspace: boards, timers, hands-first
   interaction, undo, and a built-in planner that answers when the AI cannot.
+- **Talk to it.** Press *Talk* and say a command ("focus", "undo", "yes") or a request in your own words ("move the
+  dentist call to the top and give me a short break"). Requests come back as a plan to review; "yes" applies it.
+- **No hands needed at all.** In *hands-free* mode you look at a control and hold your gaze until a ring fills.
+  Reading never presses anything: a control waits for the gaze to leave before it can be pressed again, and after a
+  press nothing happens until the head moves. With *Talk*, the whole workspace works without hands or controllers.
+- **A reason to come back tomorrow.** The command panel shows today's focus blocks, a streak and the last seven days.
+  On a new day with work still open, the agent offers to plan today from it, in-progress tasks first.
 - **Hands first, seated, accessible.**
   - Every target is at least 6 cm and within reach.
   - The board you work on sits 62 cm away, slightly below the eyes.
@@ -152,16 +171,24 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   4. retries once with the exact error.
 
   If that still fails, a built-in planner answers, and the card says so.
+- **Voice:** an AudioWorklet turns the microphone into 16 kHz PCM, framed in AWS's event stream format and streamed
+  straight to Amazon Transcribe over a WebSocket that the server presigns (SigV4, checked against AWS's documented
+  example). The browser never holds AWS credentials and no audio passes through our server.
+- **Hands-free:** the head ray is tested against each panel's plane, then against the control rectangles on the one
+  looked at; a one-draw-call shader ring shows the dwell. No allocation per frame.
 - **AWS, all in CDK:**
   - S3 and CloudFront serve the app.
   - A load balancer reachable only from CloudFront fronts the server on Fargate.
-  - The server's role may call that one model and nothing else.
+  - The server's role may call that one model and stream to Transcribe, nothing else.
   - Quotas keep the cost of the whole competition bounded.
 - **Tested end to end in Meta's IWER Quest 3 emulator with Playwright.** Every quality claim is an automated check:
   - frame budgets on a CPU throttled 3x, held no heavier than Meta's own IWSDK starter scene;
   - hit rates under hand-tracking jitter;
   - seated layout invariants;
   - a guided start of under a minute;
+  - gaze presses, glances that must not press, and the no-repeat rules, with the head as the only input;
+  - a spoken command (synthesised, played as the browser's microphone) heard by the real Amazon Transcribe and
+    turned into a plan;
   - a plan applied in under 4 seconds against production.
 
   The demo video is a recorded run of that same test suite, with a locally generated voice-over and captions.
@@ -179,6 +206,11 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   rejects plans that contradict them, feeding the reason back for one retry.
 - **Undoing one step out of order.** Undo is a journal of operations replayed with their original clock and
   position. Any single step can be removed later, and anything that depended on it is reported.
+- **Gaze that does not press everything you read.** A plain dwell timer picked up every card you read and pressed
+  whatever was behind a panel that had just closed. Two rules fixed it: a pressed control waits for the gaze to
+  leave, and after any press nothing is pressed until the head moves.
+- **Voice in a headset browser.** The browser's own speech recognition is missing from some browsers and could not be
+  verified in Meta Quest Browser, so the app streams raw audio to Amazon Transcribe itself.
 - **Seated reality.** You look at the panel you are tapping. Our first version re-anchored the workspace to wherever
   the head pointed, so a tap on the side panel swung the whole desk 50°. A head-turning test caught it, and the desk
   now keeps its heading through glances.
@@ -186,6 +218,7 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 ### Accomplishments that we're proud of
 
 - An agent you can audit: every action has a reason and its own undo.
+- Every control has three ways in: hands (poke or pinch), voice, and gaze alone.
 - The same engine validates the AI on the server and runs the workspace in the headset.
 - Quality numbers instead of adjectives, measured in the emulator on the production build:
   - 0.4 ms per frame for the app's own systems;
@@ -208,3 +241,22 @@ period.
 - Sync across devices, so the same boards follow you from the headset to the browser.
 - Shared team boards.
 - A Horizon Store listing as an installable web app.
+
+## How hand interactions are implemented (optional form field)
+
+Everything is built for hands first, with no controller needed at any point:
+
+- **Pick and place instead of drag.** Tap or pinch a card to pick it up; every column lights up as a drop target; tap
+  one to drop it. No step needs more than 2 cm of precision, so tracking jitter never drops a card halfway.
+- **Poke and pinch both work everywhere.** Each panel is one IWSDK `PokeInteractable` and `RayInteractable`; the
+  control under the finger or the ray is found with a rectangle test, which keeps the app's own cost under half a
+  millisecond per frame.
+- **Sized and placed for real hands, seated.** Targets are at least 6 cm with 2 cm gaps, the working board sits 62 cm
+  away just below the eyes, and an automated test injects ±1 cm / ±3° of hand-tracking noise and requires a 95 % hit
+  rate.
+- **Grab bars, not grabbable panels.** Boards move by a bar under them (one-hand grab or a distant pinch), so a pinch
+  on a card is always a tap and never drags the board by accident.
+- **And when hands are not an option:** every control also works by voice and by gaze alone (hands-free).
+
+What excites us: hands, voice and gaze together make a headset usable by people a keyboard and mouse never served
+well, and an agent that acts on the space turns "talk to your desk" into something you can check and undo.

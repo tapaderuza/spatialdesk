@@ -23,6 +23,7 @@ Example, intent plan my day, user says "write the report and call Ana", nothing 
 
 Recipes by intent:
 - plan my day: if a board titled "Today" exists, add the new tasks to it with add_card; otherwise create_board "Today" with every task as a card. Order cards by priority, with estimates that fit the hours left today; fixed-time events (like a meeting at 15:00) become cards whose title includes the time. Put the single most important task in "Doing". Then start_timer 25 on that card, then arrange_space focus.
+- plan my day after "A new day" (see What just happened) with no new tasks from the user: carry over what is still open. Keep cards in progress in "Doing" (the first of them is today's first task), move the most important open card up with move_card index 0 if needed, start_timer 25 on the first task, then arrange_space focus. Do not create a new board for cards that already exist. The summary says what was carried over.
 - prioritise: on the focus board, move_card the To do cards with index so the most important is on top (index 0, then 1, ...), and update_card priority (top tasks high, the rest normal or low). Do not create boards or timers.
 - focus: move the most important open card to "Doing" if it is not there, start_timer 25 on it, then arrange_space focus.
 - clear done: one clear_done step per board with cards in its last column.
