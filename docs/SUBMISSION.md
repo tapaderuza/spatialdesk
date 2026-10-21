@@ -110,9 +110,13 @@ From `.video/gallery/`, all taken from the recording, without captions:
 1. `1-plan-preview.png`: the agent's plan, each step with its reason
 2. `2-today-board.png`: the Today board with its focus timer
 3. `3-agent-suggestion.png`: the agent's own suggestion when the block ends
-4. `4-ai-log.png`: the AI log, with an Undo per step
-5. `5-high-contrast.png`: high contrast mode
-6. `6-guided-start.png`: the guided start
+4. `4-voice-plan.png`: a spoken request, heard by Amazon Transcribe, as a plan to review
+5. `5-ai-log.png`: the AI log, with an Undo per step
+6. `6-hands-free.png`: hands-free, the gaze ring filling on a button
+7. `7-streak.png`: today's focus blocks, the streak and the last seven days
+8. `8-high-contrast.png`: high contrast mode
+
+`scripts/make-video.mjs` writes them to `.video/gallery/`.
 
 `0-title.png` works as the thumbnail.
 
@@ -200,7 +204,8 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   fine on a Quest" is not a guess.
 - **Hand-sized UI that stays fast.** Listening for pointer events on every button made the framework raycast every
   element on every frame (9 fps). One listener per panel with a rectangle hit test brought the app's own cost under
-  half a millisecond per frame.
+  half a millisecond per frame. The hands-free gaze first cost 2.6 ms; testing every third frame against control
+  rectangles cached in each panel's frame brought it to 1.3 ms.
 - **An agent that is right, not just fluent.** Nova 2 Lite kept marking unfinished work as done when a timer
   ended. A longer prompt did not fix it. The server now computes facts ("25 of 120 minutes used: not finished") and
   rejects plans that contradict them, feeding the reason back for one retry.
@@ -221,8 +226,8 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - Every control has three ways in: hands (poke or pinch), voice, and gaze alone.
 - The same engine validates the AI on the server and runs the workspace in the headset.
 - Quality numbers instead of adjectives, measured in the emulator on the production build:
-  - 0.4 ms per frame for the app's own systems;
-  - 74 draw calls and a 2.25 MB bundle;
+  - 1.3 ms per frame (p95) for the app's own systems, measured with hands-free on, its heaviest mode;
+  - 76 draw calls and a 2.26 MB bundle;
   - a hit rate of 95 % or more under jitter;
   - plans in about 2 seconds.
 

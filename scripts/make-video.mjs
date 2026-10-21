@@ -66,6 +66,26 @@ if (!process.argv.includes('--edit')) {
 }
 const marks = JSON.parse(readFileSync(markersFile, 'utf-8')).beats; // [{ id, at }] ms since the recording began
 
+// Gallery stills for Devpost, from the recording (no captions): [file, beat, seconds into that beat].
+step('Gallery');
+const galleryDir = join(out, 'gallery');
+mkdirSync(galleryDir, { recursive: true });
+const STILLS = [
+  ['1-plan-preview', 'preview', 2.5],
+  ['2-today-board', 'hands', 0.3],
+  ['3-agent-suggestion', 'suggestion', 2],
+  ['4-voice-plan', 'heard', 2],
+  ['5-ai-log', 'log', 2.5],
+  ['6-hands-free', 'handsfree', 2.6],
+  ['7-streak', 'streak', 2.5],
+  ['8-high-contrast', 'contrast', 2.2],
+];
+for (const [name, id, offset] of STILLS) {
+  const mark = marks.find((m) => m.id === id);
+  if (!mark) continue;
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', `${mark.at / 1000 + offset}`, '-i', join(out, 'recording.webm'), '-frames:v', '1', join(galleryDir, `${name}.png`)]);
+}
+
 // 3. The edit.
 step('Title and end cards');
 const browser = await chromium.launch({ channel: 'msedge' });
@@ -75,6 +95,7 @@ for (const [name, html] of Object.entries(cards())) {
   await page.screenshot({ path: join(out, `${name}.png`) });
 }
 await browser.close();
+copyFileSync(join(out, 'title.png'), join(galleryDir, '0-title.png')); // the thumbnail
 
 step('Edit');
 const recorded = marks.map((m) => ({ ...m, s: m.at / 1000 }));
