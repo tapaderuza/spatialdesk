@@ -1,0 +1,157 @@
+/**
+ * Hands-free: look at a control and keep looking to press it. A small ring sits at the centre of the view on any
+ * panel and fills while the gaze rests on one control (1 s for buttons, 1.6 s for cards and the notice line, which
+ * are also read); when it is full, the control is pressed exactly as a tap presses it.
+ *
+ * Two rules keep reading from pressing things (the "Midas touch"):
+ *  - a control just pressed is not pressed again until the gaze has left it;
+ *  - after a press nothing is pressed until the head has moved a little, so a panel that closes under a still gaze
+ *    never presses whatever was behind it.
+ *
+ * Head gaze, not eye tracking: WebXR does not expose the eyes, and the head ray is what every Quest user can aim.
+ * Per frame, only while hands-free is on and in XR: one plane test per panel, one rectangle test per control on the
+ * panel looked at, no allocation.
+ */
+import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
+import { livePanels, type GazeTarget } from './panel-hits.js';
+import { settings } from './settings.js';
+
+const DWELL_MS = 1000;
+const READ_DWELL_MS = 1600;
+/** The ring starts filling a moment after the gaze lands, so a sweep across a panel presses nothing. */
+const SETTLE_MS = 150;
+/** After a press, the head turns at least this much before anything else can be pressed. */
+const REARM_COS = Math.cos((3 * Math.PI) / 180);
+const RETICLE_SIZE = 0.036; // 3.6 cm: about 3.4 degrees at arm's length, the fill readable at a glance
+const SURFACE_OFFSET = 0.004; // in front of the panel, never inside it
+
+/** Controls that are also read (cards, columns, the notice line) wait longer than buttons. */
+function dwellFor(key: string): number {
+  return key === 'notice' || key === 'board' || key.startsWith('card-') || key.startsWith('col-') ? READ_DWELL_MS : DWELL_MS;
+}
+
+// A dark rim and a white ring (visible on any panel colour), the fill as a clockwise arc from 12 o'clock, a centre dot.
+const VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+const FRAGMENT = /* glsl */ `
+uniform float progress;
+varying vec2 vUv;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  if (r > 1.0) discard;
+  float turn = fract(atan(p.x, p.y) / 6.2831853 + 1.0);
+  vec4 color = vec4(0.0);
+  if (r > 0.86) color = vec4(0.06, 0.07, 0.09, 0.9);
+  else if (r > 0.68) color = vec4(0.97, 0.98, 1.0, 1.0);
+  else if (r > 0.3 && progress > 0.0 && turn <= progress) color = vec4(0.61, 0.76, 1.0, 1.0);
+  else if (r < 0.14) color = vec4(0.97, 0.98, 1.0, 1.0);
+  if (color.a == 0.0) discard;
+  gl_FragColor = color;
+}`;
+
+export class GazeSystem extends createSystem({}) {
+  private readonly origin = new Vector3();
+  private readonly direction = new Vector3();
+  private readonly point = new Vector3();
+  private readonly pressedFrom = new Vector3();
+  private reticle!: Entity;
+  private material!: ShaderMaterial;
+  private panel: GazeTarget | null = null;
+  private key: string | null = null;
+  private since = 0;
+  /** The control pressed last, until the gaze leaves it. */
+  private spent: { panel: GazeTarget; key: string } | null = null;
+  /** True from a press until the head has moved [REARM_COS] away from where it was. */
+  private settling = false;
+  /** Read by the Playwright tests. */
+  readonly state = { key: null as string | null, progress: 0, presses: 0 };
+
+  init(): void {
+    this.material = new ShaderMaterial({
+      uniforms: { progress: { value: 0 } },
+      vertexShader: VERTEX,
+      fragmentShader: FRAGMENT,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const mesh = new Mesh(new PlaneGeometry(RETICLE_SIZE, RETICLE_SIZE), this.material);
+    mesh.name = 'gaze-reticle';
+    mesh.renderOrder = 1000; // drawn over the panel it rests on
+    mesh.visible = false;
+    this.reticle = this.world.createTransformEntity(mesh);
+    (window as unknown as { __gaze: GazeSystem['state'] }).__gaze = this.state;
+  }
+
+  update(): void {
+    const reticle = this.reticle.object3D!;
+    if (!settings.handsFree || this.world.visibilityState.peek() === VisibilityState.NonImmersive) {
+      if (reticle.visible || this.panel) this.leave(reticle);
+      return;
+    }
+    const camera = this.world.camera;
+    camera.getWorldPosition(this.origin);
+    camera.getWorldDirection(this.direction);
+    if (this.settling && this.direction.dot(this.pressedFrom) < REARM_COS) this.settling = false;
+
+    let best: GazeTarget | null = null;
+    let distance = Infinity;
+    for (let i = 0; i < livePanels.length; i++) {
+      const t = livePanels[i].rayDistance(this.origin, this.direction);
+      if (t > 0 && t < distance) {
+        distance = t;
+        best = livePanels[i];
+      }
+    }
+    if (!best) {
+      this.leave(reticle);
+      return;
+    }
+    this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
+    const key = best.hit(this.point);
+    reticle.position.copy(this.direction).multiplyScalar(distance - SURFACE_OFFSET).add(this.origin);
+    reticle.lookAt(this.origin);
+    reticle.visible = true;
+
+    const now = performance.now();
+    if (best !== this.panel || key !== this.key) {
+      if (this.panel !== best) this.panel?.setGazeHover(null);
+      best.setGazeHover(key);
+      this.panel = best;
+      this.key = key;
+      this.since = now;
+      if (this.spent && (this.spent.panel !== best || this.spent.key !== key)) this.spent = null;
+    }
+    let progress = 0;
+    if (key != null && !this.spent && !this.settling) {
+      progress = Math.max(0, (now - this.since - SETTLE_MS) / dwellFor(key));
+      if (progress >= 1) {
+        progress = 0;
+        this.spent = { panel: best, key };
+        this.settling = true;
+        this.pressedFrom.copy(this.direction);
+        this.state.presses++;
+        best.press(key);
+      }
+    }
+    this.material.uniforms.progress.value = progress;
+    this.state.key = key;
+    this.state.progress = progress;
+  }
+
+  private leave(reticle: { visible: boolean }): void {
+    reticle.visible = false;
+    this.panel?.setGazeHover(null);
+    this.panel = null;
+    this.key = null;
+    this.spent = null;
+    this.material.uniforms.progress.value = 0;
+    this.state.key = null;
+    this.state.progress = 0;
+  }
+}

@@ -111,6 +111,14 @@ class SpatialDeskStack(scope: Construct, id: String, props: StackProps) : Stack(
                 )
                 .build(),
         )
+        // Voice commands: the server presigns Transcribe streaming URLs with this role, so the role must be allowed to
+        // stream. Transcribe has no resource-level permissions for streaming; the server's quotas bound the use.
+        server.taskDefinition.taskRole.addToPrincipalPolicy(
+            PolicyStatement.Builder.create()
+                .actions(listOf("transcribe:StartStreamTranscriptionWebSocket"))
+                .resources(listOf("*"))
+                .build(),
+        )
         server.targetGroup.configureHealthCheck(HealthCheck.builder().path("/actuator/health/liveness").healthyHttpCodes("200").build())
         // Headsets reconnect on their own: no need to wait the default 5 minutes for old connections to drain.
         server.targetGroup.setAttribute("deregistration_delay.timeout_seconds", "30")

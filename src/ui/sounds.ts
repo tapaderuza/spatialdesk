@@ -21,7 +21,7 @@ export function audioContext(): AudioContext | null {
   return context;
 }
 
-export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge';
+export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen';
 
 /** [start Hz, end Hz, duration ms, waveform] notes, played in sequence. */
 const SHAPES: Record<Sound, [number, number, number, OscillatorType][]> = {
@@ -32,6 +32,7 @@ const SHAPES: Record<Sound, [number, number, number, OscillatorType][]> = {
   undo: [[720, 430, 140, 'sine']],
   error: [[220, 185, 160, 'triangle']],
   nudge: [[880, 880, 90, 'sine'], [1175, 1175, 120, 'sine']],
+  listen: [[523, 784, 140, 'sine']],
 };
 
 export function play(sound: Sound, pan = 0): void {

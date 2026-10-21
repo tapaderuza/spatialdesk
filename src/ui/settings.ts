@@ -1,6 +1,7 @@
 /**
- * Accessibility and comfort settings, remembered per browser: high contrast, interface sounds, and reading the
- * agent's words aloud (always also shown as text: the card is the caption). Toggled from the command panel.
+ * Accessibility and comfort settings, remembered per browser: high contrast, interface sounds, reading the agent's
+ * words aloud (always also shown as text: the card is the caption) and hands-free (look at a control and hold the
+ * gaze to press it, src/ui/gaze.ts). Toggled from the command panel, or by voice.
  */
 import { PanelUISystem, type World } from '@iwsdk/core';
 
@@ -8,24 +9,30 @@ export interface Settings {
   highContrast: boolean;
   sound: boolean;
   readAloud: boolean;
+  handsFree: boolean;
 }
 
 const KEY = 'spatialdesk.settings';
-const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false };
+const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false, handsFree: false };
 
 function load(): Settings {
+  let loaded: Settings;
   try {
-    return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>) };
+    loaded = { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>) };
   } catch {
-    return { ...DEFAULTS };
+    loaded = { ...DEFAULTS };
   }
+  // ?handsfree: a link that starts hands-free, for someone who cannot reach the toggle with a hand.
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('handsfree')) loaded.handsFree = true;
+  return loaded;
 }
 
 export const settings: Settings = load();
 const listeners = new Set<(s: Settings) => void>();
 
-export function toggleSetting(key: keyof Settings): void {
-  settings[key] = !settings[key];
+/** Flips a setting, or sets it to [value] ("turn contrast on" by voice); listeners hear of every call. */
+export function toggleSetting(key: keyof Settings, value: boolean = !settings[key]): void {
+  settings[key] = value;
   try {
     localStorage.setItem(KEY, JSON.stringify(settings));
   } catch {

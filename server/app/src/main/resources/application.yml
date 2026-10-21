@@ -29,3 +29,11 @@ spatialdesk:
     per-session-per-hour: 20
     per-day: 300
     timeout-seconds: 8
+  # Voice commands: the headset streams its microphone straight to Amazon Transcribe over a URL this server presigns
+  # (no audio passes through here). Each listen is a few seconds; the caps bound the Transcribe bill.
+  voice:
+    enabled: ${SPATIALDESK_VOICE_ENABLED:true}
+    region: us-east-1
+    per-session-per-hour: 60
+    per-day: 600
+    expires-seconds: 30

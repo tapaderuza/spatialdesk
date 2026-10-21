@@ -37,11 +37,12 @@
   <div class="buttons">
     <div id="plan-button" class="primary"><div class="label">Plan my day</div></div>
     <div id="prioritise-button" class="primary"><div class="label">Prioritise</div></div>
-    <div id="log-button" class="btn"><div class="label">AI log</div></div>
+    <div id="talk-button" class="primary"><div id="talk-label" class="label">Talk</div></div>
   </div>
   <div class="buttons">
     <div id="focus-button" class="btn"><div class="label">Focus 25</div></div>
     <div id="clear-button" class="btn"><div class="label">Clear done</div></div>
+    <div id="log-button" class="btn"><div class="label">AI log</div></div>
   </div>
   <div class="buttons">
     <div id="arrange-button" class="btn"><div class="label">Bring to me</div></div>
@@ -53,6 +54,7 @@
     <div id="voice-button" class="btn"><div class="label">Read aloud</div></div>
   </div>
   <div class="buttons">
+    <div id="handsfree-button" class="btn"><div class="label">Hands-free</div></div>
     <div id="xr-button" class="primary"><div class="label">Enter workspace</div></div>
     <div id="exit-button" class="btn" style="display: none"><div class="label">Exit to browser</div></div>
   </div>

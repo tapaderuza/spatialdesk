@@ -210,6 +210,22 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.setVisible(false);
   }
 
+  /** "Yes" by voice: applies the plan on the card, or takes the waiting nudge to the agent. False when neither. */
+  acceptByVoice(): boolean {
+    if ((this.mode === 'preview' || this.mode === 'suggestion') && this.plan) {
+      this.apply();
+      return true;
+    }
+    return this.acceptNudge();
+  }
+
+  /** "No" by voice: closes the card, whatever it shows. False when no card is open. */
+  dismiss(): boolean {
+    if (this.mode === 'idle') return false;
+    this.close();
+    return true;
+  }
+
   update(): void {
     if (this.mode === 'thinking' && !this.quiet && this.slots) {
       const tenths = Math.floor((performance.now() - this.startedAt) / 100);

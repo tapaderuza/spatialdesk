@@ -38,10 +38,10 @@ export async function screenPoint(page: Page, name: string, u = 0, v = 0): Promi
 }
 
 /** Opens the app with the IWER Quest 3 emulator and enters the immersive session, as the "Enter XR" button does. */
-export async function enterXR(page: Page): Promise<string[]> {
+export async function enterXR(page: Page, query = ''): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/?emulate');
+  await page.goto(`/?emulate${query}`);
   await page.waitForFunction(() => (window as Win).__world && (window as Win).__xrDevice, null, { timeout: 60_000 });
   await page.evaluate(() => (window as Win).__world.launchXR());
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
@@ -86,6 +86,28 @@ export async function turnHead(page: Page, yawDeg: number, pitchDeg = 0, steps =
     { yawDeg, pitchDeg, steps },
   );
   await frames(page, 3);
+}
+
+/** Turns the emulated headset so the centre of the view rests on a point of a named element ((u, v) as in screenPoint). */
+export async function lookAt(page: Page, name: string, u = 0, v = 0, steps = 1): Promise<void> {
+  const { yaw, pitch } = await page.evaluate(
+    ({ name, u, v }) => {
+      const w = (window as Win).__world;
+      let o: any = null;
+      w.scene.traverse((c: any) => {
+        if (c.name === name) o = c;
+      });
+      if (!o) throw new Error(`no element ${name}`);
+      o.updateWorldMatrix(true, false);
+      const V = w.camera.position.constructor;
+      const target = new V(u, v, 0).applyMatrix4(o.matrixWorld);
+      const eye = w.camera.getWorldPosition(new V());
+      const d = target.sub(eye).normalize();
+      return { yaw: (Math.atan2(-d.x, -d.z) * 180) / Math.PI, pitch: (Math.asin(d.y) * 180) / Math.PI };
+    },
+    { name, u, v },
+  );
+  await turnHead(page, yaw, pitch, steps);
 }
 
 /** Points a controller's ray at a named element and pulls the trigger (the ray sweeps on first, as a hand would). */

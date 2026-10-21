@@ -4,6 +4,7 @@
  * depends on it: with no text, the agent plans from the boards as they are.
  */
 import { VisibilityState, type World } from '@iwsdk/core';
+import { isListening, listen, stopListening } from '../voice/listen.js';
 
 const KEY = 'spatialdesk.day';
 const MAX = 600;
@@ -24,15 +25,6 @@ function saveDayText(text: string): void {
   }
 }
 
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-};
-
 export function installDayInput(world: World, onPlan: () => void): () => void {
   const box = document.createElement('div');
   box.id = 'day-input';
@@ -47,12 +39,13 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
     '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#2f5f9e;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
     '<button id="day-speak" type="button" hidden style="min-height:40px;padding:0 14px;background:#2a313b;color:#eef1f5;border:0;border-radius:8px;font:inherit;cursor:pointer">Speak</button>' +
     '</div>' +
-    '<div style="margin-top:6px;color:#b9c2cf;font-size:12px">In VR, the Plan my day chip uses these words.</div>';
+    '<div id="day-status" role="status" style="margin-top:6px;color:#b9c2cf;font-size:12px">In VR, the Plan my day chip uses these words, and Talk takes voice commands.</div>';
   document.body.appendChild(box);
 
   const text = box.querySelector<HTMLTextAreaElement>('#day-text')!;
   const plan = box.querySelector<HTMLButtonElement>('#day-plan')!;
   const speak = box.querySelector<HTMLButtonElement>('#day-speak')!;
+  const status = box.querySelector<HTMLDivElement>('#day-status')!;
   text.value = dayText();
   text.addEventListener('input', () => saveDayText(text.value));
   plan.addEventListener('click', () => {
@@ -60,32 +53,22 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
     onPlan();
   });
 
-  // Dictation where the browser offers it (desktop Chrome and Edge); hidden elsewhere, never required.
-  const Speech = (window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition })
-    .SpeechRecognition ?? (window as unknown as { webkitSpeechRecognition?: new () => Recognition }).webkitSpeechRecognition;
-  if (Speech) {
+  // Dictation through the same voice path as Talk in VR (src/voice/listen.ts). Using it here also lets the browser ask
+  // for the microphone once, before the headset is on, so Talk works straight away inside the workspace.
+  if (typeof navigator.mediaDevices?.getUserMedia === 'function') { // undefined outside a secure context
     speak.hidden = false;
-    let listening: Recognition | null = null;
-    speak.addEventListener('click', () => {
-      if (listening) {
-        listening.stop();
+    speak.addEventListener('click', async () => {
+      if (isListening()) {
+        stopListening();
         return;
       }
-      const recognition = new Speech();
-      recognition.lang = navigator.language || 'en-US';
-      recognition.interimResults = false;
-      recognition.onresult = (event) => {
-        const said = Array.from(event.results, (r) => r[0]?.transcript ?? '').join(' ').trim();
-        text.value = `${text.value.trim()} ${said}`.trim().slice(0, MAX);
-        saveDayText(text.value);
-      };
-      recognition.onend = () => {
-        listening = null;
-        speak.textContent = 'Speak';
-      };
-      listening = recognition;
+      const start = text.value.trim();
       speak.textContent = 'Stop';
-      recognition.start();
+      const result = await listen({ partial: (said) => (text.value = `${start} ${said}`.trim().slice(0, MAX)) });
+      speak.textContent = 'Speak';
+      text.value = result.ok ? `${start} ${result.text}`.trim().slice(0, MAX) : start;
+      saveDayText(text.value);
+      status.textContent = result.ok ? 'Got it. Press Plan my day, or enter the workspace.' : result.error;
     });
   }
 

@@ -1,5 +1,6 @@
 package app.spatialdesk.server.agent
 
+import app.spatialdesk.server.SessionQuota
 import app.spatialdesk.server.SessionRegistry
 import app.spatialdesk.shared.WorkspaceJson
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -17,10 +18,6 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient
 import java.time.Clock
 import java.time.Duration
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.util.ArrayDeque
-import java.util.concurrent.ConcurrentHashMap
 
 @ConfigurationProperties("spatialdesk.agent")
 data class AgentProperties(
@@ -35,29 +32,16 @@ data class AgentProperties(
     val timeoutSeconds: Long = 8,
 )
 
-/** In memory (one small task): per-session hourly window plus one global daily cap. */
+/** Plans per session per hour and per day (see SessionQuota), with the words the headset shows when one is spent. */
 @Component
-class AgentQuota(private val props: AgentProperties, private val clock: Clock) {
-    private val perSession = ConcurrentHashMap<String, ArrayDeque<Long>>()
-    private var day: LocalDate? = null
-    private var today = 0
+class AgentQuota(private val props: AgentProperties, clock: Clock) {
+    private val quota = SessionQuota(props.perSessionPerHour, props.perDay, clock)
 
     /** Takes one plan from the quotas, or says which one is spent. */
-    @Synchronized
-    fun take(session: String): String? {
-        val now = clock.millis()
-        val date = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC)
-        if (date != day) {
-            day = date
-            today = 0
-        }
-        if (today >= props.perDay) return "The AI has done all the planning it can today. Your workspace still works by hand."
-        val window = perSession.computeIfAbsent(session) { ArrayDeque() }
-        while (window.isNotEmpty() && now - window.first() > 3_600_000) window.removeFirst()
-        if (window.size >= props.perSessionPerHour) return "That is ${props.perSessionPerHour} plans this hour. Try again a little later."
-        window.addLast(now)
-        today++
-        return null
+    fun take(session: String): String? = when (quota.take(session)) {
+        SessionQuota.Spent.Day -> "The AI has done all the planning it can today. Your workspace still works by hand."
+        SessionQuota.Spent.Hour -> "That is ${props.perSessionPerHour} plans this hour. Try again a little later."
+        null -> null
     }
 }
 

@@ -1,6 +1,7 @@
 import { createSystem, UIKitMLAsset, VisibilityState, type UIKit } from '@iwsdk/core';
 import { Workspaces } from 'spatialdesk-shared';
 import { AgentSystem } from './agent/agent-system.js';
+import { dayText } from './agent/day-input.js';
 import { BackendLink, type LinkState } from './backend/link.js';
 import { PanelHits } from './ui/panel-hits.js';
 import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
@@ -9,6 +10,8 @@ import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose } from './workspace/model.js';
 import { TIMER_SCALE, workspace, type Notice } from './workspace/store.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
+import { parseCommand } from './voice/commands.js';
+import { isListening, listen, stopListening } from './voice/listen.js';
 
 const engine = Workspaces.getInstance();
 
@@ -19,6 +22,7 @@ const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 // The notice line: amber text and border while the agent has a nudge waiting there.
 const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
 const COACH_BORDER = '#f2b84b';
+const SETTING_NAMES: Record<keyof Settings, string> = { highContrast: 'High contrast', sound: 'Sound', readAloud: 'Read aloud', handsFree: 'Hands-free' };
 let commandHighlight: string | null = null;
 let repaintCommand: (() => void) | null = null;
 
@@ -39,6 +43,8 @@ const REANCHOR_RADIANS = (30 * Math.PI) / 180;
  */
 export class PanelSystem extends createSystem({}) {
   private link: BackendLink | null = null;
+  private notice: UIKit.Text | null = null;
+  private talkLabel: UIKit.Text | null = null;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
   private placeFrames = 0;
   private anchorCheckFrames = 0;
@@ -56,6 +62,10 @@ export class PanelSystem extends createSystem({}) {
     const detail = element('status-detail');
     const notice = element('notice');
     const undoLabel = element('undo-label');
+    this.notice = notice;
+    this.talkLabel = element('talk-label');
+    // Tests and the demo say things without a microphone: the same path from the words on.
+    (window as unknown as { __voice: { say: (said: string) => void } }).__voice = { say: (said) => this.runVoice(said) };
 
     this.link = new BackendLink((state) => this.show(state, dot, text, detail));
     this.link.start();
@@ -96,6 +106,7 @@ export class PanelSystem extends createSystem({}) {
       // Intent chips: the AI ones open a plan to review; Focus 25 and Clear done act at once (no AI needed).
       plan: { element: element('plan-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('plan_my_day') },
       prioritise: { element: element('prioritise-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('prioritise') },
+      talk: { element: element('talk-button'), base: BUTTON.primary, action: () => void this.talk() },
       log: { element: element('log-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.openLog() },
       // The notice line is a control too: a nudge goes to the agent, otherwise it explains what the AI last did.
       notice: {
@@ -113,6 +124,7 @@ export class PanelSystem extends createSystem({}) {
       contrast: { element: element('contrast-button'), base: BUTTON.base, action: () => toggleSetting('highContrast') },
       sound: { element: element('sound-button'), base: BUTTON.base, action: () => toggleSetting('sound') },
       voice: { element: element('voice-button'), base: BUTTON.base, action: () => toggleSetting('readAloud') },
+      handsfree: { element: element('handsfree-button'), base: BUTTON.base, action: () => this.toggleHandsFree() },
       clear: {
         element: element('clear-button'),
         base: BUTTON.base,
@@ -129,7 +141,7 @@ export class PanelSystem extends createSystem({}) {
         hover: (key, hovered) =>
           buttons[key].element?.setProperties({ borderColor: hovered ? BUTTON.hover : key === commandHighlight ? COACH_BORDER : idleBorder(buttons[key].base) }),
       }, this.cleanupFuncs);
-      const toggles: [keyof Settings, string][] = [['highContrast', 'contrast'], ['sound', 'sound'], ['readAloud', 'voice']];
+      const toggles: [keyof Settings, string][] = [['highContrast', 'contrast'], ['sound', 'sound'], ['readAloud', 'voice'], ['handsFree', 'handsfree']];
       const paint = () => {
         for (const [key, b] of Object.entries(buttons)) if (key !== 'notice') b.element?.setProperties({ borderColor: key === commandHighlight ? COACH_BORDER : idleBorder(b.base) });
         for (const [setting, key] of toggles) buttons[key].element?.setProperties({ backgroundColor: settings[setting] ? BUTTON.primary : BUTTON.base });
@@ -169,6 +181,92 @@ export class PanelSystem extends createSystem({}) {
   /** What a press on this panel arranges around: the user is looking at the panel then, not ahead (viewer.ts). */
   private deskPose(): Pose {
     return deskPose(this.world);
+  }
+
+  /**
+   * Talk: one spoken command (src/voice). The notice line shows the words as they are heard, then what was done;
+   * pressing Talk again while listening stops early. Works with a tap, a pinch, or a held gaze (hands-free).
+   */
+  async talk(): Promise<void> {
+    if (isListening()) {
+      stopListening();
+      return;
+    }
+    this.talkLabel?.setProperties({ text: 'Stop' });
+    this.showNotice({ text: 'Listening: say a command, or what you want the AI to do.', error: false }, this.notice, false);
+    play('listen');
+    const result = await listen({ partial: (text) => this.showNotice({ text: `"${text}"`, error: false }, this.notice, false) });
+    this.talkLabel?.setProperties({ text: 'Talk' });
+    if (result.ok) this.runVoice(result.text);
+    else this.showNotice({ text: result.error, error: result.error !== 'Stopped.' }, this.notice);
+  }
+
+  /** Does what the words ask (src/voice/commands.ts); requests the buttons cannot express go to the agent. */
+  runVoice(said: string): void {
+    const command = parseCommand(said);
+    (window as unknown as { __heard: unknown }).__heard = { said, command }; // read by the Playwright tests
+    const agent = this.world.getSystem(AgentSystem);
+    const heard = `Heard "${said.replace(/[.!?]+$/, '')}".`;
+    const tell = (text: string, error = false) => this.showNotice({ text: `${heard} ${text}`, error }, this.notice);
+    if (!command) {
+      tell("Say a button's name, like Focus or Undo, or what you want the AI to do.", true);
+      return;
+    }
+    switch (command.kind) {
+      case 'plan':
+        tell('Planning your day.');
+        void agent?.run('plan_my_day', command.text || dayText());
+        return;
+      case 'ask':
+        tell('Asking the AI.');
+        void agent?.run('custom', command.text);
+        return;
+      case 'prioritise':
+        tell('Prioritising.');
+        void agent?.run('prioritise');
+        return;
+      case 'apply':
+        if (!agent?.acceptByVoice()) tell('There is no plan to apply right now.', true);
+        return;
+      case 'discard':
+        if (!agent?.dismiss()) tell('There is nothing open to close.', true);
+        return;
+      case 'undo':
+        if (workspace.undo()) play('undo');
+        else tell('There is nothing to undo.', true);
+        return;
+      case 'focus':
+        this.focus25();
+        return;
+      case 'arrange':
+        this.bringToMe();
+        return;
+      case 'clear':
+        workspace.dispatch({ op: 'clear_done' }, { notice: 'Cleared the last column of every board.' });
+        return;
+      case 'log':
+        agent?.openLog();
+        return;
+      case 'exit':
+        void this.world.exitXR();
+        return;
+      case 'setting':
+        if (command.setting === 'handsFree') this.toggleHandsFree(command.value);
+        else {
+          toggleSetting(command.setting, command.value);
+          tell(`${SETTING_NAMES[command.setting]} ${settings[command.setting] ? 'on' : 'off'}.`);
+        }
+        return;
+    }
+  }
+
+  /** Hands-free (src/ui/gaze.ts) says how it works when it turns on: nothing on screen would tell a first-time user. */
+  toggleHandsFree(value?: boolean): void {
+    toggleSetting('handsFree', value);
+    workspace.notify({
+      text: settings.handsFree ? 'Hands-free on: look at a button and hold your gaze until the ring fills.' : 'Hands-free off.',
+      error: false,
+    });
   }
 
   private bringToMe(): void {
@@ -211,12 +309,13 @@ export class PanelSystem extends createSystem({}) {
     object.rotation.set(pose.pitch, pose.yaw, 0);
   }
 
-  private showNotice(notice: Notice, element: UIKit.Text | null): void {
+  /** [fade]: back to the idle hint after a while; false while something is still going on (listening). */
+  private showNotice(notice: Notice, element: UIKit.Text | null, fade = true): void {
     (window as unknown as { __notice: Notice }).__notice = notice; // read by the Playwright tests
     element?.setProperties({ text: panelText(notice.text), color: notice.error ? TEXT.error : TEXT.normal, borderColor: NOTICE.base });
     if (notice.error) play('error');
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
-    this.noticeTimer = setTimeout(() => element?.setProperties({ text: IDLE_NOTICE, color: TEXT.dim }), NOTICE_MS);
+    this.noticeTimer = fade ? setTimeout(() => element?.setProperties({ text: IDLE_NOTICE, color: TEXT.dim }), NOTICE_MS) : null;
   }
 
   private show(state: LinkState, dot?: UIKit.Text | null, text?: UIKit.Text | null, detail?: UIKit.Text | null): void {
