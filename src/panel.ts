@@ -7,8 +7,10 @@ import { PanelHits } from './ui/panel-hits.js';
 import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
 import { play } from './ui/sounds.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
-import { panelText, type Pose } from './workspace/model.js';
+import { panelText, type Pose, type Timer } from './workspace/model.js';
+import { Progress, progress } from './workspace/progress.js';
 import { TIMER_SCALE, workspace, type Notice } from './workspace/store.js';
+import { timerFinishedListeners } from './workspace/timers.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
 import { parseCommand } from './voice/commands.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
@@ -22,6 +24,8 @@ const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 // The notice line: amber text and border while the agent has a nudge waiting there.
 const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
 const COACH_BORDER = '#f2b84b';
+// The seven-day strip: a focused day is green with a dark "+" (shape as well as colour), today has a light outline.
+const DAY = { focused: '#5ee0a0', empty: '#2a313b', today: '#eef1f5' } as const;
 const SETTING_NAMES: Record<keyof Settings, string> = { highContrast: 'High contrast', sound: 'Sound', readAloud: 'Read aloud', handsFree: 'Hands-free' };
 let commandHighlight: string | null = null;
 let repaintCommand: (() => void) | null = null;
@@ -67,7 +71,7 @@ export class PanelSystem extends createSystem({}) {
     // Tests and the demo say things without a microphone: the same path from the words on.
     (window as unknown as { __voice: { say: (said: string) => void } }).__voice = { say: (said) => this.runVoice(said) };
 
-    this.link = new BackendLink((state) => this.show(state, dot, text, detail));
+    this.link = new BackendLink((state) => this.show(state, dot, text));
     this.link.start();
     this.cleanupFuncs.push(() => this.link?.stop());
 
@@ -91,9 +95,24 @@ export class PanelSystem extends createSystem({}) {
         color: workspace.canUndo ? TEXT.normal : TEXT.dim,
       });
     paintUndo();
+    // Progress between sessions: a finished focus block (not a break) and cards reaching a last column count.
+    const paintProgress = this.progressPainter(element, detail);
+    paintProgress();
+    const onTimer = (timer: Timer) => {
+      if (/^break$/i.test(timer.label.trim())) return;
+      progress.recordBlock(timer.durationMs / 60_000 / TIMER_SCALE);
+      paintProgress();
+    };
+    timerFinishedListeners.add(onTimer);
+    this.cleanupFuncs.push(() => timerFinishedListeners.delete(onTimer));
     this.cleanupFuncs.push(
       workspace.subscribe((change) => {
         paintUndo();
+        const done = change.source === 'user' && change.previous ? Progress.newlyDone(change.previous, change.state) : 0;
+        if (done > 0) {
+          progress.recordDone(done);
+          paintProgress();
+        }
         const before = change.previous?.anchor;
         const after = change.state.anchor;
         if (before && (before.x !== after.x || before.z !== after.z || before.yaw !== after.yaw)) this.placeFrames = 1;
@@ -315,18 +334,22 @@ export class PanelSystem extends createSystem({}) {
     element?.setProperties({ text: panelText(notice.text), color: notice.error ? TEXT.error : TEXT.normal, borderColor: NOTICE.base });
     if (notice.error) play('error');
     if (this.noticeTimer) clearTimeout(this.noticeTimer);
-    this.noticeTimer = fade ? setTimeout(() => element?.setProperties({ text: IDLE_NOTICE, color: TEXT.dim }), NOTICE_MS) : null;
+    this.noticeTimer = fade ? setTimeout(() => this.idleNotice(element), NOTICE_MS) : null;
   }
 
-  private show(state: LinkState, dot?: UIKit.Text | null, text?: UIKit.Text | null, detail?: UIKit.Text | null): void {
+  /** Back to the hint, or to the agent's nudge if one is still waiting (another notice may have covered it). */
+  private idleNotice(element: UIKit.Text | null): void {
+    const nudge = this.world.getSystem(AgentSystem)?.state.nudge;
+    element?.setProperties(nudge ? { text: panelText(nudge.text), color: NOTICE.nudge, borderColor: NOTICE.nudge } : { text: IDLE_NOTICE, color: TEXT.dim });
+  }
+
+  /** The connection in one line (the line below it is the user's progress, see progressPainter). */
+  private show(state: LinkState, dot?: UIKit.Text | null, text?: UIKit.Text | null): void {
     (window as unknown as { __link: LinkState }).__link = state; // read by the end-to-end smoke test
     switch (state.kind) {
       case 'online':
         dot?.setProperties({ backgroundColor: COLORS.online });
         text?.setProperties({ text: 'Command server online' });
-        detail?.setProperties({
-          text: state.clockSynced ? `Round trip ${Math.round(state.rttMs)} ms - clock synced` : 'Syncing clock...',
-        });
         break;
       case 'connecting':
         dot?.setProperties({ backgroundColor: COLORS.connecting });
@@ -335,8 +358,19 @@ export class PanelSystem extends createSystem({}) {
       case 'offline':
         dot?.setProperties({ backgroundColor: COLORS.offline });
         text?.setProperties({ text: 'Offline - your workspace keeps working' });
-        detail?.setProperties({ text: `Retrying in ${Math.ceil(state.retryInMs / 1000)} s` });
         break;
     }
+  }
+
+  /** The "today" line and the seven-day strip, today last: a day with a focus block is filled and marked "+". */
+  private progressPainter(element: (id: string) => UIKit.Text | null, detail: UIKit.Text | null): () => void {
+    const days = Array.from({ length: 7 }, (_, i) => ({ box: element(`day-${i}`), mark: element(`day-${i}-mark`) }));
+    return () => {
+      detail?.setProperties({ text: progress.summary() });
+      progress.week().forEach((focused, i) => {
+        days[i].box?.setProperties({ backgroundColor: focused ? DAY.focused : DAY.empty, borderColor: i === 6 ? DAY.today : focused ? DAY.focused : DAY.empty });
+        days[i].mark?.setProperties({ text: focused ? '+' : ' ' });
+      });
+    };
   }
 }

@@ -4,6 +4,7 @@
  * Each becomes a nudge the user can take to the agent with one tap; the agent never acts without that tap.
  */
 import type { Timer, Workspace } from '../workspace/model.js';
+import { dayKey, type Day } from '../workspace/progress.js';
 import type { Intent } from './client.js';
 
 export interface Nudge {
@@ -68,6 +69,31 @@ export function findNudge(ws: Workspace, now: number, seen: ReadonlySet<string>,
     }
   }
   return null;
+}
+
+/**
+ * Back on a new day with work still open: the agent offers to plan today from it, in-progress cards first. Never on a
+ * first visit, nor on a second visit the same day ([previousVisit] is null then). [last] is that visit's progress.
+ */
+export function dayStartNudge(ws: Workspace, previousVisit: string | null, last: Day, now: number): Nudge | null {
+  if (!previousVisit) return null;
+  const inProgress: string[] = [];
+  const open: string[] = [];
+  for (const board of ws.boards) {
+    board.columns.slice(0, -1).forEach((column, c) => column.cards.forEach((card) => (c > 0 ? inProgress : open).push(card.title)));
+  }
+  const total = inProgress.length + open.length;
+  if (total === 0) return null;
+  const when = dayKey(now - 86_400_000) === previousVisit ? 'yesterday' : 'your last visit';
+  const short = (title: string) => `"${title.length > 36 ? `${title.slice(0, 33)}...` : title}"`;
+  // The server keeps 300 characters of context: the in-progress cards and a few open ones fit.
+  const named = [...inProgress.map((t) => `${short(t)} (in progress)`), ...open.map(short)].slice(0, 4).join(', ');
+  return {
+    key: 'day-start',
+    text: `Welcome back. ${total} ${total === 1 ? 'task is' : 'tasks are'} still open from ${when}. Tap to plan today.`,
+    intent: 'plan_my_day',
+    context: `A new day; last visit ${previousVisit}: ${last.blocks} focus blocks, ${last.done} cards done. Still open: ${named}.`,
+  };
 }
 
 /** When a timer rings: after a break, back to focus; after a focus block, the next block. */

@@ -17,6 +17,11 @@
   .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
   .chips-title { margin-bottom: -0.4; font-size: 1.4; font-weight: 700; color: #9cc3ff; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
+  .week { flex-direction: row; align-items: center; gap: 0.7; }
+  .week-label { flex-grow: 1; font-size: 1.4; color: #b9c2cf; }
+  .day { width: 2.6; height: 1.6; align-items: center; justify-content: center; border-radius: 0.5; background-color: #2a313b; border-width: 0.2; border-color: #2a313b; }
+  .mark { font-size: 1.1; font-weight: 700; color: #15181e; }
+  .week-label:dark { color: #ffffff; }
   .root:dark { background-color: #000000; border-color: #ffffff; }
   .title:dark { color: #ffffff; }
   .status:dark { color: #ffffff; }
@@ -32,6 +37,16 @@
     <div id="status-text" class="status">Connecting to the command server...</div>
   </div>
   <div id="status-detail" class="detail">-</div>
+  <div class="week">
+    <div class="week-label">Last 7 days</div>
+    <div id="day-0" class="day"><div id="day-0-mark" class="mark">-</div></div>
+    <div id="day-1" class="day"><div id="day-1-mark" class="mark">-</div></div>
+    <div id="day-2" class="day"><div id="day-2-mark" class="mark">-</div></div>
+    <div id="day-3" class="day"><div id="day-3-mark" class="mark">-</div></div>
+    <div id="day-4" class="day"><div id="day-4-mark" class="mark">-</div></div>
+    <div id="day-5" class="day"><div id="day-5-mark" class="mark">-</div></div>
+    <div id="day-6" class="day"><div id="day-6-mark" class="mark">-</div></div>
+  </div>
   <div id="notice" class="notice">Tap a card to pick it up, then tap where it goes.</div>
   <div class="chips-title">Ask the AI</div>
   <div class="buttons">

@@ -29,7 +29,8 @@ import { timerFinishedListeners } from '../workspace/timers.js';
 import { deskPose } from '../workspace/viewer.js';
 import { describeStep, requestPlan, sourceLabel, type AgentPlan, type Intent } from './client.js';
 import { dayText, installDayInput } from './day-input.js';
-import { findNudge, timerContext, type Nudge } from './watcher.js';
+import { progress } from '../workspace/progress.js';
+import { dayStartNudge, findNudge, timerContext, type Nudge } from './watcher.js';
 
 const engine = Workspaces.getInstance();
 const CONFIG = `${import.meta.env.BASE_URL}ui/plan.uikitml`;
@@ -240,10 +241,14 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.watch(now);
   }
 
-  /** One look at the workspace for something worth a nudge (every 30 s; tests pass a later clock). */
+  /**
+   * One look at the workspace for something worth a nudge (every 30 s; tests pass a later clock). The first look after
+   * the app opens on a new day may offer to plan today from what is still open (src/workspace/progress.ts).
+   */
   watch(now: number): Nudge | null {
     if (this.nudge || this.mode !== 'idle') return null;
-    const nudge = findNudge(workspace.state, now, this.seen, this.runningSince);
+    const dayStart = this.seen.has('day-start') ? null : dayStartNudge(workspace.state, progress.previousVisit, progress.day(progress.previousVisit ?? ''), now);
+    const nudge = dayStart ?? findNudge(workspace.state, now, this.seen, this.runningSince);
     if (nudge) {
       this.seen.add(nudge.key);
       this.setNudge(nudge);
