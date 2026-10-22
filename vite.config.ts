@@ -28,6 +28,15 @@ function semRooms(): Plugin {
   };
   return {
     name: 'spatialdesk-sem-rooms',
+    enforce: 'pre',
+    // The procedural rooms are built by GLTS, which needs the three.js SEM was built with (r184, the `three-r184`
+    // alias): the app's own super-three r181 (package.json override) cannot build them.
+    async resolveId(source, importer, options) {
+      if ((source === 'three' || source.startsWith('three/')) && importer?.includes('@drawcall/glts')) {
+        return this.resolve(source.replace(/^three/, 'three-r184'), importer, { ...options, skipSelf: true });
+      }
+      return null;
+    },
     configureServer(server) {
       for (const folder of Object.keys(folders) as (keyof typeof folders)[]) {
         server.middlewares.use(`/${folder}`, (req, res, next) => {
