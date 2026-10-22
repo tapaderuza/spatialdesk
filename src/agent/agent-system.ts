@@ -19,6 +19,7 @@ import {
   type UIKitDocument,
 } from '@iwsdk/core';
 import { Workspaces } from 'spatialdesk-shared';
+import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder, onSettings, settings } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
@@ -396,7 +397,12 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
         else if (key === 'apply') this.mode === 'log' ? this.undoWhole() : this.apply();
         else this.undoStep(Number(key.slice(5)));
       },
-      hover: (key, hovered) => controls.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.hover : idleBorder(base[key]) }),
+      hover: (key, hovered) => {
+        const control = controls.find(([k]) => k === key)?.[1];
+        if (!control) return;
+        control.setProperties({ borderColor: idleBorder(base[key]) });
+        hoverFades.paint(control, base[key], hovered); // src/ui/hover.ts
+      },
     }, this.cleanups);
     return slots;
   }
@@ -411,12 +417,13 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.render();
   }
 
-  /** In front of the focus board, facing the user's anchor (Layout.kt). */
+  /** In front of the focus board, facing the user's anchor, sized to fit the headset's view (Layout.kt). */
   private place(): void {
     const pose = JSON.parse(engine.previewPose(JSON.stringify(workspace.state))) as Pose;
     const object = this.entity.object3D!;
     object.position.set(pose.x, pose.y, pose.z);
     object.rotation.set(pose.pitch, pose.yaw, 0);
+    object.scale.setScalar(workspace.panelScale);
   }
 
   /** Hidden means not drawn and not hit by any pointer. */

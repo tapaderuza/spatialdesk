@@ -3,7 +3,9 @@ import { Workspaces } from 'spatialdesk-shared';
 import { AgentSystem } from './agent/agent-system.js';
 import { dayText } from './agent/day-input.js';
 import { BackendLink, type LinkState } from './backend/link.js';
+import { hoverFades } from './ui/hover.js';
 import { PanelHits } from './ui/panel-hits.js';
+import { measureView, sameView } from './ui/view-fit.js';
 import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
 import { play } from './ui/sounds.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
@@ -20,7 +22,7 @@ const engine = Workspaces.getInstance();
 
 // Status colours on the dark panel: all >= 7:1 against #15181e (ROADMAP heuristic B).
 const COLORS = { online: '#5ee0a0', connecting: '#f2b84b', offline: '#ff8a7a' } as const;
-const BUTTON = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff' } as const;
+const BUTTON = { base: '#2a313b', primary: '#2f5f9e' } as const;
 const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 // The notice line: amber text and border while the agent has a nudge waiting there.
 const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
@@ -158,17 +160,28 @@ export class PanelSystem extends createSystem({}) {
       exit: { element: exitButton, base: BUTTON.base, action: () => this.world.exitXR() },
     };
     if (root) {
-      // One listener on the panel root (see PanelHits); hover painted by hand (a UIKitML :hover style sticks).
+      // One listener on the panel root (see PanelHits); hover is a fade of the control's own colour (src/ui/hover.ts).
+      const hovered = new Set<string>();
+      const toggles: [keyof Settings, string][] = [['highContrast', 'contrast'], ['sound', 'sound'], ['readAloud', 'voice'], ['handsFree', 'handsfree']];
+      const toggled = (key: string) => toggles.some(([setting, k]) => k === key && settings[setting]);
+      const paintButton = (key: string) => {
+        const b = buttons[key];
+        if (!b.element) return;
+        // The notice line's border is its own: amber while a nudge waits (showNotice).
+        if (key !== 'notice') b.element.setProperties({ borderColor: key === commandHighlight ? COACH_BORDER : idleBorder(b.base) });
+        hoverFades.paint(b.element, toggled(key) ? BUTTON.primary : b.base, hovered.has(key));
+      };
       const controls = Object.entries(buttons).flatMap(([key, b]) => (b.element ? [[key, b.element] as const] : []));
       new PanelHits(root, controls, {
         click: (key) => buttons[key].action(),
-        hover: (key, hovered) =>
-          buttons[key].element?.setProperties({ borderColor: hovered ? BUTTON.hover : key === commandHighlight ? COACH_BORDER : idleBorder(buttons[key].base) }),
+        hover: (key, on) => {
+          if (on) hovered.add(key);
+          else hovered.delete(key);
+          paintButton(key);
+        },
       }, this.cleanupFuncs);
-      const toggles: [keyof Settings, string][] = [['highContrast', 'contrast'], ['sound', 'sound'], ['readAloud', 'voice'], ['handsFree', 'handsfree']];
       const paint = () => {
-        for (const [key, b] of Object.entries(buttons)) if (key !== 'notice') b.element?.setProperties({ borderColor: key === commandHighlight ? COACH_BORDER : idleBorder(b.base) });
-        for (const [setting, key] of toggles) buttons[key].element?.setProperties({ backgroundColor: settings[setting] ? BUTTON.primary : BUTTON.base });
+        for (const key of Object.keys(buttons)) paintButton(key);
       };
       paint();
       this.cleanupFuncs.push(onSettings(paint));
@@ -324,7 +337,25 @@ export class PanelSystem extends createSystem({}) {
     );
   }
 
+  /**
+   * The headset's own view (src/ui/view-fit.ts), once the session has started: a different one refits the layout, so
+   * the board, its timer and the agent's card stay inside it (Layout.kt). Said aloud only when the panels shrank.
+   */
+  private fitView(): void {
+    const view = measureView(this.world.renderer.xr.getFrame(), this.world.renderer.xr.getReferenceSpace());
+    (window as unknown as { __view: unknown }).__view = view; // read by the Playwright tests
+    if (!view || sameView(workspace.state.view, view)) return;
+    const result = workspace.dispatch({ op: 'set_view', view }, { undoable: false });
+    if (result.ok && workspace.panelScale < 0.995) {
+      workspace.notify({
+        text: `Fitted to this headset's view: your board, timer and plans stay within ${Math.round(view.halfWidthDeg * 2)} x ${Math.round(view.upDeg + view.downDeg)} degrees.`,
+        error: false,
+      });
+    }
+  }
+
   private reanchorIfFar(): void {
+    this.fitView();
     // In the room, a remembered layout is restored to its real place (RoomSystem): never rearranged around the head.
     if (inRoom(this.world) && this.world.getSystem(RoomSystem)?.remembers) {
       this.placeFrames = 1;
@@ -346,6 +377,7 @@ export class PanelSystem extends createSystem({}) {
     object.position.set(pose.x, pose.y, pose.z);
     object.rotation.order = 'YXZ';
     object.rotation.set(pose.pitch, pose.yaw, 0);
+    object.scale.setScalar(workspace.panelScale); // as every panel: smaller in a narrower view (Layout.kt)
   }
 
   /** [fade]: back to the idle hint after a while; false while something is still going on (listening). */

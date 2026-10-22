@@ -4,6 +4,7 @@
  * flashes, and a short chime plays, panned toward where the timer is pinned so you can tell which one rang.
  */
 import { createSystem, Quaternion, Vector3, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder } from '../ui/settings.js';
 import { audioContext, unlockAudio } from '../ui/sounds.js';
@@ -24,7 +25,6 @@ const COLOR = {
   doneBorder: '#ff8a7a',
   running: '#5ee0a0',
   button: '#2a313b',
-  buttonHover: '#9cc3ff',
 } as const;
 
 type Element = UIKit.Text;
@@ -125,8 +125,12 @@ class TimerView {
         else if (t.state === 'paused') workspace.dispatch({ op: 'resume_timer', timer: t.id });
         else workspace.dispatch({ op: 'add_time', timer: t.id, minutes: Math.min(180, t.durationMs / 60_000 / TIMER_SCALE) }, { label: 'restart timer' });
       },
-      hover: (key, hovered) =>
-        buttons.find(([k]) => k === key)?.[1].setProperties({ borderColor: hovered ? COLOR.buttonHover : idleBorder(COLOR.button) }),
+      hover: (key, hovered) => {
+        const button = buttons.find(([k]) => k === key)?.[1];
+        if (!button) return;
+        button.setProperties({ borderColor: idleBorder(COLOR.button) });
+        hoverFades.paint(button, COLOR.button, hovered); // src/ui/hover.ts
+      },
     }, this.cleanups);
     return { box, label: get('label'), time: get('time'), toggle: get('toggle-label') };
   }

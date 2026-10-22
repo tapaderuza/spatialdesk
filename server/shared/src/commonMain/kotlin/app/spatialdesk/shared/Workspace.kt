@@ -64,8 +64,18 @@ data class Timer(
 )
 
 /**
+ * The comfortable part of the headset's view, where the essential panels stay ([Layout.fit]): degrees from straight
+ * ahead to either side, up and down. The app measures it from the headset's own projection when a session starts
+ * (src/ui/view-fit.ts). The default is roomy enough for the layout as designed, as on a Quest; Meta VR Glasses report
+ * about 29, 20 and 34.
+ */
+@Serializable
+data class ViewFit(val halfWidthDeg: Double = 45.0, val upDeg: Double = 40.0, val downDeg: Double = 40.0)
+
+/**
  * The whole workspace: small, plain data, replaced (never mutated) by every operation. [anchor] is the user's home
  * pose (eye position and facing); every layout slot is relative to it, so "bring everything to me" just moves it.
+ * [view] is the headset's comfortable view the layout fits into.
  */
 @Serializable
 data class Workspace(
@@ -76,6 +86,7 @@ data class Workspace(
     val focusBoardId: String? = null,
     val boards: List<Board> = emptyList(),
     val timers: List<Timer> = emptyList(),
+    val view: ViewFit = ViewFit(),
 )
 
 @Serializable
@@ -184,6 +195,14 @@ sealed class Op {
     @Serializable
     @SerialName("set_pose")
     data class SetPose(val id: String, val pose: Pose) : Op()
+
+    /**
+     * Sent by the app when a session starts on a headset whose view differs from the stored one: the layout refits,
+     * and whatever sat in its slot moves to the new slot (a board the user placed elsewhere stays there).
+     */
+    @Serializable
+    @SerialName("set_view")
+    data class SetView(val view: ViewFit) : Op()
 }
 
 val DEFAULT_COLUMNS = listOf("To do", "Doing", "Done")

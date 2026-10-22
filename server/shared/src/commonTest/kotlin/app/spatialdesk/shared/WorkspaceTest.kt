@@ -204,6 +204,26 @@ class WorkspaceTest {
     }
 
     @Test
+    fun `set_view refits what sits in its slot and leaves what the user placed`() {
+        val ws = Workspace().run(today, Op.StartTimer(25.0), Op.StartTimer(5.0, label = "Break"))
+        val placed = Pose(0.4, 1.9, -0.9, yaw = 0.3)
+        val moved = ws.run(Op.SetPose(ws.timers[1].id, placed))
+        val glasses = ViewFit(29.0, 20.0, 34.0)
+        val fitted = moved.run(Op.SetView(glasses))
+        assertEquals(glasses, fitted.view)
+        assertEquals(Layout.focus(ws.anchor, glasses), fitted.boards.single().pose)
+        assertEquals(Layout.timer(ws.anchor, 0, glasses), fitted.timers[0].pose)
+        assertEquals(placed, fitted.timers[1].pose, "a timer the user moved stays where they put it")
+        assertNotEquals(ws.boards.single().pose, fitted.boards.single().pose)
+        // New things take the new view's slots; an impossible view is refused.
+        assertEquals(Layout.timer(ws.anchor, 1, glasses), fitted.run(Op.StartTimer(10.0)).timers.last().pose)
+        assertTrue("field of view" in fitted.refuse(Op.SetView(ViewFit(0.0, 20.0, 34.0))).error)
+        // Saves from before views existed load with the designed (Quest) view.
+        val old = WorkspaceJson.encodeToString(Workspace.serializer(), ws).replace(Regex(""","view":\{[^}]*\}"""), "")
+        assertEquals(ViewFit(), WorkspaceJson.decodeFromString(Workspace.serializer(), Workspaces.load(old)!!).view)
+    }
+
+    @Test
     fun `saves from another schema are discarded, not misread`() {
         val saved = Workspaces.apply(Workspaces.empty(), """{"op":"create_board","title":"Keep"}""", now, null)
         val state = WorkspaceJson.decodeFromString(ApplyResult.serializer(), saved).state!!

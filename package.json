@@ -28,7 +28,7 @@
     "@pmndrs/uikit": "^1.0.74",
     "@pmndrs/uikit-horizon": "^1.0.74",
     "@pmndrs/uikit-lucide": "^1.0.74",
-    "iwer": "^2.5.0",
+    "iwer": "^2.7.0",
     "spatialdesk-shared": "file:vendor/spatialdesk-shared",
     "three": "npm:super-three@0.181.0"
   },

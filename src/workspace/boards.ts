@@ -5,6 +5,7 @@
  * Panels are only touched when the workspace or the selection changes, never per frame.
  */
 import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder, onSettings } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
@@ -20,16 +21,12 @@ const CONFIG = `${import.meta.env.BASE_URL}ui/board.uikitml`;
 // Off-white on dark greys; every text colour >= 7:1 on its background (ROADMAP heuristic B).
 const COLOR = {
   column: '#1d222a',
-  columnHover: '#4a5566',
   dropColumn: '#183329',
   dropBorder: '#5ee0a0',
-  dropHover: '#b4f7d6',
   card: '#2a313b',
-  cardHover: '#9cc3ff',
   heldCard: '#2f5f9e',
   heldBorder: '#9cc3ff',
   focus: '#2f5f9e',
-  focusHover: '#9cc3ff',
   mark: { low: '#4c5664', normal: '#7f8b9b', high: '#ff8a7a' },
 } as const;
 
@@ -149,12 +146,12 @@ class BoardView {
     else if (kind === 'focus') this.paintFocus();
   }
 
+  // Hover is a fade of the control's own colour, never an outline (src/ui/hover.ts); borders carry state only.
   private paintFocus(): void {
-    const isFocus = workspace.state.focusBoardId === this.id;
-    this.slots?.focus.setProperties({
-      display: isFocus ? 'none' : 'flex',
-      borderColor: this.hovered.has('focus') ? COLOR.focusHover : idleBorder(COLOR.focus),
-    });
+    const focus = this.slots?.focus;
+    if (!focus) return;
+    focus.setProperties({ display: workspace.state.focusBoardId === this.id ? 'none' : 'flex', borderColor: idleBorder(COLOR.focus) });
+    hoverFades.paint(focus, COLOR.focus, this.hovered.has('focus'));
   }
 
   private paintColumn(c: number): void {
@@ -162,12 +159,11 @@ class BoardView {
     const box = this.slots?.columns[c].box;
     if (!column || !box) return;
     const dropTarget = held != null && !column.cards.some((card) => card.id === held!.cardId);
-    const hovered = this.hovered.has(`col-${c}`);
     box.setProperties({
       display: 'flex',
-      backgroundColor: dropTarget ? COLOR.dropColumn : COLOR.column,
-      borderColor: dropTarget ? (hovered ? COLOR.dropHover : COLOR.dropBorder) : hovered ? COLOR.columnHover : this.coached(`col-${c}`) ? COACH_BORDER : idleBorder(COLOR.column),
+      borderColor: dropTarget ? COLOR.dropBorder : this.coached(`col-${c}`) ? COACH_BORDER : idleBorder(COLOR.column),
     });
+    hoverFades.paint(box, dropTarget ? COLOR.dropColumn : COLOR.column, this.hovered.has(`col-${c}`), dropTarget ? COLOR.dropBorder : undefined);
   }
 
   private paintCard(c: number, k: number): void {
@@ -179,12 +175,11 @@ class BoardView {
       return;
     }
     const isHeld = held?.cardId === card.id;
-    const hovered = this.hovered.has(`card-${c}-${k}`);
     box.setProperties({
       display: 'flex',
-      backgroundColor: isHeld ? COLOR.heldCard : COLOR.card,
-      borderColor: isHeld ? COLOR.heldBorder : hovered ? COLOR.cardHover : this.coached(`card-${c}-${k}`) ? COACH_BORDER : idleBorder(COLOR.card),
+      borderColor: isHeld ? COLOR.heldBorder : this.coached(`card-${c}-${k}`) ? COACH_BORDER : idleBorder(COLOR.card),
     });
+    hoverFades.paint(box, isHeld ? COLOR.heldCard : COLOR.card, this.hovered.has(`card-${c}-${k}`));
   }
 
   private coached(key: string): boolean {

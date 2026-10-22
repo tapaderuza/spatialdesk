@@ -47,6 +47,13 @@ export interface Timer {
   pose: Pose;
 }
 
+/** The comfortable part of the headset's view in degrees (Workspace.kt ViewFit), measured by src/ui/view-fit.ts. */
+export interface ViewFit {
+  halfWidthDeg: number;
+  upDeg: number;
+  downDeg: number;
+}
+
 export interface Workspace {
   schema: number;
   revision: number;
@@ -55,6 +62,7 @@ export interface Workspace {
   focusBoardId?: string;
   boards: Board[];
   timers: Timer[];
+  view: ViewFit;
 }
 
 export interface NewCard {
@@ -81,7 +89,8 @@ export type Op =
   | { op: 'finish_timer'; timer: string }
   | { op: 'dismiss_timer'; timer: string }
   | { op: 'arrange_space'; layout?: 'desk' | 'focus' }
-  | { op: 'set_pose'; id: string; pose: Pose };
+  | { op: 'set_pose'; id: string; pose: Pose }
+  | { op: 'set_view'; view: ViewFit };
 
 export interface ApplyResult {
   ok: boolean;

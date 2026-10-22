@@ -17,6 +17,7 @@ import {
   type UIKitDocument,
 } from '@iwsdk/core';
 import { setCommandHighlight } from '../panel.js';
+import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder, onSettings } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
@@ -108,6 +109,13 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
     if (now < this.nextCheck) return;
     this.nextCheck = now + CHECK_EVERY_MS;
     this.place();
+    // Focus 25 is the last step: started early (by voice, say), it ends the guided start too, and its timer takes
+    // the row above the board where this line sits.
+    if (this.step < STEPS.length - 1 && workspace.state.timers.length > this.timersAtStart) {
+      play('apply');
+      this.go(STEPS.length);
+      return;
+    }
     if (STEPS[this.step].done(this.stepStartedAt, this.timersAtStart)) {
       play('apply');
       this.go(this.step + 1);
@@ -160,9 +168,11 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
     const p = board.pose;
     this.helper.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
     this.up.set(0, 1, 0).applyEuler(this.helper.rotation);
-    const lift = BOARD_SIZE.height / 2 + 0.02 + SIZE.height / 2;
+    const scale = workspace.panelScale; // as the board: smaller in a narrower view (Layout.kt)
+    const lift = (BOARD_SIZE.height / 2 + 0.02 + SIZE.height / 2) * scale;
     object.position.set(p.x + this.up.x * lift, p.y + this.up.y * lift, p.z + this.up.z * lift);
     object.rotation.set(p.pitch, p.yaw, 0);
+    object.scale.setScalar(scale);
   }
 
   private bind(document: UIKitDocument): void {
@@ -174,7 +184,10 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
     };
     this.text = get('coach-text');
     const skip = get('coach-skip');
-    const paint = (hovered = false) => skip.setProperties({ borderColor: hovered ? '#9cc3ff' : idleBorder('#2a313b') });
+    const paint = (hovered = false) => {
+      skip.setProperties({ borderColor: idleBorder('#2a313b') });
+      hoverFades.paint(skip, '#2a313b', hovered); // src/ui/hover.ts
+    };
     paint();
     this.cleanups.push(onSettings(() => paint()));
     new PanelHits(get('coach-root'), [['skip', skip]] as const, { click: () => this.skip(), hover: (_, hovered) => paint(hovered) }, this.cleanups);

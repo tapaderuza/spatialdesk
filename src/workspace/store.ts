@@ -84,6 +84,9 @@ function fastTimers(ops: Op[]): Op[] {
 export class WorkspaceStore {
   private json = engine.empty();
   state: Workspace = JSON.parse(this.json) as Workspace;
+  /** The scale every panel is drawn at for the workspace's view (Layout.kt): 1 on a Quest, smaller on narrower views. */
+  panelScale = 1;
+  private scaledView = '';
   /** State before journal[0]; journal[i].after is the state after entry i. */
   private base = this.json;
   private readonly journal: Entry[] = [];
@@ -253,6 +256,11 @@ export class WorkspaceStore {
     const previous = this.state;
     this.json = json;
     this.state = JSON.parse(json) as Workspace;
+    const view = this.state.view ? `${this.state.view.halfWidthDeg},${this.state.view.upDeg},${this.state.view.downDeg}` : '';
+    if (view !== this.scaledView) {
+      this.scaledView = view;
+      this.panelScale = engine.panelScale(json);
+    }
     const change: Change = { state: this.state, previous: source === 'load' ? null : previous, created, source };
     for (const listener of this.listeners) listener(change);
   }
@@ -281,6 +289,7 @@ function describe(op: Op | undefined): string {
     case 'dismiss_timer': return 'dismiss timer';
     case 'arrange_space': return 'arrange space';
     case 'set_pose': return 'move';
+    case 'set_view': return 'fit to view';
     default: return 'last change';
   }
 }

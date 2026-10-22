@@ -8,6 +8,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -86,16 +87,60 @@ class LayoutTest {
         }
     }
 
+    /**
+     * Meta VR Glasses: the render extent IWER samples from the device (37 deg either side, 25 up, 43 down) times Meta's
+     * p90 perceived share of it (58 of 74 across, 54 of 68 up and down): what src/ui/view-fit.ts measures there.
+     */
+    private val glasses = ViewFit(halfWidthDeg = 37.0 * 58 / 74, upDeg = 25.0 * 54 / 68, downDeg = 43.0 * 54 / 68)
+
+    @Test
+    fun `on a Quest the layout is exactly as designed`() {
+        val anchor = Layout.DEFAULT_ANCHOR
+        assertEquals(1.0, Layout.scale(ViewFit()))
+        assertEquals(-0.17, Layout.focus(anchor).y - anchor.y, 1e-12)
+        assertEquals(0.24, Layout.timer(anchor, 0).y - anchor.y, 1e-12)
+        assertEquals(-0.05, Layout.preview(anchor).y - anchor.y, 1e-12)
+    }
+
+    @Test
+    fun `in the glasses' narrower view the essential panels fit, still within reach`() {
+        val s = Layout.scale(glasses)
+        assertTrue(s in 0.8..0.9, "scale $s")
+        for ((who, anchor) in users) {
+            val essential = listOf(
+                Panel("focus board", Layout.focus(anchor, glasses), Layout.BOARD_WIDTH * s, Layout.BOARD_HEIGHT * s),
+                Panel("first timer", Layout.timer(anchor, 0, glasses), Layout.TIMER_WIDTH * s, Layout.TIMER_HEIGHT * s),
+                Panel("agent's card", Layout.preview(anchor, glasses), Layout.PREVIEW_WIDTH * s, Layout.PREVIEW_HEIGHT * s),
+            )
+            for (p in essential) {
+                val (x1, x2, y1, y2) = box(anchor, p).toList()
+                assertTrue(x1 >= -glasses.halfWidthDeg && x2 <= glasses.halfWidthDeg, "$who: ${p.name} spans $x1..$x2 deg across")
+                assertTrue(y1 >= -glasses.downDeg && y2 <= glasses.upDeg, "$who: ${p.name} spans $y1..$y2 deg up")
+            }
+            assertTrue(!overlap(anchor, essential[0], essential[1]), "$who: the timer overlaps the board")
+            assertTrue(polar(anchor, essential[0].pose).first in 0.55..0.65, "$who: the focus board left arm's reach")
+        }
+    }
+
+    @Test
+    fun `a view too narrow for anything still gets a readable layout`() {
+        val tiny = ViewFit(10.0, 8.0, 8.0)
+        assertEquals(Layout.MIN_SCALE, Layout.scale(tiny), 1e-9)
+        assertTrue(polar(Layout.DEFAULT_ANCHOR, Layout.focus(Layout.DEFAULT_ANCHOR, tiny)).first in 0.55..0.65)
+    }
+
+    /** A panel's angular rectangle seen from the eyes: [left, right, bottom, top] in degrees. */
+    private fun box(anchor: Pose, p: Panel): DoubleArray {
+        val (d, yaw, el) = polar(anchor, p.pose)
+        val hw = atan(p.width / 2 / d) * 180 / PI
+        val hh = atan(p.height / 2 / d) * 180 / PI
+        return doubleArrayOf(yaw - hw, yaw + hw, el - hh, el + hh)
+    }
+
     /** Angular rectangles seen from the eyes. */
     private fun overlap(anchor: Pose, a: Panel, b: Panel): Boolean {
-        fun box(p: Panel): DoubleArray {
-            val (d, yaw, el) = polar(anchor, p.pose)
-            val hw = atan(p.width / 2 / d) * 180 / PI
-            val hh = atan(p.height / 2 / d) * 180 / PI
-            return doubleArrayOf(yaw - hw, yaw + hw, el - hh, el + hh)
-        }
-        val (x1, x2, y1, y2) = box(a).toList()
-        val (u1, u2, v1, v2) = box(b).toList()
+        val (x1, x2, y1, y2) = box(anchor, a).toList()
+        val (u1, u2, v1, v2) = box(anchor, b).toList()
         return x1 < u2 && u1 < x2 && y1 < v2 && v1 < y2
     }
 

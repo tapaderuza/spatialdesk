@@ -94,11 +94,16 @@ export class PinnedPanel {
     this.readyCallbacks = [];
   }
 
-  /** Puts the panel at the pose and snaps the bar back under it (unless someone is holding the bar). */
+  /**
+   * Puts the panel at the pose, at the scale the workspace's view asks for (1 on a Quest), and snaps the bar back
+   * under it (unless someone is holding the bar).
+   */
   place(pose: Pose): void {
     const root = this.root.object3D!;
     root.position.set(pose.x, pose.y, pose.z);
     root.rotation.set(pose.pitch, pose.yaw, 0);
+    root.scale.setScalar(workspace.panelScale);
+    this.handle.object3D!.scale.setScalar(workspace.panelScale);
     if (!this.handle.hasComponent(Grabbed)) this.snapHandle();
   }
 
@@ -107,7 +112,7 @@ export class PinnedPanel {
     const root = this.root.object3D!;
     const bar = this.handle.object3D!;
     turnToFace(root, bar.position, eye);
-    const offset = scratch.copy(this.offset).applyQuaternion(root.quaternion);
+    const offset = scratch.copy(this.offset).multiplyScalar(root.scale.x).applyQuaternion(root.quaternion);
     root.position.copy(bar.position).sub(offset);
     turnToFace(root, root.position, eye);
     bar.quaternion.copy(root.quaternion);
@@ -147,7 +152,7 @@ export class PinnedPanel {
   private snapHandle(): void {
     const root = this.root.object3D!;
     const bar = this.handle.object3D!;
-    bar.position.copy(this.offset).applyQuaternion(root.quaternion).add(root.position);
+    bar.position.copy(this.offset).multiplyScalar(root.scale.x).applyQuaternion(root.quaternion).add(root.position);
     bar.quaternion.copy(root.quaternion);
   }
 }

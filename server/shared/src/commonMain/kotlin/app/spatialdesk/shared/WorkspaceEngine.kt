@@ -64,6 +64,7 @@ object WorkspaceEngine {
             is Op.DismissTimer -> ws.timer(op.timer).let { t -> ws.copy(timers = ws.timers - t) }
             is Op.ArrangeSpace -> arrange(ws, op.layout)
             is Op.SetPose -> setPose(ws, op)
+            is Op.SetView -> setView(ws, op.view)
         }
 
         private fun newId(ws: Workspace, prefix: String): Pair<Workspace, String> {
@@ -90,7 +91,7 @@ object WorkspaceEngine {
             if (columns.distinctBy { it.title.lowercase() }.size != columns.size) throw WorkspaceError("Column titles must differ.")
 
             val makeFocus = op.focus ?: (ws.focusBoardId == null)
-            var board = Board(boardId, title, columns, if (makeFocus) Layout.focus(ws.anchor) else freeParkedPose(ws, null))
+            var board = Board(boardId, title, columns, if (makeFocus) Layout.focus(ws.anchor, ws.view) else freeParkedPose(ws, null))
             for (card in op.cards) {
                 val column = card.column?.let { board.column(it) } ?: board.columns.first()
                 val (next, cardId) = newId(ws, "c")
@@ -157,7 +158,7 @@ object WorkspaceEngine {
             // The next board steps into the focus slot, so there is always something within reach.
             val next = rest.firstOrNull() ?: return ws.copy(boards = rest, focusBoardId = null)
             return ws.copy(
-                boards = rest.map { if (it.id == next.id) it.copy(pose = Layout.focus(ws.anchor)) else it },
+                boards = rest.map { if (it.id == next.id) it.copy(pose = Layout.focus(ws.anchor, ws.view)) else it },
                 focusBoardId = next.id,
             )
         }
@@ -168,7 +169,7 @@ object WorkspaceEngine {
             if (previous == boardId) return ws
             val incoming = ws.board(boardId)
             val outgoing = previous?.let { id -> ws.boards.firstOrNull { it.id == id } }
-            val focusPose = outgoing?.pose ?: Layout.focus(ws.anchor)
+            val focusPose = outgoing?.pose ?: Layout.focus(ws.anchor, ws.view)
             return ws.copy(
                 boards = ws.boards.map {
                     when (it.id) {
@@ -217,10 +218,28 @@ object WorkspaceEngine {
             return ws.copy(
                 anchor = anchor,
                 boards = ws.boards.map { b ->
-                    if (b.id == ws.focusBoardId) b.copy(pose = Layout.focus(anchor))
+                    if (b.id == ws.focusBoardId) b.copy(pose = Layout.focus(anchor, ws.view))
                     else b.copy(pose = Layout.parked(anchor, parked++, far = layout == Arrangement.Focus))
                 },
-                timers = ws.timers.mapIndexed { i, t -> t.copy(pose = Layout.timer(anchor, i)) },
+                timers = ws.timers.mapIndexed { i, t -> t.copy(pose = Layout.timer(anchor, i, ws.view)) },
+            )
+        }
+
+        /** Refits the layout to [view]: the focus board and the timers still in their slots move to the new slots. */
+        private fun setView(ws: Workspace, view: ViewFit): Workspace {
+            val angles = listOf(view.halfWidthDeg, view.upDeg, view.downDeg)
+            if (!angles.all { it.isFinite() && it in 5.0..90.0 }) throw WorkspaceError("That field of view is not a headset's.")
+            fun slotted(pose: Pose, slot: Pose) = Layout.distance(pose, slot) < SLOT_TAKEN_M / 3
+            val focusSlot = Layout.focus(ws.anchor, ws.view)
+            return ws.copy(
+                view = view,
+                boards = ws.boards.map { b ->
+                    if (b.id == ws.focusBoardId && slotted(b.pose, focusSlot)) b.copy(pose = Layout.focus(ws.anchor, view)) else b
+                },
+                timers = ws.timers.map { t ->
+                    val slot = (0 until Layout.timerSlots).firstOrNull { slotted(t.pose, Layout.timer(ws.anchor, it, ws.view)) }
+                    if (slot != null) t.copy(pose = Layout.timer(ws.anchor, slot, view)) else t
+                },
             )
         }
 
@@ -277,10 +296,10 @@ object WorkspaceEngine {
 
     private fun freeTimerPose(ws: Workspace): Pose {
         val free = (0 until Layout.timerSlots).firstOrNull { i ->
-            val slot = Layout.timer(ws.anchor, i)
+            val slot = Layout.timer(ws.anchor, i, ws.view)
             ws.timers.none { Layout.distance(it.pose, slot) < SLOT_TAKEN_M / 3 }
         }
-        return Layout.timer(ws.anchor, free ?: ws.timers.size)
+        return Layout.timer(ws.anchor, free ?: ws.timers.size, ws.view)
     }
 
     private const val SLOT_TAKEN_M = 0.3

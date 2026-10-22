@@ -5,12 +5,13 @@
  *
  * Two rules keep reading from pressing things (the "Midas touch"):
  *  - a control just pressed is not pressed again until the gaze has left it;
- *  - after a press nothing is pressed until the head has moved a little, so a panel that closes under a still gaze
+ *  - after a press nothing is pressed until the gaze has moved a little, so a panel that closes under a still gaze
  *    never presses whatever was behind it.
  *
- * Head gaze, not eye tracking: WebXR does not expose the eyes, and the head ray is what every Quest user can aim.
+ * The eyes where the headset tracks them (Meta VR Glasses: IWSDK's gaze pose, the same ray its look-and-pinch uses),
+ * so the whole workspace works with the eyes alone; elsewhere the head, which every Quest user can aim.
  * Only while hands-free is on and in XR: every third frame one plane test per panel and one rectangle test per control
- * on the panel looked at; every frame the ring follows the head. No allocation per frame.
+ * on the panel looked at; every frame the ring follows the gaze. No allocation per frame.
  */
 import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from './panel-hits.js';
@@ -73,7 +74,7 @@ export class GazeSystem extends createSystem({}) {
   /** True from a press until the head has moved [REARM_COS] away from where it was. */
   private settling = false;
   /** Read by the Playwright tests. */
-  readonly state = { key: null as string | null, progress: 0, presses: 0 };
+  readonly state = { key: null as string | null, progress: 0, presses: 0, source: 'head' as 'eyes' | 'head' };
 
   init(): void {
     this.material = new ShaderMaterial({
@@ -98,9 +99,17 @@ export class GazeSystem extends createSystem({}) {
       if (reticle.visible || this.panel) this.leave(reticle);
       return;
     }
-    const camera = this.world.camera;
-    camera.getWorldPosition(this.origin);
-    camera.getWorldDirection(this.direction);
+    // The eyes when the headset tracks them (IWSDK's gaze pose; a target ray points down its -Z), else the head.
+    const player = this.world.player;
+    const eyes = player.gazeOrigin === 'tracked';
+    if (eyes) {
+      player.eyeSpace.getWorldPosition(this.origin);
+      player.eyeSpace.getWorldDirection(this.direction).negate();
+    } else {
+      this.world.camera.getWorldPosition(this.origin);
+      this.world.camera.getWorldDirection(this.direction);
+    }
+    this.state.source = eyes ? 'eyes' : 'head';
     if (this.settling && this.direction.dot(this.pressedFrom) < REARM_COS) this.settling = false;
 
     // The ray tests (one plane per panel, then the controls of the one looked at) run every few frames; the ring

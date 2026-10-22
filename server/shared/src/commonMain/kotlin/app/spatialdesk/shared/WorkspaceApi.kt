@@ -60,10 +60,16 @@ object Workspaces {
         return WorkspaceJson.encodeToString(Pose.serializer(), Layout.command(anchor))
     }
 
-    /** Where the agent's plan preview goes for this workspace's anchor. */
+    /** Where the agent's plan preview goes for this workspace's anchor and view. */
     fun previewPose(stateJson: String): String {
-        val anchor = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson).anchor }.getOrDefault(Layout.DEFAULT_ANCHOR)
-        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.preview(anchor))
+        val ws = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.preview(ws.anchor, ws.view))
+    }
+
+    /** The scale every panel is drawn at, so the essential ones fit this workspace's view (1 on a Quest). */
+    fun panelScale(stateJson: String): Double {
+        val view = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson).view }.getOrDefault(ViewFit())
+        return Layout.scale(view)
     }
 
     private fun encode(ws: Workspace): String = WorkspaceJson.encodeToString(Workspace.serializer(), ws)
