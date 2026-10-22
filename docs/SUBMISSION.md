@@ -44,7 +44,7 @@ A hands-first workspace for Meta Quest: say your day and an AI agent builds it a
 - Same app with timers in seconds, for a short session: https://d2p3027seoreck.cloudfront.net/?fast
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
 - Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
-- Video: (YouTube link once uploaded)
+- Video: https://youtu.be/6dihcPJCVF4
 - Code: (GitHub link, if a repository is shared)
 
 ## Built with
