@@ -5,9 +5,9 @@ and focus timers around you, explains every step it takes, and lets you undo any
 
 **Try it:** https://d2p3027seoreck.cloudfront.net
 
-- **On a Quest:** open the link in Meta Quest Browser and tap *Enter workspace*. Hands or controllers both work.
+- **On a Quest:** open the link in Meta Quest Browser and tap *Enter VR*, or *In my room* to use it in passthrough. Hands or controllers both work.
 - **On a desktop:** add `?emulate` (https://d2p3027seoreck.cloudfront.net/?emulate). Meta's IWER emulator stands in for the
-  headset; click *Enter workspace*, then use the emulated controllers, or click the panels with the mouse.
+  headset; click *Enter VR*, then use the emulated controllers, or click the panels with the mouse.
 
 - **For a short session:** add `?fast` (or `?emulate&fast`) and timers run in seconds instead of minutes, so you can
   see what the agent does when a focus block ends.
@@ -37,6 +37,8 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
   words, which the agent answers with a plan to review. Audio streams straight to Amazon Transcribe.
 - **Hands-free.** Look at any control and hold your gaze until the ring fills (`?handsfree` starts in this mode).
   With *Talk*, the whole workspace works without hands or controllers.
+- **In my room.** Passthrough on Quest 3/3S: *Fit room* stands the work board on your real desk and hangs the other
+  boards on your real walls (plane detection), and a persistent anchor puts them back there next time.
 - **A reason to come back.** Today's focus blocks, a streak and the last seven days on the command panel; on a new day
   with work still open, the agent offers to plan today from it.
 - **Accessible.** A three-step guided start (under a minute, skippable), high contrast mode (white text and outlines),

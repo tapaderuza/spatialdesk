@@ -54,7 +54,7 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
 
 ## Testing instructions for judges
 
-1. On a Quest, open **https://d2p3027seoreck.cloudfront.net/?fast** in Meta Quest Browser and tap **Enter workspace**.
+1. On a Quest, open **https://d2p3027seoreck.cloudfront.net/?fast** in Meta Quest Browser and tap **Enter VR** (or **In my room** for passthrough).
    No install and no account; hands or controllers both work. Sit down: the layout is designed for seated use.
    `?fast` makes timers run in seconds instead of minutes (Focus 25 lasts 25 seconds), so you can see what the agent
    does when a block ends. Without it, everything runs in real minutes.
@@ -73,11 +73,14 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
    to review, and "yes" applies it. The browser asks for the microphone the first time.
 8. **Hands-free** (bottom of the left panel): look at any control and hold your gaze until the ring fills to press
    it. Together with Talk, the whole workspace works without hands or controllers.
-9. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
+9. **In my room** (Quest 3/3S passthrough): the workspace opens in your real room. Tap **Fit room** and the board you
+   work on stands on your real desk while the other boards hang on your walls. The room remembers it: next time you
+   enter, every board is back in its place, even if you reorganised in VR meanwhile.
+10. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
    The top of the panel shows today's focus blocks, your streak and the last seven days.
 
 Without a Quest, open https://d2p3027seoreck.cloudfront.net/?emulate&fast in Chrome or Edge on a desktop. Meta's
-IWER emulator stands in for the headset. Click **Enter workspace**, then click the panels with the mouse.
+IWER emulator stands in for the headset. Click **Enter VR**, then click the panels with the mouse.
 
 The AI runs live on Amazon Bedrock. Each session can ask for 20 plans an hour. If the AI is ever unavailable, a
 built-in planner answers instead and says so on the card.
@@ -151,6 +154,10 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - **No hands needed at all.** In *hands-free* mode you look at a control and hold your gaze until a ring fills.
   Reading never presses anything: a control waits for the gaze to leave before it can be pressed again, and after a
   press nothing happens until the head moves. With *Talk*, the whole workspace works without hands or controllers.
+- **In your room, remembered.** *In my room* opens the workspace in passthrough. *Fit room* reads the planes the
+  headset detected: the board you work on stands on your real desk at arm's length, the parked boards hang on your
+  real walls (never on a door or a window). A persistent anchor keeps the layout in the room, so tomorrow every board
+  is back on your desk and walls, even after reorganising in VR.
 - **A reason to come back tomorrow.** The command panel shows today's focus blocks, a streak and the last seven days.
   On a new day with work still open, the agent offers to plan today from it, in-progress tasks first.
 - **Hands first, seated, accessible.**
@@ -178,6 +185,10 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - **Voice:** an AudioWorklet turns the microphone into 16 kHz PCM, framed in AWS's event stream format and streamed
   straight to Amazon Transcribe over a WebSocket that the server presigns (SigV4, checked against AWS's documented
   example). The browser never holds AWS credentials and no audio passes through our server.
+- **Mixed reality:** an immersive-ar session with plane detection and anchors (IWSDK's SceneUnderstandingSystem).
+  The fit is pure math on the detected planes (desk at desk height in front of you; walls hit by the direction each
+  parked board already had), and poses are stored relative to a persistent anchor, restored with
+  `restorePersistentAnchor` next session. Tested end to end in IWER with Meta's Synthetic Environment Module rooms.
 - **Hands-free:** the head ray is tested against each panel's plane, then against the control rectangles on the one
   looked at; a one-draw-call shader ring shows the dwell. No allocation per frame.
 - **AWS, all in CDK:**

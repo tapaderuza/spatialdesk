@@ -10,7 +10,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { lookAt, pressXR, turnHead, type Win } from './helpers.js';
+import { frames, lookAt, pressXR, tap, turnHead, type Win } from './helpers.js';
 
 const target = process.env.E2E_URL;
 const mic = process.env.MIC;
@@ -70,7 +70,7 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
     await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   };
 
-  await page.goto('/?emulate&fast'); // ?fast: timers run in seconds, as judges can use it
+  await page.goto('/?emulate&fast&room=home_office'); // ?fast: timers in seconds; the room is used in beat 10
   await online(page);
   await page.evaluate(() => {
     indexedDB.deleteDatabase('spatialdesk');
@@ -183,7 +183,27 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
   await pause(page, 5);
   await settle();
 
-  // 10. High contrast, one tap (and remembered).
+  // 10. In my room: passthrough in IWER's home office, seated at the desk; Fit room uses the detected desk and walls.
+  await beat('room');
+  await page.evaluate(() => (window as Win).__world.exitXR());
+  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive' && !(window as Win).__world.session);
+  await page.evaluate(() => (window as Win).__xrDevice.position.set(0, 1.2, -1.2));
+  await turnHead(page, 0, 0);
+  await frames(page, 20);
+  await tap(page, 'command:room-button');
+  await page.waitForFunction(() => (window as Win).__room?.state.inRoom && (window as Win).__room.queries.planes.entities.size >= 8, null, { timeout: 30_000 });
+  await turnHead(page, 0, HEAD_PITCH_DEG);
+  await pause(page, 1.5);
+  await command('fit-button');
+  await page.waitForFunction(() => (window as Win).__room.state.lastFit?.desk === true, null, { timeout: 5_000 });
+  await turnHead(page, 0, -12, 14);
+  await pause(page, 3);
+  await turnHead(page, 75, -2, 20);
+  await pause(page, 2.5);
+  await turnHead(page, 0, HEAD_PITCH_DEG, 20);
+  await settle();
+
+  // 11. High contrast, one tap (and remembered).
   await beat('contrast');
   await pressXR(page, 'command:contrast-button', 'left');
   await pause(page, 2);
