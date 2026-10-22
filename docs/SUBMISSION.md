@@ -44,7 +44,7 @@ A hands-first workspace for Meta Quest: say your day and an AI agent builds it a
 - Same app with timers in seconds, for a short session: https://d2p3027seoreck.cloudfront.net/?fast
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
 - Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
-- Video: https://youtu.be/6dihcPJCVF4
+- Video: https://youtu.be/QFx0JWRqAcw (with In my room; the earlier cut is https://youtu.be/6dihcPJCVF4)
 - Code: (GitHub link, if a repository is shared)
 
 ## Built with
@@ -118,6 +118,7 @@ From `.video/gallery/`, all taken from the recording, without captions:
 6. `6-hands-free.png`: hands-free, the gaze ring filling on a button
 7. `7-streak.png`: today's focus blocks, the streak and the last seven days
 8. `8-high-contrast.png`: high contrast mode
+9. `9-in-my-room.png`: In my room, the board standing on the real desk after Fit room
 
 `scripts/make-video.mjs` writes them to `.video/gallery/`.
 
