@@ -6,16 +6,52 @@
  */
 
 import { iwsdkDev } from '@iwsdk/vite-plugin-dev';
-import { defineConfig } from 'vite';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { defineConfig, type Plugin } from 'vite';
 
 // Emulator in your own browser is all we use: don't launch (or download) the plugin's managed Chromium.
 // `npm run dev` (the iwsdk CLI) can still override this through its own flags.
 process.env.IWSDK_DEV_OPEN ??= 'false';
 
+/**
+ * IWER's synthetic rooms (`?emulate&room=home_office`, src/emulator.ts) import their scene from `/rooms/<id>.js`,
+ * next to the package root as SEM resolves it. They are served from node_modules in dev and copied into the build;
+ * a headset never fetches them (only the emulator does).
+ */
+function semRooms(): Plugin {
+  // Procedural rooms (rooms/*.js) and scanned rooms (captures/*.json), each served under its own folder name.
+  const folders = { rooms: '.js', captures: '.json' } as const;
+  const files = (folder: keyof typeof folders) => {
+    const source = `node_modules/@iwer/sem/${folder}`;
+    return existsSync(source) ? readdirSync(source).filter((f) => f.endsWith(folders[folder])) : [];
+  };
+  return {
+    name: 'spatialdesk-sem-rooms',
+    configureServer(server) {
+      for (const folder of Object.keys(folders) as (keyof typeof folders)[]) {
+        server.middlewares.use(`/${folder}`, (req, res, next) => {
+          const file = (req.url ?? '').replace(/^\//, '').split('?')[0];
+          if (!files(folder).includes(file)) return next();
+          res.setHeader('Content-Type', folder === 'rooms' ? 'text/javascript' : 'application/json');
+          res.end(readFileSync(join('node_modules/@iwer/sem', folder, file)));
+        });
+      }
+    },
+    writeBundle(options) {
+      for (const folder of Object.keys(folders) as (keyof typeof folders)[]) {
+        const target = join(options.dir ?? 'dist', folder);
+        mkdirSync(target, { recursive: true });
+        for (const file of files(folder)) copyFileSync(join('node_modules/@iwer/sem', folder, file), join(target, file));
+      }
+    },
+  };
+}
+
 export default defineConfig({
   // No headset in this project (emulator only): localhost over HTTP is already a secure context for WebXR,
   // so no self-signed certificate is needed.
-  plugins: [iwsdkDev({ https: false })],
+  plugins: [iwsdkDev({ https: false }), semRooms()],
   server: {
     host: '0.0.0.0',
     port: 8081,
@@ -38,8 +74,15 @@ export default defineConfig({
     target: 'esnext',
     rollupOptions: {
       input: './index.html',
-      // The emulator chunk is only fetched with ?emulate; naming it lets the perf gate attribute its cost.
-      output: { manualChunks: (id) => (id.includes('node_modules/iwer') ? 'emulator' : undefined) },
+      // The emulator chunks are only fetched with ?emulate (and ?room for the synthetic room); naming them lets the
+      // perf gate attribute their cost and the size gate leave them out.
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/iwer')) return 'emulator';
+          if (/node_modules\/(@iwer|@drawcall\/glts|@bufbuild|ts-proto)\//.test(id)) return 'emulator-room';
+          return undefined;
+        },
+      },
     },
   },
   esbuild: { target: 'esnext' },

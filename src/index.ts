@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { World } from '@iwsdk/core';
+import { SessionMode, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { APP_SYSTEMS } from './app-systems.js';
 import { installPerfProbe } from './perf/probe.js';
@@ -21,6 +21,9 @@ World.create(
   projectOptions,
 ).then((world) => {
   (window as unknown as { __world: typeof world }).__world = world; // scene access for the Playwright tests
+  // iwsdk.config.json says "ar" so the renderer keeps an alpha channel for passthrough; a plain launch is still VR,
+  // without asking for the room (src/room/room-system.ts launches the room explicitly).
+  world.xrDefaults = { ...world.xrDefaults, sessionMode: SessionMode.ImmersiveVR, features: { handTracking: true, gazeTracking: true } };
   bindColorScheme(world); // high contrast (or not) before any panel shows
   for (const system of APP_SYSTEMS) world.registerSystem(system);
   if (new URLSearchParams(location.search).has('perf')) installPerfProbe(world, APP_SYSTEMS);

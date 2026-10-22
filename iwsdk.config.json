@@ -10,10 +10,13 @@
   },
   "world": {
     "xr": {
-      "mode": "vr",
-      "offer": "always",
+      "mode": "ar",
+      "offer": "none",
       "features": {
-        "handTracking": true
+        "handTracking": true,
+        "anchors": true,
+        "planeDetection": true,
+        "gazeTracking": true
       }
     },
     "input": {
@@ -41,7 +44,7 @@
         "useHandPinchForGrab": true
       },
       "physics": false,
-      "sceneUnderstanding": false,
+      "sceneUnderstanding": true,
       "environmentRaycast": false,
       "spatialUI": {
         "kit": "horizon"

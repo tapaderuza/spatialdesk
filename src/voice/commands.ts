@@ -18,6 +18,7 @@ export type VoiceCommand =
   | { kind: 'clear' }
   | { kind: 'log' }
   | { kind: 'exit' }
+  | { kind: 'fit' }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'ask'; text: string };
 
@@ -36,6 +37,7 @@ const PHRASES: [RegExp, VoiceCommand][] = [
   [new RegExp(String.raw`^(?:ai log|show(?: me)?(?: the)?(?: ai)? log|what did you do|why)${PLEASE}$`), { kind: 'log' }],
   [new RegExp(String.raw`^(?:prioriti[sz]e|sort)(?: (?:my|the) (?:tasks|board|cards|day))?${PLEASE}$`), { kind: 'prioritise' }],
   [new RegExp(String.raw`^(?:exit|leave|quit)(?: (?:the )?(?:workspace|vr))?${PLEASE}$`), { kind: 'exit' }],
+  [new RegExp(String.raw`^(?:fit(?: (?:it|everything|the boards))?(?: to)? (?:my |the )?room|put (?:the )?boards on (?:my |the )?walls)${PLEASE}$`), { kind: 'fit' }],
 ];
 const SETTINGS: [RegExp, keyof Settings][] = [
   [/^(?:high )?contrast$/, 'highContrast'],

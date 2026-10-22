@@ -12,6 +12,7 @@ import { Progress, progress } from './workspace/progress.js';
 import { TIMER_SCALE, workspace, type Notice } from './workspace/store.js';
 import { timerFinishedListeners } from './workspace/timers.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
+import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js';
 import { parseCommand } from './voice/commands.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
 
@@ -120,6 +121,8 @@ export class PanelSystem extends createSystem({}) {
     );
 
     const xrButton = element('xr-button');
+    const roomButton = element('room-button');
+    const fitButton = element('fit-button');
     const exitButton = element('exit-button');
     const buttons: Record<string, { element: UIKit.Text | null; base: string; action: () => void }> = {
       // Intent chips: the AI ones open a plan to review; Focus 25 and Clear done act at once (no AI needed).
@@ -149,7 +152,9 @@ export class PanelSystem extends createSystem({}) {
         base: BUTTON.base,
         action: () => workspace.dispatch({ op: 'clear_done' }, { notice: 'Cleared the last column of every board.' }),
       },
-      xr: { element: xrButton, base: BUTTON.primary, action: () => this.world.launchXR() },
+      xr: { element: xrButton, base: BUTTON.primary, action: () => launchVR(this.world) },
+      room: { element: roomButton, base: BUTTON.primary, action: () => launchRoom(this.world) },
+      fit: { element: fitButton, base: BUTTON.primary, action: () => void this.world.getSystem(RoomSystem)?.requestFit() },
       exit: { element: exitButton, base: BUTTON.base, action: () => this.world.exitXR() },
     };
     if (root) {
@@ -172,14 +177,21 @@ export class PanelSystem extends createSystem({}) {
     }
 
     if (!this.world.xrEnabled) {
-      xrButton?.setProperties({ display: 'none' });
-      exitButton?.setProperties({ display: 'none' });
+      for (const button of [xrButton, roomButton, fitButton, exitButton]) button?.setProperties({ display: 'none' });
       return;
     }
+    // "In my room" only where the browser can show passthrough.
+    let roomSupported = true;
+    void navigator.xr?.isSessionSupported('immersive-ar').then((supported) => {
+      roomSupported = supported;
+      if (!supported) roomButton?.setProperties({ display: 'none' });
+    });
     this.cleanupFuncs.push(
       this.world.visibilityState.subscribe((visibilityState) => {
         const is2D = visibilityState === VisibilityState.NonImmersive;
         xrButton?.setProperties({ display: is2D ? 'flex' : 'none' });
+        roomButton?.setProperties({ display: is2D && roomSupported ? 'flex' : 'none' });
+        fitButton?.setProperties({ display: !is2D && inRoom(this.world) ? 'flex' : 'none' });
         exitButton?.setProperties({ display: is2D ? 'none' : 'flex' });
         if (!is2D) {
           this.placeFrames = 3; // after ScreenSpace hands the panel back to the scene
@@ -269,6 +281,9 @@ export class PanelSystem extends createSystem({}) {
       case 'exit':
         void this.world.exitXR();
         return;
+      case 'fit':
+        this.world.getSystem(RoomSystem)?.requestFit();
+        return;
       case 'setting':
         if (command.setting === 'handsFree') this.toggleHandsFree(command.value);
         else {
@@ -310,6 +325,11 @@ export class PanelSystem extends createSystem({}) {
   }
 
   private reanchorIfFar(): void {
+    // In the room, a remembered layout is restored to its real place (RoomSystem): never rearranged around the head.
+    if (inRoom(this.world) && this.world.getSystem(RoomSystem)?.remembers) {
+      this.placeFrames = 1;
+      return;
+    }
     const viewer = viewerPose(this.world);
     const anchor = workspace.state.anchor;
     const turn = Math.abs(Math.atan2(Math.sin(viewer.yaw - anchor.yaw), Math.cos(viewer.yaw - anchor.yaw)));

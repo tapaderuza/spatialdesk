@@ -16,18 +16,21 @@ Meta's Immersive Web SDK, so the experience opens from a single link with nothin
 
 ## What are you building?
 
-**SpatialDesk Command Center**: a hands-first productivity space for Meta Quest, delivered as a WebXR app.
+**SpatialDesk Command Center**: a hands-first productivity space for Meta Quest, delivered as a WebXR app built
+with Meta's Immersive Web SDK. It is live at https://d2p3027seoreck.cloudfront.net (nothing to install).
 
-You sit down, put on the headset and describe your day. An AI agent turns it into a spatial workflow around you:
+You sit down, put on the headset and say or type your day. An AI agent (Amazon Nova on Bedrock) turns it into a
+spatial workflow around you:
 - Kanban boards floating at arm's length;
 - focus timers you can pin anywhere in your space;
 - cards you pinch, move and complete with your hands.
 
-The agent doesn't just chat. It acts on the space, and every action can be undone. It plans, regroups tasks,
-starts a focus sprint and reorganises the boards as priorities change, and it explains what it did.
+The agent doesn't just chat. It acts on the space, explains every step, and every step can be undone. It suggests
+the next focus block when one ends and plans a new day from yesterday's open work. Every control also works by voice
+(Amazon Transcribe) and by gaze alone, so the whole workspace can be used without hands.
 
-The target is the Productivity track and Agentic Interaction. Every interaction is designed for seated,
-hands-only use, with large, high-contrast targets.
+The target is the Productivity track, Agentic Interaction and Accessibility. Every interaction is designed for
+seated use, with large, high-contrast targets, and every quality claim is an automated test in Meta's IWER emulator.
 
 ## Why do you want to join Meta Horizon Start?
 
@@ -42,7 +45,9 @@ tooling.
 
 ## Relevant work / links
 
+- SpatialDesk Command Center (this project), live: https://d2p3027seoreck.cloudfront.net
+- SpatialDesk demo video: https://youtu.be/6dihcPJCVF4
 - ScreenDesk: Fire TV + Amazon Bedrock (Nova) class-screen app for gyms, deployed on AWS and validated with a
   real coach. Submitted to the Amazon Developer Hackathon 2026: https://devpost.com/software/1458275
-- Demo video: https://www.youtube.com/watch?v=a4SI6V8AU-I
+- ScreenDesk demo video: https://www.youtube.com/watch?v=a4SI6V8AU-I
 - GitHub: https://github.com/tapaderuza

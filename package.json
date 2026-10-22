@@ -29,10 +29,11 @@
     "@pmndrs/uikit-horizon": "^1.0.74",
     "@pmndrs/uikit-lucide": "^1.0.74",
     "iwer": "^2.5.0",
-    "three": "npm:super-three@0.181.0",
-    "spatialdesk-shared": "file:vendor/spatialdesk-shared"
+    "spatialdesk-shared": "file:vendor/spatialdesk-shared",
+    "three": "npm:super-three@0.181.0"
   },
   "devDependencies": {
+    "@iwer/sem": "^2.7.0",
     "@iwsdk/cli": "1.0.1",
     "@iwsdk/reference": "1.0.1",
     "@iwsdk/vite-plugin-dev": "1.0.1",
