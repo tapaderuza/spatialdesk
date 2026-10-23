@@ -69,3 +69,20 @@ test('companion: beside the board wherever it goes, and its mood follows the wor
   expect(moved.right).toBeCloseTo(at.right, 2);
   expect(errors).toEqual([]);
 });
+
+test('focus bubble: the world beyond arm\'s reach fades during a focus block, never in a break, and turns off by voice', async ({ page }) => {
+  const errors = await enterXR(page, '&fast');
+  const bubble = () => page.evaluate(() => ({ ...(window as Win).__bubble.view }) as { strength: number; active: boolean });
+  expect((await bubble()).active).toBe(false);
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 25, label: 'Write the report' }));
+  await page.waitForFunction(() => (window as Win).__bubble.view.strength >= 0.49, null, { timeout: 6_000 }); // eased in
+  const id = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
+  await page.evaluate((id) => (window as Win).__workspace.dispatch([{ op: 'dismiss_timer', timer: id }, { op: 'start_timer', minutes: 5, label: 'Break' }]), id);
+  await page.waitForFunction(() => (window as Win).__bubble.view.strength === 0, null, { timeout: 4_000 }); // a break: the world comes back
+  await page.evaluate(() => (window as Win).__voice.say('Dimming off'));
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 25, label: 'Write the report' }));
+  await frames(page, 30);
+  expect(await bubble()).toEqual({ strength: 0, active: false }); // the user turned it off: it stays off
+  expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Focus dimming off');
+  expect(errors).toEqual([]);
+});

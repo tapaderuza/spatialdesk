@@ -4,6 +4,7 @@ import { CoachSystem } from './onboarding/coach.js';
 import { PanelSystem } from './panel.js';
 import { RoomSystem } from './room/room-system.js';
 import { CompanionSystem } from './studio/companion-system.js';
+import { FocusBubbleSystem } from './studio/focus-bubble.js';
 import { StudioSystem } from './studio/studio-system.js';
 import { GazeSystem } from './ui/gaze.js';
 import { HoverSystem } from './ui/hover.js';
@@ -27,6 +28,7 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   RoomSystem,
   StudioSystem,
   CompanionSystem,
+  FocusBubbleSystem,
   PanelSystem,
   CoachSystem,
   GazeSystem,

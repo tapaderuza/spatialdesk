@@ -51,6 +51,7 @@ const SETTINGS: [RegExp, keyof Settings][] = [
   [/^(?:sound|sounds)$/, 'sound'],
   [/^read(?:ing)? aloud$/, 'readAloud'],
   [/^hands ?free$/, 'handsFree'],
+  [/^(?:focus )?(?:dimming|dim|bubble)$/, 'focusDim'],
 ];
 /** "Plan my day:" and the like, in the words as heard (the rest keeps its commas for the planner). */
 const PLAN = /^\s*(?:plan|planifica|organiza)(?:\s+(?:my|mi)\s+(?:day|d[ií]a))?(?=$|[\s:,.-])\s*[:,.-]?\s*/i;

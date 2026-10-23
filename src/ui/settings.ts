@@ -10,10 +10,12 @@ export interface Settings {
   sound: boolean;
   readAloud: boolean;
   handsFree: boolean;
+  /** During a focus block, everything beyond arm's reach fades (src/studio/focus-bubble.ts). */
+  focusDim: boolean;
 }
 
 const KEY = 'spatialdesk.settings';
-const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false, handsFree: false };
+const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false, handsFree: false, focusDim: true };
 
 function load(): Settings {
   let loaded: Settings;
