@@ -200,6 +200,31 @@ class PlannerTest {
     }
 
     @Test
+    fun `a wrap-up may not call open work finished, as Nova once did`() {
+        val day = (
+            WorkspaceEngine.applyAll(
+                starter,
+                listOf(Op.AddCard("Getting started", "Finish the quarterly report", column = "Doing"), Op.AddCard("Getting started", "Call the dentist", column = "Done")),
+                clock.millis().toDouble(),
+            ) as EngineResult.Success
+            ).state
+        val wrap = PlanRequest(Intent.WrapUp, null, day)
+        val facts = Guardrails.facts(wrap, clock.millis().toDouble()).lines
+        assertTrue(facts.any { "NOT finished" in it && "\"Finish the quarterly report\"" in it }, facts.toString())
+        // Nova 2 Lite's words on 2026-10-23, with the report still in progress: sent back; the honest summary passes.
+        val clear = steps("""[{"op":"clear_done","board":"Getting started","why":"Today's work, cleared away"}]""")
+        val model = Scripted(
+            ModelPlan("Today you finished the quarterly report and two other tasks. Tomorrow starts with the slides.", clear),
+            ModelPlan("Today you finished the dentist call, and the quarterly report is still in progress. Tomorrow starts there.", clear),
+        )
+        val response = planner(model).plan(wrap)
+        assertTrue(response.ok, response.error)
+        assertEquals(2, response.attempts)
+        assertTrue(model.feedback[1]!!.startsWith("The summary says \"Finish the quarterly report\" is finished"), model.feedback[1])
+        assertEquals(null, SummaryCheck.violation(wrap, "Tomorrow, finish the quarterly report first."))
+    }
+
+    @Test
     fun `summarise needs no steps`() {
         val response = planner(Scripted(ModelPlan("Two open cards.", emptyList()))).plan(request(Intent.Summarise, null))
         assertTrue(response.ok)

@@ -141,6 +141,7 @@ class Planner(
     }
 
     private fun check(request: PlanRequest, plan: ModelPlan, now: Double, facts: Guardrails.Facts): Checked {
+        SummaryCheck.violation(request, plan.summary)?.let { return Checked.Invalid(it) }
         if (plan.steps.size > MAX_STEPS) return Checked.Invalid("The plan has ${plan.steps.size} steps; use at most $MAX_STEPS.")
         val normalised = Normaliser(request.workspace).normalise(plan.steps)
         if (normalised.isEmpty()) {
@@ -337,9 +338,9 @@ class BuiltInPlanner {
 
     /** The end of the day: what got done is named, then cleared away; tomorrow starts with the first task in progress. */
     private fun wrapUp(ws: Workspace): ModelPlan {
-        val done = ws.boards.filter { it.columns.size > 1 }.flatMap { b -> b.columns.last().cards.map { it.title } }
-        val focus = ws.boards.firstOrNull { it.id == ws.focusBoardId }
-        val next = focus?.columns?.getOrNull(1)?.cards?.firstOrNull() ?: focus?.columns?.firstOrNull()?.cards?.firstOrNull()
+        val day = WrapUpDay.of(ws)
+        val done = day.finished.map { it.title }
+        val next = day.next
         val steps = ws.boards.filter { b -> b.columns.size > 1 && b.columns.last().cards.isNotEmpty() }.map { b ->
             step("clear_done", "Today's finished work, cleared away") { put("board", b.title) }
         }
