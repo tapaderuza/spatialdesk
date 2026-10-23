@@ -40,6 +40,16 @@ export function setCommandHighlight(key: string | null): void {
 }
 const IDLE_NOTICE = 'Tap a card to pick it up, then tap where it goes.';
 const NOTICE_MS = 8000;
+/** How much further to the left the console stands in the room (radians). */
+const ROOM_CONSOLE_TURN = (14 * Math.PI) / 180;
+
+/** [pose] turned by [angle] about the vertical through [centre] (positive: to the left). */
+function turnAbout(pose: Pose, centre: Pose, angle: number): Pose {
+  const [dx, dz] = [pose.x - centre.x, pose.z - centre.z];
+  const [c, s] = [Math.cos(angle), Math.sin(angle)];
+  return { ...pose, x: centre.x + dx * c + dz * s, z: centre.z - dx * s + dz * c, yaw: pose.yaw + angle };
+}
+
 /** Entering XR this far from the stored anchor re-arranges the workspace around the user. */
 const REANCHOR_METRES = 0.35;
 const REANCHOR_RADIANS = (30 * Math.PI) / 180;
@@ -373,7 +383,9 @@ export class PanelSystem extends createSystem({}) {
   private placeCommandPanel(): void {
     const object = this.world.getSceneObject('command-panel');
     if (!object || this.world.visibilityState.value === VisibilityState.NonImmersive) return;
-    const pose = JSON.parse(engine.commandPose(JSON.stringify(workspace.state))) as Pose;
+    let pose = JSON.parse(engine.commandPose(JSON.stringify(workspace.state))) as Pose;
+    // In the room the board stands on the real desk: the console turns a little further out, clear of the desk.
+    if (inRoom(this.world)) pose = turnAbout(pose, workspace.state.anchor, ROOM_CONSOLE_TURN);
     object.position.set(pose.x, pose.y, pose.z);
     object.rotation.order = 'YXZ';
     object.rotation.set(pose.pitch, pose.yaw, 0);

@@ -7,8 +7,10 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 - **Track:** Productivity. **Division:** New.
 - **Special awards** (judged across all entries, rules section "Special Awards"):
   - Best Agentic Interaction: an agent that acts on the space, talks and listens, and suggests on its own.
-  - Best Accessibility Forward Experience: voice for every control, hands-free gaze, high contrast, read-aloud.
-  - Best Reason to Come Back: a streak and a seven-day strip, plus the agent's start-of-day plan from yesterday's open work.
+  - Best Accessibility Forward Experience: voice for every control, eyes-only navigation (eye gaze where tracked,
+    head gaze elsewhere), high contrast, read-aloud.
+  - Best Reason to Come Back: a focus plant that grows a leaf per focus block, a streak and a seven-day strip, and days
+    with a start and an end: the agent plans the morning from last night's wrap-up.
 - **Deadline:** 18 Nov 2026, 12:00 PT (21:00 in Spain).
 
 What the official rules say (read on 2026-10-08):
@@ -43,6 +45,7 @@ A hands-first workspace for Meta Quest: say your day and an AI agent builds it a
 - App (WebXR, opens in Meta Quest Browser): https://d2p3027seoreck.cloudfront.net
 - Same app with timers in seconds, for a short session: https://d2p3027seoreck.cloudfront.net/?fast
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
+- As on Meta VR Glasses (narrower view, eye tracking, hands): https://d2p3027seoreck.cloudfront.net/?emulate&glasses&fast
 - Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
 - Video: https://youtu.be/QFx0JWRqAcw (with In my room; the earlier cut is https://youtu.be/6dihcPJCVF4)
 - Code: (GitHub link, if a repository is shared)
@@ -76,8 +79,14 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
 9. **In my room** (Quest 3/3S passthrough): the workspace opens in your real room. Tap **Fit room** and the board you
    work on stands on your real desk while the other boards hang on your walls. The room remembers it: next time you
    enter, every board is back in its place, even if you reorganised in VR meanwhile.
-10. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
+10. When a focus block ends, the **focus plant** on your desk grows a new leaf (every sixth block, a blossom).
+11. **Wrap up** (or say "call it a day"): the agent names what you finished, clears it away and puts tomorrow's first
+   task on top. Tomorrow's start-of-day plan picks up from its words. After 17:00 it offers this on its own.
+12. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
    The top of the panel shows today's focus blocks, your streak and the last seven days.
+
+On a headset with a narrower view (Meta VR Glasses, or any Quest with Meta's field-of-view simulation on), the layout
+fits itself to the view the headset reports, and you can look at a control and pinch to press it.
 
 Without a Quest, open https://d2p3027seoreck.cloudfront.net/?emulate&fast in Chrome or Edge on a desktop. Meta's
 IWER emulator stands in for the headset. Click **Enter VR**, then click the panels with the mouse.
@@ -119,6 +128,9 @@ From `.video/gallery/`, all taken from the recording, without captions:
 7. `7-streak.png`: today's focus blocks, the streak and the last seven days
 8. `8-high-contrast.png`: high contrast mode
 9. `9-in-my-room.png`: In my room, the board standing on the real desk after Fit room
+10. `10-studio.png`: the dusk studio, the board standing on the desk, the focus plant beside it
+11. `11-glasses.png`: Meta VR Glasses view: the layout fitted to 58 x 54 degrees, look and pinch
+12. `12-wrap-up.png`: the agent wrapping up the day
 
 `scripts/make-video.mjs` writes them to `.video/gallery/`.
 
@@ -152,15 +164,28 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   interaction, undo, and a built-in planner that answers when the AI cannot.
 - **Talk to it.** Press *Talk* and say a command ("focus", "undo", "yes") or a request in your own words ("move the
   dentist call to the top and give me a short break"). Requests come back as a plan to review; "yes" applies it.
-- **No hands needed at all.** In *hands-free* mode you look at a control and hold your gaze until a ring fills.
-  Reading never presses anything: a control waits for the gaze to leave before it can be pressed again, and after a
-  press nothing happens until the head moves. With *Talk*, the whole workspace works without hands or controllers.
+- **No hands needed at all.** In *hands-free* mode you look at a control and hold your gaze until a ring fills; where
+  the headset tracks the eyes it follows them, so the head can stay still. Reading never presses anything: a control
+  waits for the gaze to leave before it can be pressed again, and after a press nothing happens until the gaze moves.
+  With *Talk*, the whole workspace works without hands or controllers.
+- **Ready for Meta VR Glasses.** The app measures the view the headset renders and fits the layout into its
+  comfortable part: on a Quest as designed, on the glasses the panels shrink to 0.85 so the board, its timer and the
+  agent's card stay inside Meta's 58 x 54 degree perceived view (the glasses' sharper display keeps the text as
+  legible). Look and pinch works on every control, and hover follows Meta's eye-tracking guidance: a subtle colour
+  change on the control itself, never an outline.
 - **In your room, remembered.** *In my room* opens the workspace in passthrough. *Fit room* reads the planes the
-  headset detected: the board you work on stands on your real desk at arm's length, the parked boards hang on your
-  real walls (never on a door or a window). A persistent anchor keeps the layout in the room, so tomorrow every board
-  is back on your desk and walls, even after reorganising in VR.
-- **A reason to come back tomorrow.** The command panel shows today's focus blocks, a streak and the last seven days.
-  On a new day with work still open, the agent offers to plan today from it, in-progress tasks first.
+  headset detected: the board you work on stands on your real desk at arm's length with its timer and the focus plant
+  beside it, and the parked boards hang on your real walls, clear of doors and windows. A persistent anchor keeps the
+  layout in the room, so tomorrow every board is back on your desk and walls, even after reorganising in VR. Tested in
+  all 13 rooms of Meta's Synthetic Environment Module, none of them tuned for.
+- **A studio to work in.** In VR you work at dusk, at a walnut desk the board stands on, over low hills on the
+  horizon. Every cue is one soft instrument, heard from where it happens, and a quiet ambience breathes in during a
+  focus block.
+- **A reason to come back tomorrow.** A focus plant on your desk grows a leaf with every focus block and blossoms
+  every sixth; it never wilts, a day off just waits. Days have a start and an end: in the morning the agent offers to
+  plan today from what is still open; in the evening, to wrap the day up, naming what got done and putting tomorrow's
+  first task on top, and the next morning starts from its words. The command panel shows a streak and the last seven
+  days.
 - **Hands first, seated, accessible.**
   - Every target is at least 6 cm and within reach.
   - The board you work on sits 62 cm away, slightly below the eyes.
@@ -190,8 +215,15 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   The fit is pure math on the detected planes (desk at desk height in front of you; walls hit by the direction each
   parked board already had), and poses are stored relative to a persistent anchor, restored with
   `restorePersistentAnchor` next session. Tested end to end in IWER with Meta's Synthetic Environment Module rooms.
-- **Hands-free:** the head ray is tested against each panel's plane, then against the control rectangles on the one
-  looked at; a one-draw-call shader ring shows the dwell. No allocation per frame.
+- **Hands-free and gaze:** the gaze ray (the eyes where tracked, else the head) is tested against each panel's plane,
+  then against the control rectangles on the one looked at; a one-draw-call shader ring shows the dwell. No allocation
+  per frame. Look and pinch is IWSDK's gaze pointer driving the same panels as the hands.
+- **Field of view:** when a session starts the app reads each eye's projection matrix and takes Meta's perceived share
+  of it (58/74 across, 54/68 vertically, from the glasses' published values). The shared engine finds the largest
+  panel scale at which the board, its timer and the agent's card fit, and refits what sits in its slot.
+- **The studio:** a procedural desk, plant and horizon, one unlit draw call each with the light baked into their
+  vertex colours, measured within noise of the scene without them; the plant rewrites its preallocated geometry in
+  place while a leaf unfurls.
 - **AWS, all in CDK:**
   - S3 and CloudFront serve the app.
   - A load balancer reachable only from CloudFront fronts the server on Fargate.
@@ -232,10 +264,19 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
   the head pointed, so a tap on the side panel swung the whole desk 50°. A head-turning test caught it, and the desk
   now keeps its heading through glances.
 
+- **Designing for a field of view we cannot see.** No Meta VR Glasses here, so the app never assumes a device: it
+  reads the projection the headset reports, and a test checks every corner of the essential panels against the
+  glasses' perceived view in IWER's glasses profile.
+- **Rooms we never saw.** Running *Fit room* in all 13 of Meta's synthetic rooms found three real faults: a long desk
+  that was missed, timers standing off a small table's edge, and a board hung over a window. Each is now a rule and
+  a test.
+
 ### Accomplishments that we're proud of
 
 - An agent you can audit: every action has a reason and its own undo.
-- Every control has three ways in: hands (poke or pinch), voice, and gaze alone.
+- Every control has four ways in: hands (poke or pinch), look and pinch, voice, and the eyes alone.
+- Ready for Meta VR Glasses before they ship: the layout fits the view the headset reports, verified in IWER's glasses
+  profile.
 - The same engine validates the AI on the server and runs the workspace in the headset.
 - Quality numbers instead of adjectives, measured in the emulator on the production build:
   - 1.3 ms per frame (p95) for the app's own systems, measured with hands-free on, its heaviest mode;

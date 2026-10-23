@@ -4,7 +4,7 @@
   "components": {
     "com.iwsdk.components.DomeGradient": {
       "sky": [0.007, 0.0103, 0.0331, 1],
-      "equator": [0.195, 0.091, 0.117, 1],
+      "equator": [0.155, 0.0887, 0.138, 1],
       "ground": [0.00605, 0.00652, 0.01033, 1],
       "intensity": 1
     },

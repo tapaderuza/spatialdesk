@@ -1,7 +1,7 @@
 # SpatialDesk Command Center
 
-A hands-first workspace for Meta Quest, delivered as WebXR. You describe your day; an AI agent turns it into boards
-and focus timers around you, explains every step it takes, and lets you undo any one of them.
+A hands-first workspace for Meta Quest and Meta VR Glasses, delivered as WebXR. You describe your day; an AI agent
+turns it into boards and focus timers around you, explains every step it takes, and lets you undo any one of them.
 
 **Try it:** https://d2p3027seoreck.cloudfront.net
 
@@ -12,6 +12,8 @@ and focus timers around you, explains every step it takes, and lets you undo any
 - **For a short session:** add `?fast` (or `?emulate&fast`) and timers run in seconds instead of minutes, so you can
   see what the agent does when a focus block ends.
 - **Without hands:** add `?handsfree` to start in hands-free mode, and press *Talk* (by gaze) for voice.
+- **As on Meta VR Glasses:** add `?emulate&glasses`: the glasses' narrower view, eye tracking and hands. Look at a
+  card and pinch (hold the left mouse button in IWER's *Gaze + Hands* mode) to pick it up.
 
 No install, no account. Each visitor gets an anonymous session, and the workspace is stored on the device.
 
@@ -36,13 +38,27 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
 - **Talk to it.** *Talk* takes a spoken command ("focus", "undo", "yes", "high contrast on") or a request in your own
   words, which the agent answers with a plan to review. Audio streams straight to Amazon Transcribe.
 - **Hands-free.** Look at any control and hold your gaze until the ring fills (`?handsfree` starts in this mode).
+  Where the headset tracks the eyes it follows them, so the head can stay still: navigation with the eyes alone.
   With *Talk*, the whole workspace works without hands or controllers.
-- **In my room.** Passthrough on Quest 3/3S: *Fit room* stands the work board on your real desk and hangs the other
-  boards on your real walls (plane detection), and a persistent anchor puts them back there next time.
-- **A reason to come back.** Today's focus blocks, a streak and the last seven days on the command panel; on a new day
-  with work still open, the agent offers to plan today from it.
+- **Ready for Meta VR Glasses.** The app measures the view the headset actually renders (each eye's projection) and
+  fits the layout into its comfortable part: on a Quest as designed; on the glasses the panels shrink to 0.85 so the
+  board, its timer and the agent's card all stay inside Meta's 58 x 54 degree perceived view. Look and pinch (the
+  glasses' primary input) works on every control, and hover follows Meta's eye-tracking guidance: a subtle colour
+  change on the control itself, never an outline, fading on in 300 ms and off in 400 ms.
+- **In my room.** Passthrough on Quest 3/3S: *Fit room* stands the work board on your real desk, timers and the focus
+  plant beside it, and hangs the other boards on your real walls, clear of doors and windows (plane detection); a
+  persistent anchor puts everything back there next time. Tested in all 13 rooms of Meta's Synthetic Environment
+  Module, none of them tuned for.
+- **A studio, a desk and a plant.** In VR you work at dusk, at a walnut desk the board stands on, over low hills. A
+  focus plant on the desk grows a leaf with every focus block and blossoms every sixth; it never wilts.
+- **Days with a start and an end.** In the morning the agent offers to plan today from what is still open; in the
+  evening, after a day of focus, to wrap it up (*Wrap up*, or "call it a day"): it names what got done, clears it away
+  and puts tomorrow's first task on top, and tomorrow's plan starts from its words. Today's focus blocks, a streak
+  and the last seven days are on the command panel.
+- **Sound.** Every cue is one soft instrument on one scale, heard from where it happens: a tap from the control, the
+  alarm from the timer, a new leaf from the plant. During a focus block a quiet ambience of soft air breathes in.
 - **Accessible.** A three-step guided start (under a minute, skippable), high contrast mode (white text and outlines),
-  sound cues panned toward the panel that made them, and plans read aloud. Settings are remembered.
+  sound cues placed where they happen, and plans read aloud. Settings are remembered.
 
 ## How it is built
 
@@ -85,8 +101,16 @@ flowchart LR
 - **Voice:** an AudioWorklet turns the microphone into 16 kHz PCM, framed as AWS event stream messages and sent over a
   WebSocket to Amazon Transcribe that the server presigns (hand-written SigV4, tested against AWS's documented
   example). No credentials in the browser, no audio through the server; 60 listens per session per hour, 600 a day.
-- **Hands-free:** a system tests the head ray against each panel's plane, then the control rectangles of the panel
-  looked at, and fills a one-draw-call shader ring; no allocation per frame.
+- **Hands-free and gaze:** a system tests the gaze ray (the eyes where tracked, else the head) against each panel's
+  plane, then the control rectangles of the panel looked at, and fills a one-draw-call shader ring; no allocation per
+  frame. Look and pinch is IWSDK's gaze pointer driving the same panels as hands.
+- **Field of view:** `src/ui/view-fit.ts` reads each eye's projection matrix when a session starts; the shared engine
+  (`Layout.fit`) finds the largest panel scale at which the essential panels fit and re-places what sits in its slot
+  (a board the user moved stays put).
+- **The studio:** three procedural assets (desk, plant, horizon), one unlit draw call each with the light baked into
+  their vertex colours; the plant rewrites its preallocated geometry in place while a leaf unfurls.
+- **Sound:** Web Audio synthesis (no files): one mallet voice on a pentatonic scale, HRTF panners placed relative to
+  the head when a cue plays, and a looped brown-noise ambience during focus blocks.
 - **Infrastructure:** AWS CDK in Kotlin: S3 + CloudFront for the app; an ALB (reachable only from CloudFront) and
   Fargate for the server. The task role may invoke that one Nova model and stream to Transcribe, nothing else.
 
@@ -105,7 +129,10 @@ production build:
 | Fails gracefully | A spent quota and an unreachable server are explained on the agent card; the workspace is untouched. |
 | Hands-free works and does not misfire | With the head as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
 | Voice works | The command grammar, the event stream framing (CRC-32 check value), the browser capture path against a stand-in Transcribe, and the real Transcribe hearing a Piper-spoken "plan my day" (`tests/e2e-voice.spec.ts`). |
-| A reason to come back | Streaks that survive the morning, the seven-day strip, and the agent's start-of-day plan from yesterday's open work. |
+| A reason to come back | Streaks that survive the morning, the seven-day strip, and the agent's start-of-day plan from yesterday's open work; the evening wrap-up (server guardrails: no timers, no new boards) and the next morning starting from it; a focus block grows the plant a leaf, a break does not. |
+| Ready for Meta VR Glasses | In IWER's glasses profile: the measured view is 58 x 54 degrees, and every corner of the focus board, its timer and the agent's card lies inside it; a look and a pinch of either hand picks a card up and drops it; hands-free presses a control with the eyes while the head stays still. Engine tests: the Quest layout is exactly as designed, and a view too narrow for anything still gets a readable one. |
+| Holds up in rooms never tested | *Fit room* in all 13 rooms of Meta's Synthetic Environment Module (8 procedural, 5 scanned), the user seated at whatever surface each has: the board stands 3 cm above it at 0.62 m and never through a wall, timers stand on it or hover above the board on a small one, the plant stays inside its outline, boards hang clear of doors and windows. 11 rooms have a desk-height surface; in the other 2 nothing moves onto one. |
+| The studio and its sound | The board's bar rests on the desk (within 1 cm) wherever the workspace goes; the focus ambience follows focus blocks and never plays in a break, a pause or with sounds off. |
 
 `npm run ci` runs the typecheck, every Playwright gate and the size check; `server/gradlew test` runs the engine,
 layout, server and infrastructure tests.
@@ -138,7 +165,7 @@ node scripts/make-video.mjs    # the demo video: Piper voice-over, IWER recordin
 
 | Path | What |
 |---|---|
-| `src/` | The WebXR app: `workspace/` (boards, timers, store with undo journal, progress), `agent/` (agent card, watcher, client), `voice/` (capture, Transcribe framing, command grammar), `onboarding/`, `ui/` (settings, sounds, panel hit testing, hands-free gaze) |
+| `src/` | The WebXR app: `workspace/` (boards, timers, store with undo journal, progress), `agent/` (agent card, watcher, client), `voice/` (capture, Transcribe framing, command grammar), `room/` (In my room: fit and persistent anchor), `studio/` and `scene-assets/` (the desk, the focus plant, the horizon), `onboarding/`, `ui/` (settings, sounds, hover, field of view, panel hit testing, hands-free gaze) |
 | `public/ui/*.uikitml` | Panel layouts (boards, timers, command panel, agent card, coach) |
 | `server/shared` | The Kotlin Multiplatform workspace engine, layout and protocol |
 | `server/app` | Spring Boot: sessions, WebSocket, the planning agent, presigned voice streams |
