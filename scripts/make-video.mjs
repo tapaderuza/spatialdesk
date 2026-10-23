@@ -79,7 +79,7 @@ const STILLS = [
   ['6-hands-free', 'handsfree', 2.6],
   ['7-streak', 'streak', 2.5],
   ['8-high-contrast', 'contrast', 2.2], // from an earlier cut (no contrast beat now): the file stays as it was
-  ['9-in-my-room', 'room', 10],
+  ['9-in-my-room', 'room', 8.5],
   ['10-studio', 'enter', 3],
   ['11-glasses', 'glasses', 7],
   ['12-wrap-up', 'wrapup', 3.5],
