@@ -118,6 +118,10 @@ test('in my room: fit to the real table and walls, undo in one step, and remembe
   );
   await page.waitForTimeout(800); // the layout is saved relative to the anchor
   const remembered = await poses(page);
+  // Focus 25 in the room: the timer starts, and the boards stay on the real desk and walls (nothing steps back).
+  await page.evaluate(() => (window as Win).__voice.say('focus'));
+  await page.waitForFunction(() => (window as Win).__workspace.state.timers.length === 1);
+  expect(await poses(page)).toEqual(remembered);
 
   // Leave the room, reorganise, come back: every board returns to its place in the room.
   await page.evaluate(() => (window as Win).__world.exitXR());

@@ -214,10 +214,13 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
   await pause(page, 1.5);
   await command('fit-button');
   await page.waitForFunction(() => (window as Win).__room.state.lastFit?.desk === true, null, { timeout: 5_000 });
-  await turnHead(page, 0, -12, 14);
-  await pause(page, 3);
-  await turnHead(page, 75, -2, 20);
+  await turnHead(page, 0, -10, 14);
   await pause(page, 2.5);
+  // A focus block in the room: the room recedes, the desk stays (the boards stay where Fit room put them).
+  await page.evaluate(() => (window as Win).__voice.say('focus'));
+  await page.waitForFunction(() => (window as Win).__bubble.view.strength > 0.6, null, { timeout: 8_000 });
+  await turnHead(page, 38, -4, 20);
+  await pause(page, 2);
   await turnHead(page, 0, HEAD_PITCH_DEG, 20);
   await settle();
 

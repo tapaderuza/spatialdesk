@@ -334,15 +334,15 @@ export class PanelSystem extends createSystem({}) {
   private focus25(): void {
     const card = heldCard();
     releaseHeld();
+    // In the room the boards stay where Fit room put them, on the real desk and walls: nothing steps back there.
+    const room = inRoom(this.world);
+    const timer = { op: 'start_timer' as const, minutes: 25, ...(card ? { card: card.id } : {}) };
     workspace.dispatch(
-      [
-        { op: 'start_timer', minutes: 25, ...(card ? { card: card.id } : {}) },
-        { op: 'arrange_space', layout: 'focus' },
-      ],
+      room ? [timer] : [timer, { op: 'arrange_space', layout: 'focus' }],
       {
         viewer: this.deskPose(),
         label: 'focus 25',
-        notice: card ? `Focus 25 on "${panelText(card.title)}". The other boards stepped back.` : 'Focus 25 started. The other boards stepped back.',
+        notice: `${card ? `Focus 25 on "${panelText(card.title)}".` : 'Focus 25 started.'}${room ? '' : ' The other boards stepped back.'}`,
       },
     );
   }

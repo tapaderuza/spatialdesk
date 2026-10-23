@@ -1,19 +1,19 @@
 {
   "_comment": "Voice-over for the submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper, the demo waits for each line to finish before the next beat, and the same text is burned in as captions. The 'say' line is also played into the browser's microphone, so the real Amazon Transcribe hears it.",
-  "title": "SpatialDesk Command Center",
-  "subtitle": "A hands-first workspace for Meta Quest and Meta VR Glasses, with an AI agent you can talk to, that acts, explains, and can be undone.",
+  "title": "SpatialDesk",
+  "subtitle": "A focus companion for minds that wander: an AI that plans your day with you, works beside you, and lets you undo anything. On Meta Quest and Meta VR Glasses.",
   "beats": [
     {
       "id": "describe",
-      "text": "SpatialDesk is a workspace you wear. Before I put the headset on, I describe my day in my own words."
+      "text": "If your mind wanders, starting is the hardest part. SpatialDesk is a focus companion you wear. First, I tell it my day, in my own words."
     },
     {
       "id": "enter",
-      "text": "Inside, I sit at my desk at dusk. The board I am working on stands on it, within arm's reach, and everything else waits at the sides."
+      "text": "Inside, I sit at my desk at dusk, and that small light beside my board is my companion. Working next to someone makes it easier to start, and to keep going."
     },
     {
       "id": "plan",
-      "text": "One tap on Plan my day. Amazon Nova answers with a single tool call, and the same Kotlin engine that runs in the headset checks every step."
+      "text": "One tap on Plan my day. The companion shimmers while Amazon Nova thinks, and the same Kotlin engine that runs in the headset checks every step."
     },
     {
       "id": "preview",
@@ -21,7 +21,7 @@
     },
     {
       "id": "apply",
-      "text": "One tap applies the plan: a Today board in front of me, and a focus timer."
+      "text": "One tap applies it: a Today board, a focus timer, and the world around me fades, so only my work stays in view."
     },
     {
       "id": "hands",
@@ -41,11 +41,11 @@
     },
     {
       "id": "timer",
-      "text": "Timers run in seconds in this video. When the block ends, the plant on my desk grows a new leaf, and the agent notices on its own."
+      "text": "My companion works with me. The time left glows round its middle, so I can see time pass. When the block ends, my plant grows a leaf."
     },
     {
       "id": "suggestion",
-      "text": "It knows the report isn't finished, because the app tells it how much of the estimate is used. So it suggests a break, not a false done."
+      "text": "And the agent notices on its own. The report is not finished, so it suggests a break, not a false done."
     },
     {
       "id": "log",
@@ -57,15 +57,15 @@
     },
     {
       "id": "streak",
-      "text": "The panel keeps score of my own work: focus blocks today, my streak, and the last seven days."
+      "text": "The panel keeps score of my own work, day by day."
     },
     {
       "id": "wrapup",
-      "text": "In the evening the agent offers to wrap up my day. It names what I finished, clears it away, and tomorrow's plan starts from its words."
+      "text": "In the evening the agent wraps up my day. It names what I finished, clears it away, and my companion goes to sleep. Tomorrow starts from its words."
     },
     {
       "id": "room",
-      "text": "On a Quest 3 it also lives in my real room. Fit room stands my board on my real desk, with the timer and my plant beside it, hangs the others on my walls, and remembers them for tomorrow."
+      "text": "In my real room, Fit room stands my board on my desk, with my plant and my companion beside it. During a focus block the room recedes, and my desk stays."
     },
     {
       "id": "glasses",
@@ -73,7 +73,7 @@
     },
     {
       "id": "end",
-      "text": "SpatialDesk: hands, eyes and voice, and an agent you can audit, in VR and in your own room. Every claim is checked automatically in Meta's emulator. Open the link: there is nothing to install."
+      "text": "SpatialDesk: a focus companion for minds that wander. An agent you can audit, with hands, eyes or voice, in VR and in your own room. Open the link: there is nothing to install."
     }
   ]
 }

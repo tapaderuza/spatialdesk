@@ -28,6 +28,7 @@ import { panelText, type Pose, type Timer } from '../workspace/model.js';
 import { workspace, type AgentAction } from '../workspace/store.js';
 import { timerFinishedListeners } from '../workspace/timers.js';
 import { deskPose } from '../workspace/viewer.js';
+import { inRoom } from '../room/room-system.js';
 import { describeStep, requestPlan, sourceLabel, type AgentPlan, type Intent } from './client.js';
 import { dayText, installDayInput } from './day-input.js';
 import { progress } from '../workspace/progress.js';
@@ -163,13 +164,15 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       progress.recordWrapUp(plan.summary ?? '');
       if (plan.steps.length === 0) workspace.notify({ text: 'Day wrapped up. See you tomorrow.', error: false });
     }
-    if ((this.mode !== 'preview' && this.mode !== 'suggestion') || !plan || plan.steps.length === 0) {
+    // In the room the layout stays where Fit room put it, on the real desk and walls: rearranging steps are left out.
+    const steps = plan && inRoom(this.world) ? plan.steps.filter((step) => step.op.op !== 'arrange_space') : plan?.steps ?? [];
+    if ((this.mode !== 'preview' && this.mode !== 'suggestion') || !plan || steps.length === 0) {
       this.close();
       return;
     }
     const before = workspace.state;
     const result = workspace.dispatch(
-      plan.steps.map((step) => step.op),
+      steps.map((step) => step.op),
       {
         label: 'AI plan',
         viewer: deskPose(this.world),
@@ -178,7 +181,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
           intent: this.intent,
           summary: plan.summary ?? '',
           source: plan.source ?? '',
-          steps: plan.steps.map((step) => ({ label: describeStep(step.op, before), why: step.why })),
+          steps: steps.map((step) => ({ label: describeStep(step.op, before), why: step.why })),
         },
       },
     );

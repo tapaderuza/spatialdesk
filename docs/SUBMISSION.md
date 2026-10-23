@@ -1,4 +1,4 @@
-# Devpost submission: SpatialDesk Command Center
+# Devpost submission: SpatialDesk
 
 Paste each block into the matching Devpost field. Devpost's form could not be read automatically (it blocks
 scripted access), so match the blocks to the fields as they appear; the texts are written to be recombined.
@@ -6,11 +6,14 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 - **Competition:** Meta VR Start Developer Competition 2026 (start-developer-competition-26.devpost.com)
 - **Track:** Productivity. **Division:** New.
 - **Special awards** (judged across all entries, rules section "Special Awards"):
-  - Best Agentic Interaction: an agent that acts on the space, talks and listens, and suggests on its own.
-  - Best Accessibility Forward Experience: voice for every control, eyes-only navigation (eye gaze where tracked,
-    head gaze elsewhere), high contrast, read-aloud.
-  - Best Reason to Come Back: a focus plant that grows a leaf per focus block, a streak and a seven-day strip, and days
-    with a start and an end: the agent plans the morning from last night's wrap-up.
+  - Best Agentic Interaction: an agent that acts on the space, talks and listens, suggests on its own, and is present
+    in the space as a companion beside your board whose mood follows what the agent is doing.
+  - Best Accessibility Forward Experience: built for minds that wander (body doubling, a focus bubble that fades what
+    pulls the attention away), voice for every control, eyes-only navigation (eye gaze where tracked, head gaze
+    elsewhere), look and pinch, high contrast, read-aloud.
+  - Best Reason to Come Back: a companion that works beside you every day, a focus plant that grows a leaf per focus
+    block, a streak and a seven-day strip, and days with a start and an end: the agent plans the morning from last
+    night's wrap-up.
 - **Deadline:** 18 Nov 2026, 12:00 PT (21:00 in Spain).
 
 What the official rules say (read on 2026-10-08):
@@ -32,13 +35,13 @@ What the official rules say (read on 2026-10-08):
 
 ## Project name
 
-SpatialDesk Command Center
+SpatialDesk
 
 ## Submission tagline (140 characters max)
 
-A hands-first workspace for Meta Quest: say your day and an AI agent builds it around you, explains every step, and lets you undo any one.
+A focus companion for minds that wander: an AI plans your day with you, works beside you in VR or your room, and lets you undo any step.
 
-(138 characters.)
+(136 characters.)
 
 ## Try it out (links)
 
@@ -47,7 +50,7 @@ A hands-first workspace for Meta Quest: say your day and an AI agent builds it a
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
 - As on Meta VR Glasses (narrower view, eye tracking, hands): https://d2p3027seoreck.cloudfront.net/?emulate&glasses&fast
 - Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
-- Video: https://youtu.be/QFx0JWRqAcw (with In my room; the earlier cut is https://youtu.be/6dihcPJCVF4)
+- Video: (the focus companion cut, once published; it replaces https://youtu.be/QFx0JWRqAcw)
 - Code: (GitHub link, if a repository is shared)
 
 ## Built with
@@ -59,27 +62,31 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
 
 1. On a Quest, open **https://d2p3027seoreck.cloudfront.net/?fast** in Meta Quest Browser and tap **Enter VR** (or **In my room** for passthrough).
    No install and no account; hands or controllers both work. Sit down: the layout is designed for seated use.
-   `?fast` makes timers run in seconds instead of minutes (Focus 25 lasts 25 seconds), so you can see what the agent
-   does when a block ends. Without it, everything runs in real minutes.
+   `?fast` makes timers run in seconds instead of minutes (Focus 25 lasts 25 seconds), so you can see what happens
+   when a block ends. Without it, everything runs in real minutes.
 2. A short guided start shows three steps: pick a card up, drop it in *Doing*, start *Focus 25*. It takes under a
    minute, or you can tap **Skip**.
-3. Tap **Plan my day** on the left panel. The agent proposes a plan on a card in front of you, each step with its
-   reason. Tap **Apply**. Before entering, you can also type or dictate your day in the *Describe your day* box on
-   the page.
-4. Work by hand: tap or pinch a card to pick it up, then tap a column to drop it. Grab a board's bar to move it
-   anywhere.
-5. When the focus timer ends, the agent suggests the next block on its own (or a break, if the task is not
-   finished). One tap accepts it.
-6. **AI log** shows every action the agent took, with the reason and an **Undo** for each step.
-7. **Talk** (top right of the left panel): say a command ("focus", "undo", "yes", "high contrast on") or a request
+3. The small light beside the board is your **focus companion**. During a focus block it works with you, the time left
+   shown round its middle, and the world beyond arm's reach fades so the board stands out (the **focus bubble**). A
+   break brings the world back. Say "dimming off" to turn the fading off.
+4. Tap **Plan my day** on the left panel. The companion shimmers while the agent thinks, then turns to you: the plan
+   is on a card in front of you, each step with its reason. Tap **Apply**. Before entering, you can also type or
+   dictate your day in the *Describe your day* box on the page.
+5. Work by hand: tap or pinch a card to pick it up, then tap a column to drop it. Grab a board's bar to move it
+   anywhere; the companion follows the board.
+6. When the focus timer ends, the companion hops, the **focus plant** on your desk grows a new leaf (every sixth
+   block, a blossom), and the agent suggests the next block on its own (or a break, if the task is not finished).
+   One tap accepts it.
+7. **AI log** shows every action the agent took, with the reason and an **Undo** for each step.
+8. **Talk** (top right of the left panel): say a command ("focus", "undo", "yes", "high contrast on") or a request
    in your own words ("move the dentist call to the top and give me a short break"); the agent answers with a plan
    to review, and "yes" applies it. The browser asks for the microphone the first time.
-8. **Hands-free** (bottom of the left panel): look at any control and hold your gaze until the ring fills to press
+9. **Hands-free** (bottom of the left panel): look at any control and hold your gaze until the ring fills to press
    it. Together with Talk, the whole workspace works without hands or controllers.
-9. **In my room** (Quest 3/3S passthrough): the workspace opens in your real room. Tap **Fit room** and the board you
-   work on stands on your real desk while the other boards hang on your walls. The room remembers it: next time you
-   enter, every board is back in its place, even if you reorganised in VR meanwhile.
-10. When a focus block ends, the **focus plant** on your desk grows a new leaf (every sixth block, a blossom).
+10. **In my room** (Quest 3/3S passthrough): the workspace opens in your real room. Tap **Fit room** and the board you
+   work on stands on your real desk while the other boards hang on your walls. Start a focus block there and the real
+   room recedes while your desk stays clear. The room remembers the layout: next time you enter, every board is back
+   in its place, even if you reorganised in VR meanwhile.
 11. **Wrap up** (or say "call it a day"): the agent names what you finished, clears it away and puts tomorrow's first
    task on top. Tomorrow's start-of-day plan picks up from its words. After 17:00 it offers this on its own.
 12. **Contrast**, **Sound** and **Read aloud** are on the left panel. **Bring to me** gathers everything around you.
@@ -98,22 +105,24 @@ built-in planner answers instead and says so on the card.
 
 Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under 3 minutes, captions burned in).
 
-- **Title:** SpatialDesk Command Center: an AI agent for a hands-first workspace on Meta Quest
+- **Title:** SpatialDesk: a focus companion for minds that wander, on Meta Quest and Meta VR Glasses
 - **Visibility:** Public (the rules require it to be publicly visible).
 - **Subtitles:** upload `.video/captions.srt` as English subtitles as well.
 - **Description:**
 
-  SpatialDesk Command Center is a hands-first workspace for Meta Quest, delivered as WebXR. Say your day and an AI
-  agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus timers around you, explains every step, and
-  lets you undo any one of them. It suggests what to do next when a focus block ends, and plans today from
-  yesterday's open work. Every control also works by voice (Amazon Transcribe) and by gaze alone (hands-free).
+  SpatialDesk is a focus companion for minds that wander, delivered as WebXR for Meta Quest and Meta VR Glasses.
+  Tell it your day and an AI agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus blocks around you,
+  explains every step, and lets you undo any one of them. A small companion works beside your board through each
+  block (body doubling, with no face and no words), and the world beyond arm's reach fades while you focus, in VR or
+  in your own room. Every control also works by voice (Amazon Transcribe) and by gaze alone (hands-free).
 
   Recorded in Meta's IWER Quest 3 emulator against the production app. Timers run in seconds in this video (the
   ?fast option). Voice-over generated locally with Piper.
 
   Try it: https://d2p3027seoreck.cloudfront.net (add ?emulate on a desktop)
 
-  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction, Accessibility.
+  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction, Accessibility, Reason to
+  Come Back.
 
 ## Images (gallery)
 
@@ -131,6 +140,8 @@ From `.video/gallery/`, all taken from the recording, without captions:
 10. `10-studio.png`: the dusk studio, the board standing on the desk, the focus plant beside it
 11. `11-glasses.png`: Meta VR Glasses view: the layout fitted to 58 x 54 degrees, look and pinch
 12. `12-wrap-up.png`: the agent wrapping up the day
+13. `13-companion.png`: the focus companion beside the board, the time left round its middle
+14. `14-room-focus.png`: a focus block in your room: the room recedes, the desk and the board stay clear
 
 `scripts/make-video.mjs` writes them to `.video/gallery/`.
 
@@ -140,16 +151,33 @@ From `.video/gallery/`, all taken from the recording, without captions:
 
 ### Inspiration
 
-A headset can surround you with more screens than any desk, yet most productivity in VR is still flat windows
-floating in space, with a chat box bolted on. We wanted the opposite: a workspace that is spatial by design, and an
-AI that works *on* that space rather than talking about it, without ever taking control away from the person
-wearing it.
+Starting is the hard part, and staying with it comes next. Many people whose attention wanders, many with ADHD among
+them, find both easier with someone working beside them. It is called body doubling, and today it means a video call
+with a stranger or a coworking room. A 2025 study brought it into VR: adults with ADHD finished tasks faster and
+reported better sustained attention with a human or an AI body double than alone, and the same work notes that a
+person's presence can also feel uncomfortable (*You Are Not Alone: Designing Body Doubling for ADHD in Virtual
+Reality*, arXiv 2509.12153).
+
+Meanwhile headsets are becoming the workspace you carry: Meta pitches its VR Glasses for working on a flight. We
+wanted a body double that goes with you, with no camera, no stranger and no booking, and an AI that works *on* your
+space instead of talking about it, without ever taking control away from you. SpatialDesk is a productivity tool, not
+a treatment.
 
 ### What it does
 
-You sit down, put the headset on and describe your day: "Finish the quarterly report, review two pull requests,
-call the dentist, gym at 18:00." SpatialDesk turns that into a workspace around you. A *Today* board sits at arm's
-length, the rest of your boards wait at the sides, and a 25-minute focus timer starts on the most important task.
+You sit down, at a desk, on a sofa or on a flight, put the headset on and describe your day: "Finish the quarterly
+report, review two pull requests, call the dentist, gym at 18:00." SpatialDesk turns that into a workspace around
+you. A *Today* board sits at arm's length, the rest of your boards wait at the sides, and a 25-minute focus timer
+starts on the most important task.
+
+- **A companion works beside you.** A small light floats by the board you work on, wherever the board goes. Through a
+  focus block it works with you, its gaze on the board and the time left round its middle. It shimmers while the
+  agent thinks, turns to you when the agent has something to show, rests calm in a break and hops when a block is
+  done. No face, no words, nothing to manage: body doubling without the social pressure, and the agent's presence in
+  the space.
+- **The world fades while you focus.** During a focus block everything beyond arm's reach dims and the board stays
+  clear: in your room the real room recedes and your desk stays; in VR night falls over the hills. A break brings the
+  world back. Fewer things in view means fewer things to pull the attention away; "dimming off" turns it off.
 
 - **The agent acts on the space.** Its answers are plans made of real operations: create a board, move or edit a
   card, start a timer, arrange the space. Each step comes with a reason, and nothing changes until you tap
@@ -176,8 +204,9 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - **In your room, remembered.** *In my room* opens the workspace in passthrough. *Fit room* reads the planes the
   headset detected: the board you work on stands on your real desk at arm's length with its timer and the focus plant
   beside it, and the parked boards hang on your real walls, clear of doors and windows. A persistent anchor keeps the
-  layout in the room, so tomorrow every board is back on your desk and walls, even after reorganising in VR. Tested in
-  all 13 rooms of Meta's Synthetic Environment Module, none of them tuned for.
+  layout in the room, so tomorrow every board is back on your desk and walls, even after reorganising in VR. A focus
+  block there leaves every board where it stands. Tested in all 13 rooms of Meta's Synthetic Environment Module, none
+  of them tuned for.
 - **A studio to work in.** In VR you work at dusk, at a walnut desk the board stands on, over low hills on the
   horizon. Every cue is one soft instrument, heard from where it happens, and a quiet ambience breathes in during a
   focus block.
@@ -224,6 +253,10 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - **The studio:** a procedural desk, plant and horizon, one unlit draw call each with the light baked into their
   vertex colours, measured within noise of the scene without them; the plant rewrites its preallocated geometry in
   place while a leaf unfurls.
+- **The companion and the bubble:** the companion is one shader-drawn orb (one draw call) whose uniforms ease toward
+  its mood every frame, read from the timers and the agent's state without allocating. The bubble is one back-facing
+  sphere round the head, drawn after the scene and before the panels, so it darkens what lies beyond 1.25 m (a soft
+  cone toward the board stays clear) and never dims a panel; it is drawn only while a focus block runs.
 - **AWS, all in CDK:**
   - S3 and CloudFront serve the app.
   - A load balancer reachable only from CloudFront fronts the server on Fargate.
@@ -267,12 +300,16 @@ length, the rest of your boards wait at the sides, and a 25-minute focus timer s
 - **Designing for a field of view we cannot see.** No Meta VR Glasses here, so the app never assumes a device: it
   reads the projection the headset reports, and a test checks every corner of the essential panels against the
   glasses' perceived view in IWER's glasses profile.
+- **A companion that does not distract.** A face or a voice would pull the attention it is meant to hold, and the
+  research warns that a person's presence can feel uncomfortable. So the companion says everything with motion and
+  light: where it looks, how fast it breathes, the time left round its middle.
 - **Rooms we never saw.** Running *Fit room* in all 13 of Meta's synthetic rooms found three real faults: a long desk
   that was missed, timers standing off a small table's edge, and a board hung over a window. Each is now a rule and
   a test.
 
 ### Accomplishments that we're proud of
 
+- A body double that needs no camera, no stranger and no booking, and goes wherever the headset goes.
 - An agent you can audit: every action has a reason and its own undo.
 - Every control has four ways in: hands (poke or pinch), look and pinch, voice, and the eyes alone.
 - Ready for Meta VR Glasses before they ship: the layout fits the view the headset reports, verified in IWER's glasses
@@ -297,6 +334,9 @@ period.
 
 - Calendar import, so the day plans itself from real events.
 - Sync across devices, so the same boards follow you from the headset to the browser.
+- Co-working at a distance: a friend's companion beside yours, for body doubling with someone you know.
+- Trying it with people who use body doubling today, starting with ADHD communities, and tuning the companion and
+  the bubble with them.
 - Shared team boards.
 - A Horizon Store listing as an installable web app.
 
@@ -317,4 +357,5 @@ Everything is built for hands first, with no controller needed at any point:
 - **And when hands are not an option:** every control also works by voice and by gaze alone (hands-free).
 
 What excites us: hands, voice and gaze together make a headset usable by people a keyboard and mouse never served
-well, and an agent that acts on the space turns "talk to your desk" into something you can check and undo.
+well, a quiet companion makes it easier to start and keep going, and an agent that acts on the space turns "talk to
+your desk" into something you can check and undo.
