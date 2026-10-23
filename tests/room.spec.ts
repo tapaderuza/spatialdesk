@@ -122,6 +122,9 @@ test('in my room: fit to the real table and walls, undo in one step, and remembe
   await page.evaluate(() => (window as Win).__voice.say('focus'));
   await page.waitForFunction(() => (window as Win).__workspace.state.timers.length === 1);
   expect(await poses(page)).toEqual(remembered);
+  // ...and the real room recedes behind an overlay, clear toward the board (VR dims its own sky instead).
+  await page.waitForFunction(() => (window as Win).__bubble.view.strength > 0.3, null, { timeout: 5_000 });
+  expect(await page.evaluate(() => (window as Win).__bubble.view.overlay)).toBe(true);
 
   // Leave the room, reorganise, come back: every board returns to its place in the room.
   await page.evaluate(() => (window as Win).__world.exitXR());

@@ -128,9 +128,9 @@ flowchart LR
 - **The studio:** three procedural assets (desk, plant, horizon), one unlit draw call each with the light baked into
   their vertex colours; the plant rewrites its preallocated geometry in place while a leaf unfurls.
 - **The companion and the bubble:** the companion is one shader-drawn orb (one draw call) whose uniforms ease toward
-  its mood each frame, read from the timers and the agent's state. The bubble is one back-facing sphere round the
-  head, drawn after the scene and before the panels, darkening what lies beyond 1.25 m except a soft cone toward the
-  board; it is drawn only while a focus block runs.
+  its mood each frame, read from the timers and the agent's state. In passthrough the bubble is one back-facing sphere
+  round the head, drawn after the scene and before the panels, darkening what lies beyond 1.25 m, with a hole where
+  the cone toward the board is clear; in VR the sky's intensity and the hills' colour dim instead, at no fill cost.
 - **Sound:** Web Audio synthesis (no files): one mallet voice on a pentatonic scale, HRTF panners placed relative to
   the head when a cue plays, and a looped brown-noise ambience during focus blocks.
 - **Infrastructure:** AWS CDK in Kotlin: S3 + CloudFront for the app; an ALB (reachable only from CloudFront) and
@@ -143,7 +143,7 @@ production build:
 
 | Claim | Check |
 |---|---|
-| Runs smoothly on a Quest | Worst-case workspace, CPU throttled 3x. The app's own systems must stay ≤ 3 ms p95. The whole frame must be no heavier than Meta's own IWSDK starter scene measured under the same conditions (p95 29.4 ms), with ≤ 80 draw calls and a bundle ≤ 2.5 MB gzipped. Measured with hands-free on (the gaze ray tested every few frames, our heaviest mode). Last quiet-machine run: app systems 1.3 ms p95, frame 25.1 ms p95, 76 draw calls, 2.26 MB. |
+| Runs smoothly on a Quest | Worst-case workspace, CPU throttled 3x. The app's own systems must stay ≤ 3 ms p95. The whole frame must be no heavier than Meta's own IWSDK starter scene measured under the same conditions (p95 29.4 ms), with ≤ 80 draw calls and a bundle ≤ 2.5 MB gzipped. Measured with hands-free on (the gaze ray tested every few frames, our heaviest mode). Last runs, with the companion and a focus block's bubble on: app systems 1.9 ms p95, frame 26.7-28.5 ms p95, 78 draw calls, 2.27 MB. |
 | Usable with hands | Every interactive target is ≥ 6 x 6 cm and within arm's reach of a seated user. Each target is hit by ≥ 95 % of 400 rays jittered like hand tracking (±1 cm origin, 3° cone). |
 | Comfortable seated | Layout invariants for seated, standing and turned users: focus board at 0.55-0.65 m, no overlapping near panels, parked boards ≥ 1.3 m away. Looking at a side panel to tap it never moves the desk. |
 | The agent is useful and safe | Planner tests on the server (normaliser, guardrails, retry, fallback). End-to-end against production: a plan applied in under 4 s (typically 1.5-2 s). |

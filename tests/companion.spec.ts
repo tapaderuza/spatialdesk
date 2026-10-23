@@ -72,17 +72,32 @@ test('companion: beside the board wherever it goes, and its mood follows the wor
 
 test('focus bubble: the world beyond arm\'s reach fades during a focus block, never in a break, and turns off by voice', async ({ page }) => {
   const errors = await enterXR(page, '&fast');
-  const bubble = () => page.evaluate(() => ({ ...(window as Win).__bubble.view }) as { strength: number; active: boolean });
+  const bubble = () =>
+    page.evaluate(() => ({ ...(window as Win).__bubble.view }) as { strength: number; active: boolean; overlay: boolean; sceneLight: number });
   expect((await bubble()).active).toBe(false);
   await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 25, label: 'Write the report' }));
-  await page.waitForFunction(() => (window as Win).__bubble.view.strength >= 0.49, null, { timeout: 6_000 }); // eased in
+  await page.waitForFunction(() => (window as Win).__bubble.view.strength === 0.5, null, { timeout: 6_000 }); // eased in
+  await frames(page, 2); // the environment system writes the dome's new intensity on its next frame
+  // In VR night falls on the sky and the hills themselves: no overlay to fill (the room has one, room.spec).
+  const vr = await bubble();
+  expect(vr.overlay).toBe(false);
+  expect(vr.sceneLight).toBeCloseTo(0.5, 2);
+  const dome = await page.evaluate(() => {
+    let found: any = null;
+    (window as Win).__world.scene.traverse((o: any) => {
+      if (o.userData?.iwsdkSceneDomeGradient) found = o;
+    });
+    return found ? found.material.uniforms.equatorColor.value.r : null;
+  });
+  expect(dome).toBeCloseTo(0.155 * 0.5, 3); // the dusk sky at half its light
   const id = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
   await page.evaluate((id) => (window as Win).__workspace.dispatch([{ op: 'dismiss_timer', timer: id }, { op: 'start_timer', minutes: 5, label: 'Break' }]), id);
   await page.waitForFunction(() => (window as Win).__bubble.view.strength === 0, null, { timeout: 4_000 }); // a break: the world comes back
+  expect((await bubble()).sceneLight).toBe(1);
   await page.evaluate(() => (window as Win).__voice.say('Dimming off'));
   await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 25, label: 'Write the report' }));
   await frames(page, 30);
-  expect(await bubble()).toEqual({ strength: 0, active: false }); // the user turned it off: it stays off
+  expect(await bubble()).toEqual({ strength: 0, active: false, overlay: false, sceneLight: 1 }); // the user turned it off: it stays off
   expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Focus dimming off');
   expect(errors).toEqual([]);
 });

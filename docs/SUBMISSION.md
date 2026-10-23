@@ -255,8 +255,9 @@ starts on the most important task.
   place while a leaf unfurls.
 - **The companion and the bubble:** the companion is one shader-drawn orb (one draw call) whose uniforms ease toward
   its mood every frame, read from the timers and the agent's state without allocating. The bubble is one back-facing
-  sphere round the head, drawn after the scene and before the panels, so it darkens what lies beyond 1.25 m (a soft
-  cone toward the board stays clear) and never dims a panel; it is drawn only while a focus block runs.
+  sphere round the head in passthrough, drawn after the scene and before the panels, so it darkens what lies beyond
+  1.25 m and never dims a panel; it has a hole where the cone toward the board is clear. In VR the sky's intensity
+  and the hills' colour dim instead, so the bubble costs no extra pixels.
 - **AWS, all in CDK:**
   - S3 and CloudFront serve the app.
   - A load balancer reachable only from CloudFront fronts the server on Fargate.
@@ -303,6 +304,9 @@ starts on the most important task.
 - **A companion that does not distract.** A face or a voice would pull the attention it is meant to hold, and the
   research warns that a person's presence can feel uncomfortable. So the companion says everything with motion and
   light: where it looks, how fast it breathes, the time left round its middle.
+- **A bubble that costs nothing.** The first focus bubble was a transparent sphere over the whole view, and the perf
+  gate caught it: 1.5 ms more per frame. In VR the sky and the hills now dim themselves, with no extra pixels to
+  draw; in passthrough, where an overlay is the only way, the sphere has a hole where you look.
 - **Rooms we never saw.** Running *Fit room* in all 13 of Meta's synthetic rooms found three real faults: a long desk
   that was missed, timers standing off a small table's edge, and a board hung over a window. Each is now a rule and
   a test.
@@ -316,8 +320,9 @@ starts on the most important task.
   profile.
 - The same engine validates the AI on the server and runs the workspace in the headset.
 - Quality numbers instead of adjectives, measured in the emulator on the production build:
-  - 1.3 ms per frame (p95) for the app's own systems, measured with hands-free on, its heaviest mode;
-  - 76 draw calls and a 2.26 MB bundle;
+  - 1.9 ms per frame (p95) for the app's own systems, measured with hands-free on and a focus block running, its
+    heaviest state;
+  - 78 draw calls and a 2.27 MB bundle;
   - a hit rate of 95 % or more under jitter;
   - plans in about 2 seconds.
 
