@@ -396,8 +396,9 @@ class BuiltInPlanner {
                 ),
             )
         }
-        val eyes = says("eye|ojo|vista|vision|sight|see |read|leer|bigger|larger|grande|tired|cansad|fatig|squint")
-        val near = says("closer|nearer|near me|reach|alcanz|cerca|arm|brazo|tremor|temblor|my hand|mi mano")
+        // Tiredness alone is not the eyes: "estoy cansada" (I'm tired) leaves the distance to what else is said.
+        val eyes = says("eye|ojo|vista|vision|visual|sight|see |read|leer|bigger|larger|grande|letra|text|squint")
+        val near = says("closer|nearer|near me|reach|alcanz|cerca|acerc|trae|bring (?:it|everything|them)|arm|brazo|tremor|temblor|my hand|mi mano")
         val steps = buildList {
             if (says("neck|cuello|turn my head|girar la cabeza|no puedo girar|can ?t turn")) {
                 add(step("set_comfort", "Within 25 degrees: no neck turn needed") { put("turnDeg", 25.0) })

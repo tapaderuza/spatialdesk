@@ -307,6 +307,18 @@ class PlannerTest {
     }
 
     @Test
+    fun `the tool Nova is given offers exactly the ops the server accepts`() {
+        // Measured on 2026-10-23: set_comfort was accepted here but missing from the tool, so Nova could not write it.
+        val items = NovaPlanModel.SCHEMA["properties"]!!.jsonObject["steps"]!!.jsonObject["items"]!!.jsonObject["properties"]!!.jsonObject
+        assertEquals(Planner.AGENT_OPS, items["op"]!!.jsonObject["enum"]!!.jsonArray.map { it.jsonPrimitive.content }.toSet())
+        for (field in listOf("reach", "scale", "side", "turnDeg", "tiltDeg")) assertTrue(field in items, "set_comfort's $field")
+        // Her words, read without the AI: nearer (not further), on the right, larger, within a small turn.
+        val her = BuiltInPlanner().plan(PlanRequest(Intent.AdaptSpace, "Hoy me duele mucho el cuello y estoy cansada. Acércalo todo por la derecha y la letra más grande, por favor.", starter))
+        val fields = her.steps.map { s -> s.filterKeys { it != "op" && it != "why" }.mapValues { it.value.jsonPrimitive.content } }
+        assertEquals(listOf(mapOf("turnDeg" to "25.0"), mapOf("side" to "right"), mapOf("scale" to "1.4"), mapOf("reach" to "0.75")), fields)
+    }
+
+    @Test
     fun `summarise needs no steps`() {
         val response = planner(Scripted(ModelPlan("Two open cards.", emptyList()))).plan(request(Intent.Summarise, null))
         assertTrue(response.ok)

@@ -112,7 +112,7 @@ class NovaPlanModel(private val bedrock: BedrockRuntimeClient, private val model
               "properties": {
                 "summary": {"type": "string", "description": "One or two sentences for the user: what the plan does and why."},
                 "steps": {"type": "array", "maxItems": 24, "items": {"type": "object", "properties": {
-                  "op": {"type": "string", "enum": ["create_board", "add_card", "update_card", "move_card", "remove_card", "clear_done", "focus_board", "start_timer", "arrange_space"]},
+                  "op": {"type": "string", "enum": ["create_board", "add_card", "update_card", "move_card", "remove_card", "clear_done", "focus_board", "start_timer", "arrange_space", "set_comfort"]},
                   "why": {"type": "string", "description": "At most 12 words, to the user."},
                   "board": {"type": "string"},
                   "title": {"type": "string"},
@@ -128,7 +128,12 @@ class NovaPlanModel(private val bedrock: BedrockRuntimeClient, private val model
                   "minutes": {"type": "number"},
                   "priority": {"type": "string", "enum": ["low", "normal", "high"]},
                   "label": {"type": "string"},
-                  "layout": {"type": "string", "enum": ["desk", "focus"]}
+                  "layout": {"type": "string", "enum": ["desk", "focus"]},
+                  "reach": {"type": "number", "description": "set_comfort: 0.5 to 1.8; 1 = the board 62 cm away."},
+                  "scale": {"type": "number", "description": "set_comfort: panel size, 0.8 to 1.8."},
+                  "side": {"type": "string", "enum": ["both", "left", "right"], "description": "set_comfort: the side everything gathers on."},
+                  "turnDeg": {"type": "number", "description": "set_comfort: how far the user can turn the head, 20 to 120."},
+                  "tiltDeg": {"type": "number", "description": "set_comfort: the whole space higher (+) or lower (-), -25 to 30."}
                 }, "required": ["op", "why"]}}
               },
               "required": ["summary", "steps"]
