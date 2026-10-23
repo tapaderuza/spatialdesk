@@ -380,13 +380,11 @@ class BuiltInPlanner {
     }
 
     /**
-     * What someone says about their body, read by plain words (English and Spanish): one set_comfort per need, each
-     * with its reason. Anything it cannot read gets a question back, never a guess.
+     * What someone says about their body ([ComfortNeeds]): one set_comfort per need, each with its reason. Anything it
+     * cannot read gets a question back, never a guess.
      */
     private fun adapt(text: String?): ModelPlan {
-        val said = fold(text.orEmpty())
-        fun says(pattern: String) = Regex("\\b(?:$pattern)").containsMatchIn(said)
-        if (says("normal|reset|default|as (?:it was|before|designed)|como antes|por defecto|restablece")) {
+        if (ComfortNeeds.isReset(text)) {
             return ModelPlan(
                 "Back to the layout as designed. Say undo to have your adapted space back.",
                 listOf(
@@ -396,25 +394,7 @@ class BuiltInPlanner {
                 ),
             )
         }
-        // Tiredness alone is not the eyes: "estoy cansada" (I'm tired) leaves the distance to what else is said.
-        val eyes = says("eye|ojo|vista|vision|visual|sight|see |read|leer|bigger|larger|grande|letra|text|squint")
-        val near = says("closer|nearer|near me|reach|alcanz|cerca|acerc|trae|bring (?:it|everything|them)|arm|brazo|tremor|temblor|my hand|mi mano")
-        val steps = buildList {
-            if (says("neck|cuello|turn my head|girar la cabeza|no puedo girar|can ?t turn")) {
-                add(step("set_comfort", "Within 25 degrees: no neck turn needed") { put("turnDeg", 25.0) })
-            }
-            when {
-                says("right (?:hand|side|arm)|on my right|to my right|derech") -> add(step("set_comfort", "Everything on your right, where you work") { put("side", "right") })
-                says("left (?:hand|side|arm)|on my left|to my left|izquierd") -> add(step("set_comfort", "Everything on your left, where you work") { put("side", "left") })
-            }
-            if (eyes) add(step("set_comfort", "Larger panels: text that is easier to read") { put("scale", 1.4) })
-            when {
-                near -> add(step("set_comfort", "Within easy reach of your hand") { put("reach", 0.75) })
-                eyes -> add(step("set_comfort", "Further away: easier on tired eyes") { put("reach", 1.4) })
-            }
-            if (says("lying|in bed|en la cama|tumbad|recost|reclin")) add(step("set_comfort", "Higher, where your eyes rest lying back") { put("tiltDeg", 20.0) })
-            if (says("wheelchair|silla de ruedas|lower|mas abajo")) add(step("set_comfort", "A little lower, an easier reach from a chair") { put("tiltDeg", -10.0) })
-        }
+        val steps = ComfortNeeds.of(text).map { need -> step("set_comfort", need.why) { put(need.field, need.value) } }
         if (steps.isEmpty()) {
             return ModelPlan("Tell me what is hard: turning your head, reaching, seeing, or one side, and I will adapt the space to you.", emptyList())
         }
@@ -434,10 +414,6 @@ class BuiltInPlanner {
         }
         return ModelPlan("Start small: five minutes on the first bit of \"${task.title}\", then see how it feels.", steps)
     }
-
-    /** Lower case, accents folded: "Ayúdame" -> "ayudame". */
-    private fun fold(text: String): String =
-        java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 
     /** The end of the day: what got done is named, then cleared away; tomorrow starts with the first task in progress. */
     private fun wrapUp(ws: Workspace): ModelPlan {

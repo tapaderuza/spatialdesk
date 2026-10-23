@@ -233,7 +233,13 @@ class PlannerTest {
         // are read the safe way.
         val model = Scripted(
             ModelPlan("Done.", steps("""[{"op":"set_comfort","turnDeg":25,"why":"No neck turn"},{"op":"arrange_space","layout":"focus","why":"Tidy"}]""")),
-            ModelPlan("Adapted.", steps("""[{"op":"set_comfort","comfort":{"side":"Right"},"why":"Your right side"},{"op":"set_comfort","reach":"0.3","why":"Close"}]""")),
+            ModelPlan(
+                "Adapted.",
+                steps(
+                    """[{"op":"set_comfort","comfort":{"side":"Right"},"why":"Your right side"},{"op":"set_comfort","reach":"0.3","why":"Close"},
+                    {"op":"set_comfort","turnDeg":25,"why":"No neck turn"}]""",
+                ),
+            ),
         )
         val response = planner(model).plan(adapt)
         assertTrue(response.ok, response.error)
@@ -316,6 +322,24 @@ class PlannerTest {
         val her = BuiltInPlanner().plan(PlanRequest(Intent.AdaptSpace, "Hoy me duele mucho el cuello y estoy cansada. Acércalo todo por la derecha y la letra más grande, por favor.", starter))
         val fields = her.steps.map { s -> s.filterKeys { it != "op" && it != "why" }.mapValues { it.value.jsonPrimitive.content } }
         assertEquals(listOf(mapOf("turnDeg" to "25.0"), mapOf("side" to "right"), mapOf("scale" to "1.4"), mapOf("reach" to "0.75")), fields)
+
+        // Nova's answer to her on 2026-10-23 covered two of her four needs: sent back once, naming what is missing.
+        val request = PlanRequest(Intent.AdaptSpace, "Hoy me duele mucho el cuello y estoy cansada. Acércalo todo por la derecha y la letra más grande, por favor.", starter)
+        val now = clock.millis().toDouble()
+        assertTrue(Guardrails.facts(request, now).lines.any { "The user asked for: their neck (turnDeg), the right side (side), larger text (scale), everything closer (reach)" in it })
+        val model = Scripted(
+            ModelPlan("Right side, larger text.", steps("""[{"op":"set_comfort","side":"right","why":"Right"},{"op":"set_comfort","scale":1.3,"why":"Larger"}]""")),
+            ModelPlan(
+                "All four.",
+                steps(
+                    """[{"op":"set_comfort","turnDeg":25,"why":"Neck"},{"op":"set_comfort","side":"right","why":"Right"},
+                    {"op":"set_comfort","reach":0.75,"why":"Closer"},{"op":"set_comfort","scale":1.3,"why":"Larger"}]""",
+                ),
+            ),
+        )
+        val response = planner(model).plan(request)
+        assertTrue(response.ok && response.source == "test-model", response.note ?: response.error)
+        assertTrue(model.feedback[1]!!.startsWith("The plan leaves out what the user asked for: their neck (turnDeg), everything closer (reach)"), model.feedback[1])
     }
 
     @Test

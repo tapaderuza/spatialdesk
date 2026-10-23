@@ -31,11 +31,15 @@ object Guardrails {
         val ws = request.workspace
         if (request.intent == Intent.AdaptSpace) {
             val designed = if (ws.comfort == Comfort()) " (the layout as designed)" else ""
+            val asked = ComfortNeeds.of(request.text).filter { it.required }
             return Facts(
-                listOf(
-                    "Current comfort: ${Prompt.comfortLine(ws.comfort)}$designed.",
-                    "Adapt the space with set_comfort steps only, one field per step; no other ops.",
-                ),
+                buildList {
+                    add("Current comfort: ${Prompt.comfortLine(ws.comfort)}$designed.")
+                    if (asked.isNotEmpty()) {
+                        add("The user asked for: ${asked.joinToString { "${it.asked} (${it.field})" }}. Cover each with its own set_comfort step.")
+                    }
+                    add("Adapt the space with set_comfort steps only, one field per step; no other ops.")
+                },
                 emptyList(),
             )
         }
@@ -144,6 +148,14 @@ object Guardrails {
         if (request.intent == Intent.FirstStep && start != null && steps.count { it.string("op") == "start_timer" } != 1) {
             return "Start exactly one 5-minute timer on \"${start.title}\"."
         }
+        if (request.intent == Intent.AdaptSpace && !ComfortNeeds.isReset(request.text)) {
+            // Measured on 2026-10-23: asked for neck, right side, closer and bigger text, Nova covered two of the four.
+            val covered = steps.flatMap { it.keys }.toSet()
+            val missing = ComfortNeeds.of(request.text).filter { it.required && it.field !in covered }
+            if (missing.isNotEmpty()) {
+                return "The plan leaves out what the user asked for: ${missing.joinToString { "${it.asked} (${it.field})" }}. Add one set_comfort step for each."
+            }
+        }
         return null
     }
 
@@ -175,6 +187,47 @@ object Guardrails {
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
     private val WRAP_UP_FORBIDDEN = setOf("start_timer", "create_board", "arrange_space", "focus_board")
+}
+
+/**
+ * What someone says about their body, read by plain words (English and Spanish): one comfort change per need, with the
+ * value the built-in planner uses and its reason. [Need.required] needs are what the user asked for in so many words,
+ * which every plan must cover; the others are inferences (tired eyes may also want the panels further away).
+ */
+object ComfortNeeds {
+    class Need(val field: String, val value: JsonPrimitive, val why: String, val asked: String, val required: Boolean = true)
+
+    fun isReset(text: String?): Boolean = says(fold(text.orEmpty()), "normal|reset|default|as (?:it was|before|designed)|como antes|por defecto|restablece")
+
+    fun of(text: String?): List<Need> {
+        val said = fold(text.orEmpty())
+        val has = { pattern: String -> says(said, pattern) }
+        // Tiredness alone is not the eyes: "estoy cansada" (I'm tired) leaves the distance to what else is said.
+        val eyes = has("eye|ojo|vista|vision|visual|sight|see |read|leer|bigger|larger|grande|letra|text|squint")
+        val near = has("closer|nearer|near me|reach|alcanz|cerca|acerc|trae|bring (?:it|everything|them)|arm|brazo|tremor|temblor|my hand|mi mano")
+        return buildList {
+            if (has("neck|cuello|turn my head|girar la cabeza|no puedo girar|can ?t turn")) {
+                add(Need("turnDeg", JsonPrimitive(25.0), "Within 25 degrees: no neck turn needed", "their neck"))
+            }
+            when {
+                has("right (?:hand|side|arm)|on my right|to my right|derech") -> add(Need("side", JsonPrimitive("right"), "Everything on your right, where you work", "the right side"))
+                has("left (?:hand|side|arm)|on my left|to my left|izquierd") -> add(Need("side", JsonPrimitive("left"), "Everything on your left, where you work", "the left side"))
+            }
+            if (eyes) add(Need("scale", JsonPrimitive(1.4), "Larger panels: text that is easier to read", "larger text"))
+            when {
+                near -> add(Need("reach", JsonPrimitive(0.75), "Within easy reach of your hand", "everything closer"))
+                eyes -> add(Need("reach", JsonPrimitive(1.4), "Further away: easier on tired eyes", "easier on the eyes", required = false))
+            }
+            if (has("lying|in bed|en la cama|tumbad|recost|reclin")) add(Need("tiltDeg", JsonPrimitive(20.0), "Higher, where your eyes rest lying back", "lying back"))
+            if (has("wheelchair|silla de ruedas|lower|mas abajo")) add(Need("tiltDeg", JsonPrimitive(-10.0), "A little lower, an easier reach from a chair", "a lower space"))
+        }
+    }
+
+    private fun says(said: String, pattern: String): Boolean = Regex("\\b(?:$pattern)").containsMatchIn(said)
+
+    /** Lower case, accents folded: "Acércalo" -> "acercalo". */
+    private fun fold(text: String): String =
+        java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 }
 
 /** The task a first step is for: the open card the user named (most words in common), else the one the day goes on with. */
