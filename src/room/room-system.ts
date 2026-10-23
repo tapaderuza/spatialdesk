@@ -13,7 +13,7 @@
 import { createSystem, SceneUnderstandingSystem, SessionMode, VisibilityState, XRPlane, type World } from '@iwsdk/core';
 import type { Pose } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
-import { viewerPose } from '../workspace/viewer.js';
+import { deskPose } from '../workspace/viewer.js';
 import { fitToRoom, invertRigid, matrixPose, multiply, poseMatrix, type RoomPlane, type Vec3 } from './fit.js';
 
 const KEY = 'spatialdesk.room';
@@ -200,7 +200,8 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   }
 
   private fit(): void {
-    const viewer = viewerPose(this.world);
+    // Where the user sits facing the desk: pressing Fit room on the console, they look at the console, not the desk.
+    const viewer = deskPose(this.world);
     const result = fitToRoom(workspace.state, viewer, this.planes(), workspace.panelScale);
     this.showOutlines();
     if (result.poses.length === 0) {

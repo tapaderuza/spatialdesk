@@ -9,7 +9,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { findDesk, fitToRoom, invertRigid, matrixPose, multiply, poseMatrix, type RoomPlane } from '../src/room/fit.js';
 import type { Workspace } from '../src/workspace/model.js';
-import { frames, openWorkspace, pressXR, tap, type Win } from './helpers.js';
+import { frames, openWorkspace, pressXR, tap, turnHead, type Win } from './helpers.js';
 
 const viewer = { x: 0, y: 1.2, z: 0, yaw: 0, pitch: 0 };
 const table: RoomPlane = { orientation: 'horizontal', label: 'table', center: [0, 0.75, -0.65], normal: [0, 1, 0], tangent: [1, 0, 0], min: [-0.8, -0.38], max: [0.8, 0.38] };
@@ -92,13 +92,16 @@ test('in my room: fit to the real table and walls, undo in one step, and remembe
   const focus = await page.evaluate(() => (window as Win).__workspace.state.focusBoardId as string);
   const before = await poses(page);
 
+  await turnHead(page, 40); // seated, the user looks at the console to press Fit room...
   await pressXR(page, 'command:fit-button', 'left');
   await page.waitForFunction(() => (window as Win).__room.state.lastFit != null, null, { timeout: 5_000 });
+  await turnHead(page, 0);
   const fit = await page.evaluate(() => (window as Win).__room.state.lastFit);
   expect(fit.desk).toBe(true);
   expect(fit.walls).toBeGreaterThanOrEqual(1);
   const fitted = await poses(page);
   expect(fitted[focus].y).toBeCloseTo(0.75 + 0.02 + 0.25, 1); // standing on the scanned table
+  expect(Math.abs(fitted[focus].x)).toBeLessThan(0.05); // ...and the board still stands straight ahead, not toward the console
   expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Fitted to your room');
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('spatialdesk.room') ?? 'null')?.uuid, null, { timeout: 5_000 });
 
