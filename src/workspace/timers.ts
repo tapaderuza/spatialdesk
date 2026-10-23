@@ -1,13 +1,14 @@
 /**
  * Timers pinned in space. The countdown text changes once a second (the frame loop compares integers and touches
  * the panel only when the second changes: no per-frame allocation). At zero the timer is marked done, its panel
- * flashes, and a short chime plays, panned toward where the timer is pinned so you can tell which one rang.
+ * flashes, and a short chime plays from where the timer is pinned (src/ui/sounds.ts), so you can tell which one rang.
+ * While a focus block runs (any running timer but a break), the quiet focus ambience plays.
  */
-import { createSystem, Quaternion, Vector3, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
 import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder } from '../ui/settings.js';
-import { audioContext, unlockAudio } from '../ui/sounds.js';
+import { alarm, setAmbience, unlockAudio } from '../ui/sounds.js';
 import { panelText, TIMER_SIZE, type Timer, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
 import { TIMER_SCALE, workspace } from './store.js';
@@ -146,10 +147,6 @@ function clock(totalSeconds: number): string {
 
 export class TimerSystem extends createSystem({}) {
   private readonly views = new Map<string, TimerView>();
-  private readonly head = new Vector3();
-  private readonly headRotation = new Quaternion();
-  private readonly toTimer = new Vector3();
-  private readonly right = new Vector3();
 
   init(): void {
     this.cleanupFuncs.push(workspace.subscribe(({ state, previous }) => this.sync(state, previous)));
@@ -190,6 +187,7 @@ export class TimerSystem extends createSystem({}) {
       const before = previous?.timers.find((t) => t.id === timer.id);
       if (before?.state === 'running' && timer.state === 'done') this.ring(view, timer);
     }
+    setAmbience(state.timers.some((t) => t.state === 'running' && !/^break$/i.test(t.label.trim())));
   }
 
   private ring(view: TimerView, timer: Timer): void {
@@ -197,37 +195,7 @@ export class TimerSystem extends createSystem({}) {
     workspace.notify({ text: `Time is up: ${panelText(timer.label)}`, error: false });
     const w = window as unknown as { __timerAlerts?: number };
     w.__timerAlerts = (w.__timerAlerts ?? 0) + 1; // observed by the Playwright tests
-    // Pan toward the timer: +1 when it is to the user's right.
-    this.world.camera.getWorldPosition(this.head);
-    this.world.camera.getWorldQuaternion(this.headRotation);
-    this.toTimer.set(timer.pose.x, timer.pose.y, timer.pose.z).sub(this.head).normalize();
-    this.right.set(1, 0, 0).applyQuaternion(this.headRotation);
-    chime(Math.max(-1, Math.min(1, this.toTimer.dot(this.right))));
+    alarm(timer.pose);
     for (const listener of timerFinishedListeners) listener(timer);
-  }
-}
-
-// A soft three-note chime, synthesised (no audio files to load), on the shared AudioContext (src/ui/sounds.ts).
-function chime(pan: number): void {
-  const ctx = audioContext();
-  if (!ctx) return;
-  const panner = ctx.createStereoPanner();
-  panner.pan.value = pan;
-  panner.connect(ctx.destination);
-  const start = ctx.currentTime + 0.02;
-  for (let round = 0; round < 2; round++) {
-    [659.25, 783.99, 1046.5].forEach((frequency, i) => {
-      const at = start + round * 1.2 + i * 0.2;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, at);
-      gain.gain.exponentialRampToValueAtTime(0.22, at + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.6);
-      osc.connect(gain).connect(panner);
-      osc.start(at);
-      osc.stop(at + 0.65);
-    });
   }
 }

@@ -89,8 +89,14 @@ export class PanelHits<K extends string> {
   /** Presses a control as a tap would: the tap sound, then the panel's own action. */
   press(key: K): void {
     unlockAudio();
-    play('tap');
+    play('tap', this.positionOf(key));
     this.handlers.click(key);
+  }
+
+  /** Where a control is in the room (a shared scratch vector: read it at once). */
+  private positionOf(key: K): Vector3 | undefined {
+    const element = this.controls.find(([k]) => k === key)?.[1];
+    return element ? element.getWorldPosition(this.far) : undefined;
   }
 
   /** The control under a world-space point, or null. Hidden controls (display: none) never match. Allocation-free. */

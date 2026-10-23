@@ -95,7 +95,7 @@ export class StudioSystem extends createSystem({}) {
     if (t < 0) return;
     if (!this.chimed) {
       this.chimed = true;
-      play('grow');
+      play('grow', this.plant?.position);
     }
     this.state.growth = this.growFrom + (this.growTo - this.growFrom) * Math.min(1, t);
     writePlant(this.geometry, this.state.growth);

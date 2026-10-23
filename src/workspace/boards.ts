@@ -207,7 +207,7 @@ class BoardView {
     if (!board || !column || !card) return;
     if (held == null) {
       held = { boardId: board.id, cardId: card.id };
-      play('pick');
+      play('pick', board.pose);
       workspace.notify({ text: `Holding "${panelText(card.title)}". Tap a column to drop it.`, error: false });
       this.system.renderAll();
     } else if (held.cardId === card.id) {
@@ -343,7 +343,7 @@ export class BoardSystem extends createSystem({}) {
       { op: 'move_card', card: card.id, board: board.id, column: columnId, index },
       { label: 'move card', notice: `Moved "${panelText(card.title)}" to ${panelText(column?.title ?? 'column')}.` },
     );
-    if (result.ok) play('drop');
+    if (result.ok) play('drop', board.pose);
     else this.renderAll();
   }
 

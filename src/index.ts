@@ -12,6 +12,7 @@ import { installPerfProbe } from './perf/probe.js';
 import { maybeInstallEmulator } from './emulator.js';
 import { workspace } from './workspace/store.js';
 import { bindColorScheme } from './ui/settings.js';
+import { bindHead } from './ui/sounds.js';
 
 await maybeInstallEmulator();
 await workspace.load(); // IndexedDB, a few ms: the systems start with the saved workspace
@@ -25,6 +26,7 @@ World.create(
   // without asking for the room (src/room/room-system.ts launches the room explicitly).
   world.xrDefaults = { ...world.xrDefaults, sessionMode: SessionMode.ImmersiveVR, features: { handTracking: true, gazeTracking: true } };
   bindColorScheme(world); // high contrast (or not) before any panel shows
+  bindHead(world.camera); // cues sound from where they happen (src/ui/sounds.ts)
   for (const system of APP_SYSTEMS) world.registerSystem(system);
   if (new URLSearchParams(location.search).has('perf')) installPerfProbe(world, APP_SYSTEMS);
 });
