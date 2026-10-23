@@ -21,7 +21,7 @@ export function audioContext(): AudioContext | null {
   return context;
 }
 
-export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen';
+export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen' | 'grow';
 
 /** [start Hz, end Hz, duration ms, waveform] notes, played in sequence. */
 const SHAPES: Record<Sound, [number, number, number, OscillatorType][]> = {
@@ -33,6 +33,8 @@ const SHAPES: Record<Sound, [number, number, number, OscillatorType][]> = {
   error: [[220, 185, 160, 'triangle']],
   nudge: [[880, 880, 90, 'sine'], [1175, 1175, 120, 'sine']],
   listen: [[523, 784, 140, 'sine']],
+  // The focus plant grows a leaf: three soft rising notes, higher and slower than any control's.
+  grow: [[784, 784, 120, 'sine'], [988, 988, 120, 'sine'], [1319, 1319, 260, 'sine']],
 };
 
 export function play(sound: Sound, pan = 0): void {

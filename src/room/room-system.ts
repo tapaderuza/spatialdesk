@@ -23,6 +23,8 @@ const SAVE_DELAY_MS = 500;
 interface SavedRoom {
   uuid: string;
   items: Record<string, Pose>;
+  /** The focus plant on the desk, relative to the anchor like the items. */
+  plant?: Pose;
 }
 
 interface NativePlane {
@@ -79,6 +81,8 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private wasInRoom = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private outlineTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Where the focus plant stands in the room (on the real desk), once fitted or restored; null elsewhere. */
+  plantPose: Pose | null = null;
   /** Read by the Playwright tests and the command panel. */
   readonly state = { inRoom: false, planes: 0, lastFit: null as null | { desk: boolean; walls: number; moved: number }, restored: 0, saved: false };
 
@@ -154,6 +158,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     this.anchor = null;
     this.anchorMatrix = null;
     this.restorePending = false;
+    this.plantPose = null;
     this.state.planes = 0;
   }
 
@@ -196,7 +201,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
 
   private fit(): void {
     const viewer = viewerPose(this.world);
-    const result = fitToRoom(workspace.state, viewer, this.planes());
+    const result = fitToRoom(workspace.state, viewer, this.planes(), workspace.panelScale);
     this.showOutlines();
     if (result.poses.length === 0) {
       this.state.lastFit = { desk: false, walls: 0, moved: 0 };
@@ -209,7 +214,10 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
       { label: 'fit to room', notice: `Fitted to your room: ${parts.join(', ')}. It will be here next time.` },
     );
     this.state.lastFit = { desk: result.desk != null, walls: result.walls, moved: applied.ok ? result.poses.length : 0 };
-    if (applied.ok) this.anchorHere(viewer);
+    if (applied.ok) {
+      if (result.plant) this.plantPose = result.plant;
+      this.anchorHere(viewer);
+    }
   }
 
   /** A persistent anchor on the floor under the viewer: the room layout is kept relative to it. */
@@ -242,7 +250,8 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     const toAnchor = invertRigid(this.anchorMatrix);
     const items: Record<string, Pose> = {};
     for (const item of [...workspace.state.boards, ...workspace.state.timers]) items[item.id] = matrixPose(multiply(toAnchor, poseMatrix(item.pose)));
-    writeSaved({ uuid: this.uuid, items });
+    const plant = this.plantPose ? matrixPose(multiply(toAnchor, poseMatrix(this.plantPose))) : undefined;
+    writeSaved({ uuid: this.uuid, items, plant });
     this.state.saved = true;
   }
 
@@ -252,6 +261,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     const saved = readSaved();
     const anchor = this.anchorMatrix;
     if (!saved || !anchor) return;
+    if (saved.plant) this.plantPose = matrixPose(multiply(anchor, poseMatrix(saved.plant)));
     const present = new Set([...workspace.state.boards, ...workspace.state.timers].map((item) => item.id));
     const ops = Object.entries(saved.items)
       .filter(([id]) => present.has(id))

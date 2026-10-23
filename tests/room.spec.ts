@@ -41,6 +41,15 @@ test('room fit: the work board stands on the table, parked boards hang on walls,
   expect(pose('b3').x).toBeCloseTo(1.22, 2); // right wall, not the door plane in front of it
   expect(fit.walls).toBe(2);
   expect(pose('t1').y).toBeLessThan(1); // the timer stands on the table beside the board
+  // The focus plant stands on the table itself, on the right (the console covers the left): the 1.6 m table ends
+  // before the far side of the timer, so the plant stands between the board and the timer, which steps aside.
+  expect(fit.plant?.y).toBeCloseTo(0.75, 3);
+  expect(fit.plant?.x).toBeCloseTo(0.43, 2);
+  expect(pose('t1').x).toBeCloseTo(0.63, 2);
+  expect(fitToRoom({ ...workspace, timers: [] } as Workspace, viewer, [table]).plant?.x).toBeCloseTo(0.46, 2);
+  // Panels drawn smaller for a narrower view (Meta VR Glasses) still stand on the table, not above it.
+  const small = fitToRoom(workspace, viewer, [table], 0.85).poses.find((p) => p.id === 'b1')!.pose;
+  expect(small.y - 0.25 * 0.85).toBeCloseTo(0.77, 2);
   expect(fitToRoom(workspace, viewer, []).poses).toEqual([]); // no surfaces: nothing moves
 });
 

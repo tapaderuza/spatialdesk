@@ -15,6 +15,7 @@ export interface Day {
 interface Saved {
   days: Record<string, Day>;
   lastVisit?: string;
+  blocksEver?: number;
 }
 
 const KEY = 'spatialdesk.progress';
@@ -83,10 +84,20 @@ export class Progress {
   }
 
   recordBlock(minutes: number, now = Date.now()): void {
+    const before = this.totalBlocks();
     const day = this.edit(now);
     day.blocks++;
     day.minutes += Math.max(0, Math.round(minutes));
+    this.saved.blocksEver = before + 1;
     this.save(now);
+  }
+
+  /**
+   * Every focus block ever finished in this browser: what the focus plant grows from (src/studio). Days older than
+   * KEEP_DAYS are forgotten, so the total is kept on its own; a save from before it existed starts from the days kept.
+   */
+  totalBlocks(): number {
+    return this.saved.blocksEver ?? Object.values(this.saved.days).reduce((sum, day) => sum + day.blocks, 0);
   }
 
   recordDone(cards: number, now = Date.now()): void {

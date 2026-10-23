@@ -60,6 +60,12 @@ object Workspaces {
         return WorkspaceJson.encodeToString(Pose.serializer(), Layout.command(anchor))
     }
 
+    /** The focus board's slot for this workspace's anchor and view: where the studio desk stands it (src/studio). */
+    fun focusSlot(stateJson: String): String {
+        val ws = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.focus(ws.anchor, ws.view))
+    }
+
     /** Where the agent's plan preview goes for this workspace's anchor and view. */
     fun previewPose(stateJson: String): String {
         val ws = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())

@@ -116,6 +116,7 @@ export declare namespace Workspaces {
             load(json: string): Nullable<string>;
             apply(stateJson: string, opsJson: string, nowMs: number, viewerJson: Nullable<string>): string;
             commandPose(stateJson: string): string;
+            focusSlot(stateJson: string): string;
             previewPose(stateJson: string): string;
             panelScale(stateJson: string): number;
             private constructor();

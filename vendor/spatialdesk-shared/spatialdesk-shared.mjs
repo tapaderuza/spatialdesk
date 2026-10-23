@@ -5005,6 +5005,38 @@ protoOf(Workspaces).commandPose = function (stateJson) {
   var anchor = tmp$ret$4;
   return get_WorkspaceJson().ly(Companion_instance_5.r1c(), Layout_getInstance().c1c(anchor));
 };
+protoOf(Workspaces).focusSlot = function (stateJson) {
+  // Inline function 'kotlin.runCatching' call
+  var tmp;
+  try {
+    // Inline function 'kotlin.Companion.success' call
+    var value = get_WorkspaceJson().my(Companion_getInstance_12().r1c(), stateJson);
+    tmp = _Result___init__impl__xyqfz8(value);
+  } catch ($p) {
+    var tmp_0;
+    if ($p instanceof Error) {
+      var e = $p;
+      // Inline function 'kotlin.Companion.failure' call
+      tmp_0 = _Result___init__impl__xyqfz8(createFailure(e));
+    } else {
+      throw $p;
+    }
+    tmp = tmp_0;
+  }
+  var tmp0 = tmp;
+  var tmp2 = new Workspace();
+  var tmp$ret$4;
+  $l$block: {
+    // Inline function 'kotlin.getOrDefault' call
+    if (_Result___get_isFailure__impl__jpiriv(tmp0)) {
+      tmp$ret$4 = tmp2;
+      break $l$block;
+    }
+    tmp$ret$4 = _Result___get_value__impl__bjfvqg(tmp0);
+  }
+  var ws = tmp$ret$4;
+  return get_WorkspaceJson().ly(Companion_instance_5.r1c(), Layout_getInstance().y1b(ws.x1e_1, ws.b1f_1));
+};
 protoOf(Workspaces).previewPose = function (stateJson) {
   // Inline function 'kotlin.runCatching' call
   var tmp;

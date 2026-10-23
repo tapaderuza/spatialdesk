@@ -1,4 +1,7 @@
 import { AssetType, defineAssets } from '@iwsdk/core';
+import horizon from './scene-assets/dusk-horizon.scene-asset.js';
+import plant from './scene-assets/focus-plant.scene-asset.js';
+import desk from './scene-assets/studio-desk.scene-asset.js';
 
 const publicAssetUrl = (filePath: string): string =>
   `${import.meta.env.BASE_URL}${filePath.replace(/^\/+/u, '')}`;
@@ -10,4 +13,8 @@ export default defineAssets({
     type: AssetType.UIKitML,
     name: 'Command Panel',
   },
+  // The VR studio (procedural, one draw call each): src/scene-assets.
+  'studio-desk': desk,
+  'focus-plant': plant,
+  'dusk-horizon': horizon,
 });

@@ -30,6 +30,8 @@ export interface RoomFit {
   poses: { id: string; pose: Pose }[];
   desk: RoomPlane | null;
   walls: number;
+  /** Where the focus plant stands: on the desk, left of the board (null without a desk). */
+  plant: Pose | null;
 }
 
 const DESK_LABELS = new Set(['table', 'desk']);
@@ -37,6 +39,8 @@ const DESK_LABELS = new Set(['table', 'desk']);
 const DESK_HEIGHT = [0.55, 1.15] as const;
 const DESK_REACH = 1.6;
 const BOARD_LIFT = 0.02; // the board's bottom edge, above the desk surface
+/** The plant's pot is kept this far inside the desk's edge (its rim is 6 cm across from the centre). */
+const POT_MARGIN = 0.06;
 const FOCUS_DISTANCE = 0.62; // as in Layout.kt: arm's length, poke-able
 const WALL_GAP = 0.03;
 const WALL_RANGE = [0.9, 4.5] as const;
@@ -104,20 +108,43 @@ function wallHit(walls: RoomPlane[], eye: Vec3, direction: Vec3): { point: Vec3;
   return best;
 }
 
-export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[]): RoomFit {
+/** [panelScale]: the scale the panels are drawn at for the headset's view (Layout.kt), so they stand on the desk. */
+export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[], panelScale = 1): RoomFit {
   const eye: Vec3 = [viewer.x, viewer.y, viewer.z];
   const forward: Vec3 = [-Math.sin(viewer.yaw), 0, -Math.cos(viewer.yaw)];
   const right: Vec3 = [Math.cos(viewer.yaw), 0, -Math.sin(viewer.yaw)];
   const poses: { id: string; pose: Pose }[] = [];
+  const board = { width: BOARD_SIZE.width * panelScale, height: BOARD_SIZE.height * panelScale };
+  const timerSize = { width: TIMER_SIZE.width * panelScale, height: TIMER_SIZE.height * panelScale };
+  let plant: Pose | null = null;
 
   const desk = findDesk(planes, viewer);
   if (desk && workspace.focusBoardId) {
     const deskY = desk.center[1];
-    const center: Vec3 = add([eye[0], deskY + BOARD_LIFT + BOARD_SIZE.height / 2, eye[2]], scale(forward, FOCUS_DISTANCE));
+    const center: Vec3 = add([eye[0], deskY + BOARD_LIFT + board.height / 2, eye[2]], scale(forward, FOCUS_DISTANCE));
     poses.push({ id: workspace.focusBoardId, pose: { x: center[0], y: center[1], z: center[2], ...facing(center, eye) } });
+    // The focus plant stands on the desk itself, on the right, where the console (left, close by) never covers it:
+    // past the timers if the desk reaches, else between the board and the timers (they step aside), else just left of
+    // the board. With no room at all it stays in the studio.
+    const pot = (offset: number): Vec3 => add(add([center[0], deskY, center[2]], scale(right, offset)), scale(forward, 0.02));
+    const timerSpan = workspace.timers.length ? 0.06 + timerSize.width : 0;
+    const past = board.width / 2 + timerSpan + 0.1;
+    const between = board.width / 2 + 0.07;
+    const left = -(board.width / 2 + 0.1);
+    let timerShift = 0;
+    let plantAt: number | null = null;
+    if (inside(desk, pot(past), -POT_MARGIN)) plantAt = past;
+    else if (inside(desk, pot(between), -POT_MARGIN) && (!workspace.timers.length || inside(desk, pot(between + 0.08 + timerSize.width), 0.05))) {
+      plantAt = between;
+      timerShift = 0.09;
+    } else if (inside(desk, pot(left), -POT_MARGIN)) plantAt = left;
+    if (plantAt != null) {
+      const at = pot(plantAt);
+      plant = { x: at[0], y: deskY, z: at[2], yaw: viewer.yaw + 0.35, pitch: 0 };
+    }
     workspace.timers.forEach((timer, i) => {
-      const side = scale(right, BOARD_SIZE.width / 2 + 0.06 + TIMER_SIZE.width / 2);
-      const at: Vec3 = add(add(center, side), [0, -BOARD_SIZE.height / 2 + TIMER_SIZE.height / 2 + i * (TIMER_SIZE.height + 0.03), 0]);
+      const side = scale(right, board.width / 2 + 0.06 + timerShift + timerSize.width / 2);
+      const at: Vec3 = add(add(center, side), [0, -board.height / 2 + timerSize.height / 2 + i * (timerSize.height + 0.03), 0]);
       poses.push({ id: timer.id, pose: { x: at[0], y: at[1], z: at[2], ...facing(at, eye) } });
     });
   }
@@ -143,7 +170,7 @@ export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[
     onWalls++;
     poses.push({ id: board.id, pose: { x: point[0], y: point[1], z: point[2], yaw: Math.atan2(normal[0], normal[2]), pitch: 0 } });
   }
-  return { poses, desk, walls: onWalls };
+  return { poses, desk, walls: onWalls, plant };
 }
 
 // Poses relative to a room anchor, so a layout survives between sessions (src/room/room-system.ts).
