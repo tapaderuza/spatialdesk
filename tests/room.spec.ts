@@ -15,7 +15,8 @@ const viewer = { x: 0, y: 1.2, z: 0, yaw: 0, pitch: 0 };
 const table: RoomPlane = { orientation: 'horizontal', label: 'table', center: [0, 0.75, -0.65], normal: [0, 1, 0], tangent: [1, 0, 0], min: [-0.8, -0.38], max: [0.8, 0.38] };
 const leftWall: RoomPlane = { orientation: 'vertical', label: 'wall', center: [-1.25, 1.4, 0], normal: [1, 0, 0], tangent: [0, 0, -1], min: [-1.2, -1.36], max: [1.2, 1.36] };
 const rightWall: RoomPlane = { orientation: 'vertical', label: 'wall', center: [1.25, 1.4, 0], normal: [-1, 0, 0], tangent: [0, 0, 1], min: [-1.2, -1.36], max: [1.2, 1.36] };
-const door: RoomPlane = { ...rightWall, label: 'door' };
+/** A 90 cm door near the front end of the right wall (the headset reports it as its own plane on top of the wall's). */
+const door: RoomPlane = { ...rightWall, label: 'door', center: [1.25, 1.05, 1.0], min: [-0.45, -1.05], max: [0.45, 1.05] };
 
 const workspace = {
   focusBoardId: 'b1',
@@ -38,8 +39,13 @@ test('room fit: the work board stands on the table, parked boards hang on walls,
   expect(pose('b1').pitch).toBeLessThan(0); // leans back toward the eyes
   expect(pose('b2').x).toBeCloseTo(-1.22, 2); // on the left wall, 3 cm off it
   expect(pose('b2').yaw).toBeCloseTo(Math.PI / 2, 3); // facing into the room
-  expect(pose('b3').x).toBeCloseTo(1.22, 2); // right wall, not the door plane in front of it
+  expect(pose('b3').x).toBeCloseTo(1.22, 2); // right wall, clear of its door
   expect(fit.walls).toBe(2);
+  // A door right where a board would hang: the board slides along the wall until it is clear of it.
+  const doorAhead: RoomPlane = { ...rightWall, label: 'door', center: [1.25, 1.05, 0], min: [-0.3, -1.05], max: [0.3, 1.05] };
+  const slid = fitToRoom(workspace, viewer, [table, leftWall, rightWall, doorAhead]).poses.find((p) => p.id === 'b3')!.pose;
+  expect(slid.x).toBeCloseTo(1.22, 2);
+  expect(Math.abs(slid.z)).toBeGreaterThan(0.71); // past the door and half a board
   expect(pose('t1').y).toBeLessThan(1); // the timer stands on the table beside the board
   // The focus plant stands on the table itself, on the right (the console covers the left): the 1.6 m table ends
   // before the far side of the timer, so the plant stands between the board and the timer, which steps aside.
