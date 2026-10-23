@@ -1,79 +1,86 @@
 {
-  "_comment": "Voice-over for the submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper, the demo waits for each line to finish before the next beat, and the same text is burned in as captions. The 'say' line is also played into the browser's microphone, so the real Amazon Transcribe hears it.",
+  "_comment": "The submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper (or plays a beat's own 'audio'), the demo waits for each line to finish before the next beat, and the captions are burned in ('captions' times are seconds into the beat or clip). The 'say' beat's 'mic' is played into the browser's microphone, so the real Amazon Transcribe hears exactly what the video plays. 'open' is real footage before the title card; its files live in .video/source, outside the repository (the edit runs without them).",
   "title": "SpatialDesk",
-  "subtitle": "A focus companion for minds that wander: an AI that plans your day with you, works beside you, and lets you undo anything. On Meta Quest and Meta VR Glasses.",
+  "subtitle": "A workspace should adapt to the person. Say what is hard today: an AI agent reshapes your space to your body and your mind, and you can undo any step.",
+  "tags": ["Productivity", "Accessibility", "Agentic AI", "Voice and eyes only", "Mixed reality", "Meta VR Glasses ready"],
+  "end_line": "Your body. Your mind. Your space. Open it on a Quest: no install, no account.",
+  "open": {
+    "clip": ".video/source/mum-open.mp4",
+    "seconds": 6.6,
+    "captions": [
+      { "at": 0.3, "to": 3.1, "text": "This is my mum." },
+      { "at": 3.3, "to": 4.9, "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today." },
+      { "at": 4.9, "to": 6.6, "text": "Y estoy cansada.\nAnd I'm tired." }
+    ]
+  },
   "beats": [
     {
-      "id": "describe",
-      "text": "If your mind wanders, starting is the hardest part. SpatialDesk is a focus companion you wear. First, I tell it my day, in my own words."
-    },
-    {
       "id": "enter",
-      "text": "Inside, I sit at my desk at dusk, and that small light beside my board is my companion. Working next to someone makes it easier to start, and to keep going."
-    },
-    {
-      "id": "plan",
-      "text": "One tap on Plan my day. The companion shimmers while Amazon Nova thinks, and the same Kotlin engine that runs in the headset checks every step."
-    },
-    {
-      "id": "preview",
-      "text": "Nothing changes until I say so. Each step says what it will do, and why."
-    },
-    {
-      "id": "apply",
-      "text": "One tap applies it: a Today board, a focus timer, and the world around me fades, so only my work stays in view."
-    },
-    {
-      "id": "hands",
-      "text": "By hand it's just as direct. Pick a card up, drop it in Doing. Every target is tested against hand-tracking jitter."
+      "text": "Spatial apps expect you to turn your head, reach out and pinch the air. On a bad day, she can't. So SpatialDesk adapts to her."
     },
     {
       "id": "talk",
-      "text": "Or I just talk."
+      "text": "She presses Talk, and says it in her own words."
     },
     {
       "id": "say",
-      "text": "Put the dentist call at the top of my list."
+      "audio": ".video/source/mum-say.wav",
+      "mic": ".video/source/mum-say-16k.wav",
+      "text": "Hoy me duele mucho el cuello, y estoy cansada. Acércalo todo por la derecha, y la letra más grande, por favor.",
+      "captions": [
+        { "at": 0.45, "to": 2.0, "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today." },
+        { "at": 2.0, "to": 3.6, "text": "Y estoy cansada.\nAnd I'm tired." },
+        { "at": 3.8, "to": 6.4, "text": "Acércalo todo por la derecha\nBring everything closer, on the right," },
+        { "at": 6.6, "to": 9.3, "text": "y la letra más grande, por favor.\nand the text bigger, please." }
+      ]
     },
     {
       "id": "heard",
-      "text": "Amazon Transcribe hears me, and the agent turns my words into a plan I can check. One tap, or a yes, applies it."
+      "text": "Amazon Transcribe hears her Spanish. The agent, a specialist in ergonomics, answers with changes to her space, each with its reason."
     },
     {
-      "id": "timer",
-      "text": "My companion works with me. The time left glows round its middle, so I can see time pass. When the block ends, my plant grows a leaf."
+      "id": "apply",
+      "text": "One tap. Everything comes closer and larger, on her right, within a small turn of her neck. Every change has its own undo."
     },
     {
-      "id": "suggestion",
-      "text": "And the agent notices on its own. The report is not finished, so it suggests a break, not a false done."
+      "id": "plan",
+      "text": "Then her day, written in plain words. Amazon Nova plans it, and the same Kotlin engine that runs in the headset checks every step."
     },
     {
-      "id": "log",
-      "text": "The AI log shows everything the agent did: each step with its reason, and its own undo, even after later changes."
+      "id": "planned",
+      "text": "Nothing changes until she says yes."
     },
     {
       "id": "handsfree",
-      "text": "Hands-free: I look at a button and hold my gaze until the ring fills. Where the headset tracks my eyes, my eyes alone are enough."
+      "text": "When her hands are tired, she looks at a button and holds her gaze. Where the headset tracks the eyes, her eyes alone are enough."
     },
     {
-      "id": "streak",
-      "text": "The panel keeps score of my own work, day by day."
+      "id": "start",
+      "text": "Starting is the hardest part. Start small turns her first task into five minutes."
     },
     {
-      "id": "wrapup",
-      "text": "In the evening the agent wraps up my day. It names what I finished, clears it away, and my companion goes to sleep. Tomorrow starts from its words."
+      "id": "momentum",
+      "text": "Five minutes later she has started, so the agent offers to keep going, not a break."
+    },
+    {
+      "id": "companion",
+      "text": "A small companion works beside her board. If her mind wanders, it calls her back, gently."
+    },
+    {
+      "id": "log",
+      "text": "Every change the agent made is in the AI log, with its reason and its own undo."
     },
     {
       "id": "room",
-      "text": "In my real room, Fit room stands my board on my desk, with my plant and my companion beside it. During a focus block the room recedes, and my desk stays."
+      "text": "On a Quest 3 it works in her real room. Fit room stands her board on her real desk, and in a focus block the room recedes."
     },
     {
       "id": "glasses",
-      "text": "And it is ready for Meta VR Glasses. The app reads the field of view the headset reports and fits the layout into it. I look at a card and pinch."
+      "text": "And it is ready for Meta VR Glasses: the layout fits their narrower view, and she just looks and pinches."
     },
     {
       "id": "end",
-      "text": "SpatialDesk: a focus companion for minds that wander. An agent you can audit, with hands, eyes or voice, in VR and in your own room. Open the link: there is nothing to install."
+      "text": "Your body. Your mind. Your space. SpatialDesk adapts to you. Open the link: there is nothing to install."
     }
   ]
 }

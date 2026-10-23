@@ -6,7 +6,7 @@
 //   node scripts/make-video.mjs --edit     edit the last recording again without recording
 // Needs Docker (builds the spatialdesk-tts image once), ffmpeg/ffprobe on PATH, and Edge. Output in .video/.
 import { execFileSync, execSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 
@@ -29,14 +29,21 @@ const run = (cmd, env = {}) => execSync(cmd, { cwd: root, stdio: 'inherit', shel
 const seconds = (file) =>
   Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf-8' }).trim());
 
-// 1. Voice: every line again whenever any line changed (one container run, the voice loads once).
+// 1. Voice: every line again whenever any line changed (one container run, the voice loads once). A beat with its own
+// 'audio' (a real person's voice) plays that instead; lines no longer in the script are not spoken.
 step('Voice-over (Piper, local)');
-const changed = script.beats.some(({ id, text }) => {
+const spoken = script.beats.filter((b) => !b.audio);
+for (const f of readdirSync(voiceDir)) if (f.endsWith('.txt') && !spoken.some(({ id }) => `${id}.txt` === f)) unlinkSync(join(voiceDir, f));
+for (const { id, audio } of script.beats.filter((b) => b.audio)) {
+  if (!existsSync(join(root, audio))) throw new Error(`${audio} is missing: the real recording for "${id}" is kept outside the repository.`);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', join(root, audio), '-ac', '1', '-c:a', 'pcm_s16le', join(voiceDir, `${id}.wav`)]);
+}
+const changed = spoken.some(({ id, text }) => {
   const txt = join(voiceDir, `${id}.txt`);
   return !existsSync(join(voiceDir, `${id}.wav`)) || !existsSync(txt) || readFileSync(txt, 'utf-8') !== text;
 });
 if (changed) {
-  for (const { id, text } of script.beats) writeFileSync(join(voiceDir, `${id}.txt`), text);
+  for (const { id, text } of spoken) writeFileSync(join(voiceDir, `${id}.txt`), text);
   try {
     execSync('docker image inspect spatialdesk-tts', { stdio: 'ignore' });
   } catch {
@@ -49,8 +56,9 @@ writeFileSync(join(out, 'durations.json'), JSON.stringify(durations, null, 2));
 // The "say" line is also the browser's microphone: 16 kHz mono, a moment of silence before it and after it (Talk
 // ends on a pause), so the real Amazon Transcribe hears exactly what the video plays.
 const mic = join(voiceDir, 'mic.wav');
+const sayBeat = script.beats.find((b) => b.id === 'say');
 execFileSync('ffmpeg', [
-  '-y', '-loglevel', 'error', '-f', 'lavfi', '-t', '0.3', '-i', 'anullsrc=r=16000:cl=mono', '-i', join(voiceDir, 'say.wav'),
+  '-y', '-loglevel', 'error', '-f', 'lavfi', '-t', '0.3', '-i', 'anullsrc=r=16000:cl=mono', '-i', sayBeat?.mic ? join(root, sayBeat.mic) : join(voiceDir, 'say.wav'),
   '-f', 'lavfi', '-t', '3', '-i', 'anullsrc=r=16000:cl=mono',
   '-filter_complex', '[1:a]aresample=16000,aformat=sample_fmts=s16:channel_layouts=mono[v];[0:a][v][2:a]concat=n=3:v=0:a=1',
   '-c:a', 'pcm_s16le', mic,
@@ -69,22 +77,21 @@ const marks = JSON.parse(readFileSync(markersFile, 'utf-8')).beats; // [{ id, at
 // Gallery stills for Devpost, from the recording (no captions): [file, beat, seconds into that beat].
 step('Gallery');
 const galleryDir = join(out, 'gallery');
+rmSync(galleryDir, { recursive: true, force: true }); // only this cut's stills
 mkdirSync(galleryDir, { recursive: true });
 const STILLS = [
-  ['1-plan-preview', 'preview', 2.5],
-  ['2-today-board', 'hands', 0.3],
-  ['3-agent-suggestion', 'suggestion', 2],
-  ['4-voice-plan', 'heard', 2],
-  ['5-ai-log', 'log', 2.5],
-  ['6-hands-free', 'handsfree', 2.6],
-  ['7-streak', 'streak', 2.5],
-  ['8-high-contrast', 'contrast', 2.2], // from an earlier cut (no contrast beat now): the file stays as it was
+  ['1-her-request', 'heard', 2.5],
+  ['2-space-adapted', 'apply', 7],
+  ['3-plan-preview', 'plan', 5],
+  ['4-hands-free', 'handsfree', 3],
+  ['5-start-small', 'start', 5],
+  ['6-momentum', 'momentum', 1.5],
+  ['7-companion', 'companion', 3.5],
+  ['8-ai-log', 'log', 2.5],
   ['9-in-my-room', 'room', 8.5],
-  ['10-studio', 'enter', 3],
+  ['10-room-focus', 'room', 13],
   ['11-glasses', 'glasses', 7],
-  ['12-wrap-up', 'wrapup', 3.5],
-  ['13-companion', 'timer', 2.5],
-  ['14-room-focus', 'room', 13],
+  ['12-studio', 'enter', 0.8],
 ];
 for (const [name, id, offset] of STILLS) {
   const mark = marks.find((m) => m.id === id);
@@ -93,6 +100,14 @@ for (const [name, id, offset] of STILLS) {
 }
 
 // 3. The edit.
+// Real footage before the title card (script.open): its own picture, sound and captions; left out when its file is not
+// here (it lives in .video/source, outside the repository).
+const open = script.open && existsSync(join(root, script.open.clip)) ? script.open : null;
+const OPEN_S = open ? open.seconds : 0;
+if (open) {
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '2.2', '-i', join(root, open.clip), '-frames:v', '1', '-q:v', '3', join(out, 'open-frame.jpg')]);
+}
+
 step('Title and end cards');
 const browser = await chromium.launch({ channel: 'msedge' });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
@@ -101,7 +116,7 @@ for (const [name, html] of Object.entries(cards())) {
   await page.screenshot({ path: join(out, `${name}.png`) });
 }
 await browser.close();
-copyFileSync(join(out, 'title.png'), join(galleryDir, '0-title.png')); // the thumbnail
+copyFileSync(join(out, open ? 'thumb.png' : 'title.png'), join(galleryDir, '0-thumbnail.png'));
 
 step('Edit');
 const recorded = marks.map((m) => ({ ...m, s: m.at / 1000 }));
@@ -109,24 +124,33 @@ const last = recorded[recorded.length - 1];
 const trimStart = Math.max(0, recorded[0].s - LEAD_S);
 const mainS = last.s + durations[last.id] + TAIL_S - trimStart;
 const endS = END_LEAD_S + durations.end + END_HOLD_S;
-const totalS = TITLE_S + mainS + endS;
+const totalS = OPEN_S + TITLE_S + mainS + endS;
 const voice = [
-  ...recorded.map((m) => ({ id: m.id, start: TITLE_S + m.s - trimStart })),
-  { id: 'end', start: TITLE_S + mainS + END_LEAD_S },
+  ...recorded.map((m) => ({ id: m.id, start: OPEN_S + TITLE_S + m.s - trimStart })),
+  { id: 'end', start: OPEN_S + TITLE_S + mainS + END_LEAD_S },
 ];
 writeFileSync(join(out, 'captions.srt'), captions(voice));
 
-const inputs = ['-loop', '1', '-t', `${TITLE_S}`, '-i', 'title.png', '-ss', `${trimStart}`, '-t', `${mainS}`, '-i', 'recording.webm'];
+const inputs = [];
+if (open) inputs.push('-t', `${OPEN_S}`, '-i', join(root, open.clip));
+const first = inputs.length / 4; // the title card's input index: 1 after the opening clip, else 0
+inputs.push('-loop', '1', '-t', `${TITLE_S}`, '-i', 'title.png', '-ss', `${trimStart}`, '-t', `${mainS}`, '-i', 'recording.webm');
 inputs.push('-loop', '1', '-t', `${endS}`, '-i', 'end.png');
 for (const v of voice) inputs.push('-i', join('voice', `${v.id}.wav`));
 const fade = 0.4;
 const graph = [
-  `[0:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=out:st=${TITLE_S - fade}:d=${fade}[v0]`,
-  `[1:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v1]`,
-  `[2:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v2]`,
-  `[v0][v1][v2]concat=n=3:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H38000000,Outline=6,Shadow=0,MarginV=22'[v]`,
-  ...voice.map((v, i) => `[${i + 3}:a]aresample=48000,adelay=${Math.round(v.start * 1000)}:all=1[a${i}]`),
-  `${voice.map((_, i) => `[a${i}]`).join('')}amix=inputs=${voice.length}:normalize=0,apad[a]`,
+  ...(open
+    ? [
+        `[0:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade},fade=t=out:st=${OPEN_S - fade}:d=${fade}[vo]`,
+        `[0:a]atrim=0:${OPEN_S},afade=t=out:st=${OPEN_S - fade}:d=${fade},aresample=48000[ao]`,
+      ]
+    : []),
+  `[${first}:v]fps=${FPS},format=yuv420p,setsar=1,${open ? `fade=t=in:st=0:d=${fade},` : ''}fade=t=out:st=${TITLE_S - fade}:d=${fade}[v0]`,
+  `[${first + 1}:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v1]`,
+  `[${first + 2}:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v2]`,
+  `${open ? '[vo]' : ''}[v0][v1][v2]concat=n=${open ? 4 : 3}:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H38000000,Outline=6,Shadow=0,MarginV=22'[v]`,
+  ...voice.map((v, i) => `[${first + 3 + i}:a]aresample=48000,adelay=${Math.round(v.start * 1000)}:all=1[a${i}]`),
+  `${open ? '[ao]' : ''}${voice.map((_, i) => `[a${i}]`).join('')}amix=inputs=${voice.length + (open ? 1 : 0)}:normalize=0,apad[a]`,
 ].join(';');
 execFileSync(
   'ffmpeg',
@@ -174,8 +198,15 @@ function captions(voiceTrack) {
     return `${words.slice(0, best).join(' ')}\n${words.slice(best).join(' ')}`;
   };
   const entries = [];
+  const timed = (at, to, text) => entries.push(`${entries.length + 1}\n${time(at)} --> ${time(to)}\n${text}\n`);
+  if (open) for (const c of open.captions) timed(c.at, c.to, c.text);
   for (const v of voiceTrack) {
-    const parts = chunks(script.beats.find((b) => b.id === v.id).text);
+    const beat = script.beats.find((b) => b.id === v.id);
+    if (beat.captions) {
+      for (const c of beat.captions) timed(v.start + c.at, v.start + c.to, c.text);
+      continue;
+    }
+    const parts = chunks(beat.text);
     const total = parts.reduce((n, p) => n + p.length, 0);
     let t = v.start;
     for (const part of parts) {
@@ -196,12 +227,22 @@ function cards() {
     .tag{display:inline-block;margin:0 10px 0 0;padding:6px 14px;border:2px solid #2f6db3;border-radius:10px;font-size:20px;color:#9cc3ff}
     .tags{margin-top:34px} .small{margin-top:28px;font-size:20px;color:#7f8ea3} .url{font-size:30px;color:#9cc3ff;margin-top:26px}
   </style>`;
-  return {
+  const tags = (script.tags ?? []).map((t) => `<span class="tag">${t}</span>`).join('');
+  const cardsHtml = {
     title: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.subtitle}</p>
-      <div class="tags"><span class="tag">Productivity</span><span class="tag">Focus companion</span><span class="tag">ADHD-friendly</span><span class="tag">Agentic AI</span><span class="tag">Mixed reality</span><span class="tag">Meta VR Glasses ready</span></div>
-      <div class="small">Recorded in Meta's IWER emulator (Quest 3 and Meta VR Glasses profiles). The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
-    end: `${base}<div class="wrap"><h1>${script.title}</h1><p>A focus companion for minds that wander. Open it on a Quest: no install, no account.</p>
+      <div class="tags">${tags}</div>
+      <div class="small">The real app, recorded in Meta's IWER emulator (Quest 3 and Meta VR Glasses profiles). The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
+    end: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.end_line}</p>
       <div class="url">${url.replace(/^https:\/\//, '')}</div>
       <div class="small">Meta Immersive Web SDK, TypeScript, Kotlin Multiplatform, Spring Boot, Amazon Bedrock (Nova 2 Lite), Amazon Transcribe, AWS CDK</div></div>`,
+  };
+  if (!open) return cardsHtml;
+  // The thumbnail: the person it is for, and the promise.
+  const photo = readFileSync(join(out, 'open-frame.jpg')).toString('base64');
+  return {
+    ...cardsHtml,
+    thumb: `${base}<div class="wrap" style="background:linear-gradient(90deg,#0b0f14 0,rgba(11,15,20,.88) 38%,rgba(11,15,20,0) 70%),url(data:image/jpeg;base64,${photo}) center/cover">
+      <h1 style="font-size:84px">${script.title}</h1><p style="font-size:38px;max-width:560px;color:#e9eef5">A workspace that adapts to your body.</p>
+      <div class="tags">${tags.split('</span>').slice(0, 3).join('</span>')}</span></div></div>`,
   };
 }

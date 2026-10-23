@@ -6,14 +6,14 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 - **Competition:** Meta VR Start Developer Competition 2026 (start-developer-competition-26.devpost.com)
 - **Track:** Productivity. **Division:** New.
 - **Special awards** (judged across all entries, rules section "Special Awards"):
-  - Best Agentic Interaction: an agent that acts on the space, talks and listens, suggests on its own, and is present
-    in the space as a companion beside your board whose mood follows what the agent is doing.
-  - Best Accessibility Forward Experience: built for minds that wander (body doubling, a focus bubble that fades what
-    pulls the attention away), voice for every control, eyes-only navigation (eye gaze where tracked, head gaze
-    elsewhere), look and pinch, high contrast, read-aloud.
-  - Best Reason to Come Back: a companion that works beside you every day, a focus plant that grows a leaf per focus
-    block, a streak and a seven-day strip, and days with a start and an end: the agent plans the morning from last
-    night's wrap-up.
+  - Best Accessibility Forward Experience: the space adapts to the body on request (reach, one side, a stiff neck,
+    tired eyes, lying down), every control works by voice and by the eyes alone, patient listening in the user's
+    language, high contrast, read-aloud; for the mind, a companion that calls you back and a first step of five
+    minutes.
+  - Best Agentic Interaction: an agent that acts on the space (the user's work and the user's comfort), talks and
+    listens, suggests on its own, keeps the momentum after a first step, and is present as a companion beside the board.
+  - Best Reason to Come Back: your comfort is remembered, a focus plant grows a leaf per block, a streak and a
+    seven-day strip, and days with a start and an end.
 - **Deadline:** 18 Nov 2026, 12:00 PT (21:00 in Spain).
 
 What the official rules say (read on 2026-10-08):
@@ -39,9 +39,9 @@ SpatialDesk
 
 ## Submission tagline (140 characters max)
 
-A focus companion for minds that wander: an AI plans your day with you, works beside you in VR or your room, and lets you undo any step.
+A workspace that adapts to your body and mind: say what is hard today and an AI agent brings everything within reach. Undo any step.
 
-(136 characters.)
+(132 characters.)
 
 ## Try it out (links)
 
@@ -50,7 +50,8 @@ A focus companion for minds that wander: an AI plans your day with you, works be
 - Desktop with Meta's IWER emulator: https://d2p3027seoreck.cloudfront.net/?emulate&fast
 - As on Meta VR Glasses (narrower view, eye tracking, hands): https://d2p3027seoreck.cloudfront.net/?emulate&glasses&fast
 - Starts hands-free (look and hold to press): https://d2p3027seoreck.cloudfront.net/?handsfree&fast
-- Video: (the focus companion cut, once published; it replaces https://youtu.be/QFx0JWRqAcw)
+- Video: (the accessibility cut, once published; it replaces https://youtu.be/QFx0JWRqAcw)
+- In Spanish (voice in another language): https://d2p3027seoreck.cloudfront.net/?fast&lang=es-ES
 - Code: (GitHub link, if a repository is shared)
 
 ## Built with
@@ -66,6 +67,9 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
    when a block ends. Without it, everything runs in real minutes.
 2. A short guided start shows three steps: pick a card up, drop it in *Doing*, start *Focus 25*. It takes under a
    minute, or you can tap **Skip**.
+   **Then adapt the space to a body:** press **Talk** and say "I can't turn my neck and I only use my right hand,
+   bring everything closer". The agent answers with comfort changes, each with its reason; **Apply** brings the board,
+   the timers and the console within a small turn, on your right. "Back to normal" (or Undo) restores the layout.
 3. The small light beside the board is your **focus companion**. During a focus block it works with you, the time left
    shown round its middle, and the world beyond arm's reach fades so the board stands out (the **focus bubble**). A
    break brings the world back. Say "dimming off" to turn the fading off.
@@ -105,43 +109,43 @@ built-in planner answers instead and says so on the card.
 
 Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under 3 minutes, captions burned in).
 
-- **Title:** SpatialDesk: a focus companion for minds that wander, on Meta Quest and Meta VR Glasses
+- **Title:** SpatialDesk: a workspace that adapts to your body and your mind (Meta Quest, Meta VR Glasses)
 - **Visibility:** Public (the rules require it to be publicly visible).
 - **Subtitles:** upload `.video/captions.srt` as English subtitles as well.
 - **Description:**
 
-  SpatialDesk is a focus companion for minds that wander, delivered as WebXR for Meta Quest and Meta VR Glasses.
-  Tell it your day and an AI agent (Amazon Nova 2 Lite on Amazon Bedrock) builds boards and focus blocks around you,
-  explains every step, and lets you undo any one of them. A small companion works beside your board through each
-  block (body doubling, with no face and no words), and the world beyond arm's reach fades while you focus, in VR or
-  in your own room. Every control also works by voice (Amazon Transcribe) and by gaze alone (hands-free).
+  This is my mum. On a bad day her neck hurts and she is tired, so she asks SpatialDesk, in her own words and in
+  Spanish, to bring everything closer, on her right, with bigger text. Amazon Transcribe hears her, an AI agent (Amazon
+  Nova 2 Lite on Amazon Bedrock) answers with changes to her space, each with its reason and its own undo, and the
+  space adapts. Then it plans her day, works hands-free with her eyes alone, turns starting into five minutes, and a
+  small companion calls her back when her mind wanders. In VR, in her real room, and on Meta VR Glasses.
 
-  Recorded in Meta's IWER Quest 3 emulator against the production app. Timers run in seconds in this video (the
-  ?fast option). Voice-over generated locally with Piper.
+  The real app, recorded in Meta's IWER emulator against production; her voice is the real recording, played into
+  the browser's microphone. Timers run in seconds in this video (the ?fast option). Voice-over generated locally with
+  Piper.
 
   Try it: https://d2p3027seoreck.cloudfront.net (add ?emulate on a desktop)
 
-  Entry for the Meta VR Start Developer Competition 2026: Productivity, Agentic Interaction, Accessibility, Reason to
+  Entry for the Meta VR Start Developer Competition 2026: Productivity, Accessibility, Agentic Interaction, Reason to
   Come Back.
 
 ## Images (gallery)
 
 From `.video/gallery/`, all taken from the recording, without captions:
 
-1. `1-plan-preview.png`: the agent's plan, each step with its reason
-2. `2-today-board.png`: the Today board with its focus timer
-3. `3-agent-suggestion.png`: the agent's own suggestion when the block ends
-4. `4-voice-plan.png`: a spoken request, heard by Amazon Transcribe, as a plan to review
-5. `5-ai-log.png`: the AI log, with an Undo per step
-6. `6-hands-free.png`: hands-free, the gaze ring filling on a button
-7. `7-streak.png`: today's focus blocks, the streak and the last seven days
-8. `8-high-contrast.png`: high contrast mode
-9. `9-in-my-room.png`: In my room, the board standing on the real desk after Fit room
-10. `10-studio.png`: the dusk studio, the board standing on the desk, the focus plant beside it
+0. `0-thumbnail.png`: the thumbnail (my mum, and the promise)
+1. `1-her-request.png`: her spoken request as the agent's comfort plan, each change with its reason
+2. `2-space-adapted.png`: the space adapted: nearer, larger, on her right, within a small turn
+3. `3-plan-preview.png`: the agent's plan for her day
+4. `4-hands-free.png`: hands-free, the gaze ring filling on a button
+5. `5-start-small.png`: a first step of five minutes
+6. `6-momentum.png`: the agent keeps the momentum after the first step
+7. `7-companion.png`: the companion beside the board
+8. `8-ai-log.png`: the AI log, with an Undo per step
+9. `9-in-my-room.png`: In my room, the board standing on the real desk
+10. `10-room-focus.png`: a focus block in the room: the room recedes, the desk stays clear
 11. `11-glasses.png`: Meta VR Glasses view: the layout fitted to 58 x 54 degrees, look and pinch
-12. `12-wrap-up.png`: the agent wrapping up the day
-13. `13-companion.png`: the focus companion beside the board, the time left round its middle
-14. `14-room-focus.png`: a focus block in your room: the room recedes, the desk and the board stay clear
+12. `12-studio.png`: the studio at dusk, as designed before adapting
 
 `scripts/make-video.mjs` writes them to `.video/gallery/`.
 
@@ -151,19 +155,30 @@ From `.video/gallery/`, all taken from the recording, without captions:
 
 ### Inspiration
 
-Starting is the hard part, and staying with it comes next. Many people whose attention wanders, many with ADHD among
-them, find both easier with someone working beside them. It is called body doubling, and today it means a video call
-with a stranger or a coworking room. A 2025 study brought it into VR: adults with ADHD finished tasks faster and
-reported better sustained attention with a human or an AI body double than alone, and the same work notes that a
-person's presence can also feel uncomfortable (*You Are Not Alone: Designing Body Doubling for ADHD in Virtual
-Reality*, arXiv 2509.12153).
+This started with my mum. On a bad day her neck hurts and she is tired, and she works lying on the sofa with a
+laptop. Headsets could give her a desk anywhere, but spatial apps expect you to turn your head, reach out and pinch
+the air.
 
-Meanwhile headsets are becoming the workspace you carry: Meta pitches its VR Glasses for working on a flight. We
-wanted a body double that goes with you, with no camera, no stranger and no booking, and an AI that works *on* your
-space instead of talking about it, without ever taking control away from you. SpatialDesk is a productivity tool, not
-a treatment.
+About 1.3 billion people, one in six, live with a significant disability (WHO, 2023), and many more have days
+when the neck, the hands or the eyes are not up to it. Spatial interfaces today assume a body that turns, reaches and
+pinches; SpatialDesk starts from the body you have today. It helps the mind too: many people whose attention wanders,
+many with ADHD among them, start and keep going more easily with someone working beside them (body doubling; in a VR
+study, adults with ADHD finished tasks faster with a human or an AI body double than alone: *You Are Not Alone:
+Designing Body Doubling for ADHD in Virtual Reality*, arXiv 2509.12153, 2025). So a quiet companion works beside your
+board, and starting is made small. SpatialDesk is a productivity tool, not a medical device.
 
 ### What it does
+
+- **It adapts to your body.** Say what is hard, in your own words ("I can't turn my neck", "only my right hand", "my
+  eyes are tired, make it bigger", "I'm lying down") and the agent answers with comfort changes, one per need, each
+  with its ergonomic reason: what you work with comes nearer or goes further at the same angles; panels grow as far as
+  the view allows; everything gathers on one side, the console by the hand that works; nothing sits beyond the turn
+  your neck allows; the whole space tilts up for a reclined body or down for a chair. Your comfort is kept with the
+  workspace, so tomorrow starts adapted; one undo, or "back to normal", takes it back.
+- **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
+  link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
+- **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
+  when they end, the agent knows you have started and offers to keep going, not a break.
 
 You sit down, at a desk, on a sofa or on a flight, put the headset on and describe your day: "Finish the quarterly
 report, review two pull requests, call the dentist, gym at 18:00." SpatialDesk turns that into a workspace around
@@ -253,6 +268,11 @@ starts on the most important task.
 - **The studio:** a procedural desk, plant and horizon, one unlit draw call each with the light baked into their
   vertex colours, measured within noise of the scene without them; the plant rewrites its preallocated geometry in
   place while a leaf unfurls.
+- **The body's comfort:** a `Comfort` profile (reach, scale, side, turn, tilt) in the shared Kotlin engine places
+  every slot: nearer or further along the line of sight, the console beside the board on the side the body uses,
+  parked boards in tiers within the turn allowed, and the whole layout turned round the eyes for a tilt. The agent
+  changes it through one validated op, `set_comfort`, one field per step; the server checks that only a request about
+  the body may change it, and clamps values to safe ranges.
 - **The companion and the bubble:** the companion is one shader-drawn orb (one draw call) whose uniforms ease toward
   its mood every frame, read from the timers and the agent's state without allocating. The bubble is one back-facing
   sphere round the head in passthrough, drawn after the scene and before the panels, so it darkens what lies beyond
@@ -301,6 +321,12 @@ starts on the most important task.
 - **Designing for a field of view we cannot see.** No Meta VR Glasses here, so the app never assumes a device: it
   reads the projection the headset reports, and a test checks every corner of the essential panels against the
   glasses' perceived view in IWER's glasses profile.
+- **A layout that bends without breaking.** Moving panels for a body is easy; keeping every rule while doing it is
+  not. Nearer panels look larger and pushed the console into the timers; a neck that turns 25 degrees left no room
+  for the shelf; raising each panel for someone lying back crowded the side ones together. Each is now a rule of the
+  shared engine and a test over nine bodies and three postures, with the pinch-ray check from both shoulders.
+- **Listening patiently.** People who speak slowly or with pauses were cut off by an end-of-speech timer tuned for
+  quick commands. The app now waits for a breath between sentences.
 - **A companion that does not distract.** A face or a voice would pull the attention it is meant to hold, and the
   research warns that a person's presence can feel uncomfortable. So the companion says everything with motion and
   light: where it looks, how fast it breathes, the time left round its middle.
@@ -313,6 +339,8 @@ starts on the most important task.
 
 ### Accomplishments that we're proud of
 
+- A spatial workspace that adapts to the body you have today, from a sentence in your own language, with every change
+  explained and undoable.
 - A body double that needs no camera, no stranger and no booking, and goes wherever the headset goes.
 - An agent you can audit: every action has a reason and its own undo.
 - Every control has four ways in: hands (poke or pinch), look and pinch, voice, and the eyes alone.
@@ -339,6 +367,8 @@ period.
 
 - Calendar import, so the day plans itself from real events.
 - Sync across devices, so the same boards follow you from the headset to the browser.
+- Comfort set up by a carer or therapist, saved per person and per day (a good day, a bad day).
+- Testing with disability organisations, and more languages for voice.
 - Co-working at a distance: a friend's companion beside yours, for body doubling with someone you know.
 - Trying it with people who use body doubling today, starting with ADHD communities, and tuning the companion and
   the bubble with them.
