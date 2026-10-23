@@ -10,7 +10,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { frames, lookAt, pressXR, tap, turnHead, type Win } from './helpers.js';
+import { frames, lookAt, lookWithEyes, pinch, pressXR, restHands, tap, turnHead, type Win } from './helpers.js';
 
 const target = process.env.E2E_URL;
 const mic = process.env.MIC;
@@ -44,7 +44,7 @@ const phase = (page: Page, p: string) => page.waitForFunction((want) => (window 
 const online = (page: Page) =>
   page.waitForFunction(() => (window as Win).__link?.kind === 'online' && (window as Win).__agent, null, { timeout: 60_000 });
 
-test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-free, streak (< 3 min)', async ({ page }, testInfo) => {
+test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-free, wrap up, room, glasses (< 3 min)', async ({ page }, testInfo) => {
   test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
   test.setTimeout(300_000);
   const started = Date.now(); // the video starts with the page, a moment before this
@@ -131,8 +131,15 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
   await pressXR(page, `${today}:col-1`);
   await pause(page, 2);
 
-  // 5. The focus block ends (?fast: 25 seconds): chime, flash, and the agent suggests the next block on its own.
+  // 5. The focus block ends (?fast: 25 seconds): chime, flash, the plant on the desk grows a leaf, and the agent
+  // suggests the next block on its own.
   await beat('timer');
+  const growth = await page.evaluate(() => (window as Win).__studio.state.growth as number);
+  await page.waitForFunction(() => (window as Win).__workspace.state.timers.some((t: any) => t.state === 'done'), null, { timeout: 40_000 });
+  await turnHead(page, -30, -24, 16); // the plant, right of the board on the desk
+  await page.waitForFunction((g) => (window as Win).__studio.state.growth >= g + 1, growth, { timeout: 10_000 });
+  await pause(page, 1);
+  await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   await phase(page, 'suggestion');
   await beat('suggestion');
   await pause(page, 3);
@@ -183,7 +190,16 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
   await pause(page, 5);
   await settle();
 
-  // 10. In my room: passthrough in IWER's home office, seated at the desk; Fit room uses the detected desk and walls.
+  // 10. The end of the day: the agent wraps it up, naming what got done and clearing it for tomorrow.
+  await beat('wrapup');
+  await command('wrap-button');
+  await phase(page, 'preview');
+  await pause(page, 4);
+  await pressXR(page, 'agent:plan-apply');
+  await pause(page, 1.5);
+  await settle();
+
+  // 11. In my room: passthrough in IWER's home office, seated at the desk; Fit room uses the detected desk and walls.
   await beat('room');
   await page.evaluate(() => (window as Win).__world.exitXR());
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive' && !(window as Win).__world.session);
@@ -203,12 +219,29 @@ test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-f
   await turnHead(page, 0, HEAD_PITCH_DEG, 20);
   await settle();
 
-  // 11. High contrast, one tap (and remembered).
-  await beat('contrast');
-  await pressXR(page, 'command:contrast-button', 'left');
+  // 12. Meta VR Glasses: the same workspace in IWER's glasses profile (its narrower view masked), fitted to the view
+  // the headset reports; the eyes aim and a pinch picks a card up and drops it.
+  await beat('glasses');
+  await page.evaluate(() => (window as Win).__world.exitXR());
+  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive' && !(window as Win).__world.session);
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: { x: 0, y: 1.6, z: 0, yaw: 0, pitch: 0 } }));
+  await pause(page, 1); // the workspace is saved (debounced) before the page reloads as the glasses
+  await page.goto('/?emulate&fast&glasses');
+  await online(page);
+  await page.evaluate(() => (window as Win).__world.launchXR());
+  await page.waitForFunction(() => (window as Win).__workspace.state.view?.halfWidthDeg < 35, null, { timeout: 30_000 });
+  await restHands(page);
+  await turnHead(page, 0, -4);
+  await pause(page, 2.5);
+  const board = await page.evaluate(() => (window as Win).__workspace.state.focusBoardId as string);
+  await lookWithEyes(page, board + ':card-0-0');
+  await pause(page, 0.8);
+  await pinch(page, 'right');
+  await pause(page, 1.2);
+  await lookWithEyes(page, board + ':col-1');
+  await pause(page, 0.8);
+  await pinch(page, 'left');
   await pause(page, 2);
-  await turnHead(page, 0, HEAD_PITCH_DEG, 14);
-  await pause(page, 1);
   await settle();
 
   // Playwright saves the video there once the page closes.

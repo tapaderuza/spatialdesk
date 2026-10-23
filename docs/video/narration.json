@@ -1,7 +1,7 @@
 {
   "_comment": "Voice-over for the submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper, the demo waits for each line to finish before the next beat, and the same text is burned in as captions. The 'say' line is also played into the browser's microphone, so the real Amazon Transcribe hears it.",
   "title": "SpatialDesk Command Center",
-  "subtitle": "A hands-first workspace for Meta Quest, with an AI agent you can talk to, that acts, explains, and can be undone.",
+  "subtitle": "A hands-first workspace for Meta Quest and Meta VR Glasses, with an AI agent you can talk to, that acts, explains, and can be undone.",
   "beats": [
     {
       "id": "describe",
@@ -9,7 +9,7 @@
     },
     {
       "id": "enter",
-      "text": "Inside, the board I'm working on sits within arm's reach, and everything else waits at the sides."
+      "text": "Inside, I sit at my desk at dusk. The board I am working on stands on it, within arm's reach, and everything else waits at the sides."
     },
     {
       "id": "plan",
@@ -41,7 +41,7 @@
     },
     {
       "id": "timer",
-      "text": "Timers run in seconds in this video. When the block ends, the agent notices on its own."
+      "text": "Timers run in seconds in this video. When the block ends, the plant on my desk grows a new leaf, and the agent notices on its own."
     },
     {
       "id": "suggestion",
@@ -53,23 +53,27 @@
     },
     {
       "id": "handsfree",
-      "text": "Hands-free mode: I look at a button and hold my gaze until the ring fills. With voice, nothing here needs hands."
+      "text": "Hands-free: I look at a button and hold my gaze until the ring fills. Where the headset tracks my eyes, my eyes alone are enough."
     },
     {
       "id": "streak",
-      "text": "The panel keeps score of my own work: focus blocks today, my streak, the last seven days. And on a new day, the agent offers to plan it from what's still open."
+      "text": "The panel keeps score of my own work: focus blocks today, my streak, and the last seven days."
+    },
+    {
+      "id": "wrapup",
+      "text": "In the evening the agent offers to wrap up my day. It names what I finished, clears it away, and tomorrow's plan starts from its words."
     },
     {
       "id": "room",
-      "text": "On a Quest 3 it also lives in my real room. One tap on Fit room stands my board on my real desk and hangs the others on my walls, and a persistent anchor keeps them there for tomorrow."
+      "text": "On a Quest 3 it also lives in my real room. Fit room stands my board on my real desk, with the timer and my plant beside it, hangs the others on my walls, and remembers them for tomorrow."
     },
     {
-      "id": "contrast",
-      "text": "High contrast, sound cues and reading plans aloud are one tap, or one word, away."
+      "id": "glasses",
+      "text": "And it is ready for Meta VR Glasses. The app reads the field of view the headset reports and fits the layout into it. I look at a card and pinch."
     },
     {
       "id": "end",
-      "text": "SpatialDesk. Every claim is checked automatically, in Meta's emulator: frame budgets, hand-tracking noise, gaze, voice, and an agent with guardrails. Open the link: there is nothing to install."
+      "text": "SpatialDesk: hands, eyes and voice, and an agent you can audit, in VR and in your own room. Every claim is checked automatically in Meta's emulator. Open the link: there is nothing to install."
     }
   ]
 }

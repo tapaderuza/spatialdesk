@@ -78,8 +78,11 @@ const STILLS = [
   ['5-ai-log', 'log', 2.5],
   ['6-hands-free', 'handsfree', 2.6],
   ['7-streak', 'streak', 2.5],
-  ['8-high-contrast', 'contrast', 2.2],
-  ['9-in-my-room', 'room', 9],
+  ['8-high-contrast', 'contrast', 2.2], // from an earlier cut (no contrast beat now): the file stays as it was
+  ['9-in-my-room', 'room', 10],
+  ['10-studio', 'enter', 3],
+  ['11-glasses', 'glasses', 7],
+  ['12-wrap-up', 'wrapup', 3.5],
 ];
 for (const [name, id, offset] of STILLS) {
   const mark = marks.find((m) => m.id === id);
@@ -193,8 +196,8 @@ function cards() {
   </style>`;
   return {
     title: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.subtitle}</p>
-      <div class="tags"><span class="tag">Productivity</span><span class="tag">Agentic Interaction</span><span class="tag">Voice and hands-free</span><span class="tag">Mixed reality</span><span class="tag">Hands-first WebXR</span></div>
-      <div class="small">Recorded in Meta's IWER Quest 3 emulator. The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
+      <div class="tags"><span class="tag">Productivity</span><span class="tag">Agentic Interaction</span><span class="tag">Voice and hands-free</span><span class="tag">Mixed reality</span><span class="tag">Meta VR Glasses ready</span></div>
+      <div class="small">Recorded in Meta's IWER emulator (Quest 3 and Meta VR Glasses profiles). The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
     end: `${base}<div class="wrap"><h1>${script.title}</h1><p>Open it on a Quest: no install, no account.</p>
       <div class="url">${url.replace(/^https:\/\//, '')}</div>
       <div class="small">Meta Immersive Web SDK, TypeScript, Kotlin Multiplatform, Spring Boot, Amazon Bedrock (Nova 2 Lite), Amazon Transcribe, AWS CDK</div></div>`,

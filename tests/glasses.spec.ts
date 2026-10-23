@@ -7,7 +7,7 @@
  *  - Hands-free reads the eyes: a control is pressed by looking at it, with the head still (eyes-only navigation).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, type Win } from './helpers.js';
+import { enterXR, frames, lookWithEyes, pinch, restHands, type Win } from './helpers.js';
 
 const GLASSES_VIEW = { halfWidthDeg: 29, upDeg: 19.9, downDeg: 34.1 };
 
@@ -25,16 +25,7 @@ async function enterGlasses(page: Page, query = ''): Promise<string[]> {
   const errors = await enterXR(page, `&glasses${query}`);
   await page.waitForFunction(() => (window as Win).__workspace.state.view?.halfWidthDeg < 40, null, { timeout: 10_000 });
   await frames(page, 5);
-  // Hands at rest in the lap, rays toward the floor: the eyes do the aiming.
-  await page.evaluate(() => {
-    const device = (window as Win).__xrDevice;
-    for (const [side, x] of [['left', -0.2], ['right', 0.2]] as const) {
-      const hand = device.hands[side];
-      hand.position.set(x, 0.95, -0.25);
-      hand.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2); // pointing down
-    }
-  });
-  await frames(page, 5);
+  await restHands(page); // the eyes do the aiming
   return errors;
 }
 
@@ -63,35 +54,6 @@ function angularBox(page: Page, name: string) {
     }
     return box;
   }, name);
-}
-
-/** Turns the emulated eyes (not the head) toward the centre of a named element. */
-async function lookWithEyes(page: Page, name: string): Promise<void> {
-  await page.evaluate((name) => {
-    const w = (window as Win).__world;
-    const device = (window as Win).__xrDevice;
-    let o: any = null;
-    w.scene.traverse((c: any) => {
-      if (c.name === name) o = c;
-    });
-    if (!o) throw new Error(`no element ${name}`);
-    o.updateWorldMatrix(true, false);
-    w.camera.updateWorldMatrix(true, false);
-    const V = w.camera.position.constructor;
-    const Q = w.camera.quaternion.constructor;
-    // Gaze is viewer-relative: the direction from the eyes, in the head's own frame.
-    const target = new V(0, 0, 0).applyMatrix4(o.matrixWorld).applyMatrix4(w.camera.matrixWorld.clone().invert()).normalize();
-    const q = new Q().setFromUnitVectors(new V(0, 0, -1), target);
-    device.gaze.quaternion.set(q.x, q.y, q.z, q.w);
-  }, name);
-  await frames(page, 12); // the gaze filter settles and the dwell window agrees
-}
-
-async function pinch(page: Page, side: 'left' | 'right' = 'right'): Promise<void> {
-  await page.evaluate((side) => (window as Win).__xrDevice.hands[side].updatePinchValue(1), side);
-  await frames(page, 4);
-  await page.evaluate((side) => (window as Win).__xrDevice.hands[side].updatePinchValue(0), side);
-  await frames(page, 4);
 }
 
 const column = (page: Page, c: number) =>

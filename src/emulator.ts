@@ -18,11 +18,16 @@ export async function maybeInstallEmulator(): Promise<void> {
   const device = new XRDevice(
     glasses ? { ...metaVRGlasses, supportedFeatures: [...metaVRGlasses.supportedFeatures, 'gaze-tracking'] } : metaQuest3,
   );
+  const deg = (radians: number) => (radians * 180) / Math.PI;
   if (glasses) {
     device.primaryInputMode = 'hand';
     const eye = metaVRGlassesVisibilityMask.left;
-    const deg = (radians: number) => (radians * 180) / Math.PI;
     emulateRenderExtent({ left: deg(eye.angleLeft), right: deg(eye.angleRight), up: deg(eye.angleUp), down: deg(eye.angleDown) });
+  } else {
+    // The Quest 3 profile renders 90 degrees vertically, and across as a 4:3 window does. Pinned, so a narrower camera
+    // for framing a video (demo.spec.ts) is never taken for a narrower headset.
+    const half = deg(device.fovy) / 2;
+    emulateRenderExtent({ left: 53.1, right: 53.1, up: half, down: half });
   }
   device.installRuntime({ forceInstall: true });
   const room = params.get('room');
