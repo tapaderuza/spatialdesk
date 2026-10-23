@@ -31,7 +31,7 @@ import { deskPose } from '../workspace/viewer.js';
 import { describeStep, requestPlan, sourceLabel, type AgentPlan, type Intent } from './client.js';
 import { dayText, installDayInput } from './day-input.js';
 import { progress } from '../workspace/progress.js';
-import { dayStartNudge, findNudge, timerContext, type Nudge } from './watcher.js';
+import { dayEndNudge, dayStartNudge, findNudge, timerContext, wrapUpContext, type Nudge } from './watcher.js';
 
 const engine = Workspaces.getInstance();
 const CONFIG = `${import.meta.env.BASE_URL}ui/plan.uikitml`;
@@ -48,6 +48,7 @@ const TITLES: Record<Intent, string> = {
   next_block: 'Next block',
   replan: 'Re-plan',
   regroup: 'Regroup boards',
+  wrap_up: 'Wrap up your day',
 };
 const COLOR = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff', text: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 
@@ -152,6 +153,11 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
 
   apply(): void {
     const plan = this.plan;
+    // A wrapped-up day is remembered with the agent's words, even when nothing needed clearing: tomorrow starts there.
+    if (this.intent === 'wrap_up' && plan?.ok && (this.mode === 'preview' || this.mode === 'suggestion')) {
+      progress.recordWrapUp(plan.summary ?? '');
+      if (plan.steps.length === 0) workspace.notify({ text: 'Day wrapped up. See you tomorrow.', error: false });
+    }
     if ((this.mode !== 'preview' && this.mode !== 'suggestion') || !plan || plan.steps.length === 0) {
       this.close();
       return;
@@ -195,6 +201,11 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.mode = 'log';
     this.show();
     this.render();
+  }
+
+  /** The end of the day, from the button or by voice: the agent names what got done and clears it for tomorrow. */
+  wrapUp(): void {
+    void this.run('wrap_up', '', { context: wrapUpContext(workspace.state, progress.today()) });
   }
 
   /** The user tapped the nudge on the command panel: now the agent may think about it. */
@@ -248,8 +259,10 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
    */
   watch(now: number): Nudge | null {
     if (this.nudge || this.mode !== 'idle') return null;
-    const dayStart = this.seen.has('day-start') ? null : dayStartNudge(workspace.state, progress.previousVisit, progress.day(progress.previousVisit ?? ''), now);
-    const nudge = dayStart ?? findNudge(workspace.state, now, this.seen, this.runningSince);
+    const previous = progress.previousVisit;
+    const dayStart = this.seen.has('day-start') ? null : dayStartNudge(workspace.state, previous, progress.day(previous ?? ''), now, progress.wrapUpOn(previous));
+    const dayEnd = dayEndNudge(workspace.state, progress.today(now), now, progress.wrappedUp(now));
+    const nudge = dayStart ?? findNudge(workspace.state, now, this.seen, this.runningSince) ?? (dayEnd && !this.seen.has(dayEnd.key) ? dayEnd : null);
     if (nudge) {
       this.seen.add(nudge.key);
       this.setNudge(nudge);

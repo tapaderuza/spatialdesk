@@ -16,6 +16,8 @@ interface Saved {
   days: Record<string, Day>;
   lastVisit?: string;
   blocksEver?: number;
+  /** The last day the user wrapped up, and the agent's words for it: tomorrow's plan starts from them. */
+  wrapUp?: { day: string; summary: string };
 }
 
 const KEY = 'spatialdesk.progress';
@@ -104,6 +106,21 @@ export class Progress {
     if (cards <= 0) return;
     this.edit(now).done += cards;
     this.save(now);
+  }
+
+  /** The day is wrapped up (src/agent: "Wrap up"): remembered with the agent's summary for the next morning. */
+  recordWrapUp(summary: string, now = Date.now()): void {
+    this.saved.wrapUp = { day: dayKey(now), summary: summary.slice(0, 200) };
+    this.save(now);
+  }
+
+  wrappedUp(now = Date.now()): boolean {
+    return this.saved.wrapUp?.day === dayKey(now);
+  }
+
+  /** The last wrap-up, if it was on [day]. */
+  wrapUpOn(day: string | null): string | null {
+    return day && this.saved.wrapUp?.day === day ? this.saved.wrapUp.summary : null;
   }
 
   /** "Today: 2 focus blocks, 50 min, 3 done. 4-day streak." */

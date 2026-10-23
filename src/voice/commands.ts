@@ -19,6 +19,7 @@ export type VoiceCommand =
   | { kind: 'log' }
   | { kind: 'exit' }
   | { kind: 'fit' }
+  | { kind: 'wrapup' }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'ask'; text: string };
 
@@ -38,6 +39,12 @@ const PHRASES: [RegExp, VoiceCommand][] = [
   [new RegExp(String.raw`^(?:prioriti[sz]e|sort)(?: (?:my|the) (?:tasks|board|cards|day))?${PLEASE}$`), { kind: 'prioritise' }],
   [new RegExp(String.raw`^(?:exit|leave|quit)(?: (?:the )?(?:workspace|vr))?${PLEASE}$`), { kind: 'exit' }],
   [new RegExp(String.raw`^(?:fit(?: (?:it|everything|the boards))?(?: to)? (?:my |the )?room|put (?:the )?boards on (?:my |the )?walls)${PLEASE}$`), { kind: 'fit' }],
+  [
+    new RegExp(
+      String.raw`^(?:wrap(?: it)? up(?: (?:my|the) day)?|(?:end|finish|close) (?:my|the) day|call it a day|(?:i am |i m |im )?done for (?:today|the day)|(?:termina|terminar|cierra|cerrar) (?:el|mi) dia)${PLEASE}$`,
+    ),
+    { kind: 'wrapup' },
+  ],
 ];
 const SETTINGS: [RegExp, keyof Settings][] = [
   [/^(?:high )?contrast$/, 'highContrast'],

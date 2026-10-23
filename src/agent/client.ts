@@ -5,7 +5,7 @@
 import { activeSession, forgetActiveSession } from '../backend/link.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
 
-export type Intent = 'plan_my_day' | 'prioritise' | 'focus' | 'clear_done' | 'summarise' | 'custom' | 'next_block' | 'replan' | 'regroup';
+export type Intent = 'plan_my_day' | 'prioritise' | 'focus' | 'clear_done' | 'summarise' | 'custom' | 'next_block' | 'replan' | 'regroup' | 'wrap_up';
 
 export interface PlanStep {
   op: Op;

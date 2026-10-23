@@ -5,7 +5,7 @@
  * finished focus block extends the streak.
  */
 import { expect, test } from '@playwright/test';
-import { dayStartNudge } from '../src/agent/watcher.js';
+import { dayEndNudge, dayStartNudge, wrapUpContext } from '../src/agent/watcher.js';
 import type { Workspace } from '../src/workspace/model.js';
 import { dayKey, Progress } from '../src/workspace/progress.js';
 import { openWorkspace, tap, type Win } from './helpers.js';
@@ -113,5 +113,60 @@ test('progress in the browser: yesterday on the command panel, the start-of-day 
   await page.waitForFunction(() => Object.keys(JSON.parse(localStorage.getItem('spatialdesk.progress') ?? '{"days":{}}').days).length === 3, null, { timeout: 15_000 });
   await page.waitForTimeout(200);
   expect(await read('command:day-6', 'backgroundColor')).toBe('#5ee0a0');
+  expect(errors).toEqual([]);
+});
+
+test('end of day: the agent offers to wrap up after a day of focus, and tomorrow starts from its words', () => {
+  const ws = board([['Book flights'], ['Finish the quarterly report'], ['Call the dentist', 'Review the pull requests']]);
+  const today = { blocks: 3, minutes: 75, done: 2 };
+  const evening = new Date(2026, 9, 21, 18, 30).getTime();
+  expect(dayEndNudge(ws, today, NOON, false)).toBeNull(); // the middle of the day: not yet
+  expect(dayEndNudge(ws, { ...today, blocks: 0 }, evening, false)).toBeNull(); // no focus today: nothing to wrap up
+  expect(dayEndNudge(ws, today, evening, true)).toBeNull(); // already wrapped up
+  const nudge = dayEndNudge(ws, today, evening, false)!;
+  expect(nudge.intent).toBe('wrap_up');
+  expect(nudge.text).toBe('Good work today: 3 focus blocks. Tap to wrap up your day.');
+  expect(nudge.key).toBe(`day-end:${dayKey(evening)}`);
+  expect(wrapUpContext(ws, today)).toContain('Finished, in the last columns: "Call the dentist", "Review the pull requests".');
+
+  // The wrap-up is remembered, and the next morning's plan starts from the agent's own words.
+  const storage = memory();
+  const tonight = new Progress(storage, evening);
+  tonight.recordWrapUp('You finished the dentist call and the reviews. Tomorrow starts with the report.', evening);
+  expect(tonight.wrappedUp(evening)).toBe(true);
+  const tomorrow = new Progress(storage, evening + DAY);
+  expect(tomorrow.wrappedUp(evening + DAY)).toBe(false);
+  const start = dayStartNudge(ws, tomorrow.previousVisit, tomorrow.day(tomorrow.previousVisit!), evening + DAY, tomorrow.wrapUpOn(tomorrow.previousVisit))!;
+  expect(start.context).toContain('ended with: You finished the dentist call and the reviews. Tomorrow starts with the report.');
+});
+
+test('wrap up in the browser: the button asks the agent, applying clears the day and remembers it', async ({ page }) => {
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
+  let context = '';
+  await page.route('**/api/agent/plan', async (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.intent).toBe('wrap_up');
+    context = body.context;
+    await route.fulfill({
+      json: {
+        ok: true,
+        summary: 'You finished every action on the starter board. Tomorrow starts with Press Focus 25.',
+        steps: [{ op: { op: 'clear_done', board: 'Getting started' }, why: "Today's work, cleared away" }],
+        source: 'us.amazon.nova-2-lite-v1:0',
+      },
+    });
+  });
+  const errors = await openWorkspace(page);
+  await tap(page, 'command:wrap-button');
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
+  expect(context).toContain('The user is wrapping up the day.');
+  expect(context).toContain('"Every action can be undone"'); // the starter board's Done card, named for the agent
+  await tap(page, 'agent:plan-apply');
+  const done = await page.evaluate(() => {
+    const board = (window as Win).__workspace.state.boards.find((b: any) => b.title === 'Getting started');
+    return board.columns[board.columns.length - 1].cards.length;
+  });
+  expect(done).toBe(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('spatialdesk.progress')!).wrapUp.summary)).toContain('Tomorrow starts with');
   expect(errors).toEqual([]);
 });

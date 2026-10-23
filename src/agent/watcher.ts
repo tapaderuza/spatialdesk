@@ -75,7 +75,7 @@ export function findNudge(ws: Workspace, now: number, seen: ReadonlySet<string>,
  * Back on a new day with work still open: the agent offers to plan today from it, in-progress cards first. Never on a
  * first visit, nor on a second visit the same day ([previousVisit] is null then). [last] is that visit's progress.
  */
-export function dayStartNudge(ws: Workspace, previousVisit: string | null, last: Day, now: number): Nudge | null {
+export function dayStartNudge(ws: Workspace, previousVisit: string | null, last: Day, now: number, wrapUp: string | null = null): Nudge | null {
   if (!previousVisit) return null;
   const inProgress: string[] = [];
   const open: string[] = [];
@@ -92,8 +92,35 @@ export function dayStartNudge(ws: Workspace, previousVisit: string | null, last:
     key: 'day-start',
     text: `Welcome back. ${total} ${total === 1 ? 'task is' : 'tasks are'} still open from ${when}. Tap to plan today.`,
     intent: 'plan_my_day',
-    context: `A new day; last visit ${previousVisit}: ${last.blocks} focus blocks, ${last.done} cards done. Still open: ${named}.`,
+    // The day ended with a wrap-up: its words lead, so the plan picks up where the user left off.
+    context: wrapUp
+      ? `A new day. Last visit (${previousVisit}) ended with: ${wrapUp.slice(0, 110)} Still open: ${named}.`
+      : `A new day; last visit ${previousVisit}: ${last.blocks} focus blocks, ${last.done} cards done. Still open: ${named}.`,
   };
+}
+
+/** From this hour on, a day with focus blocks may be wrapped up (local time). */
+const WIND_DOWN_HOUR = 17;
+
+/**
+ * The end of a working day: after WIND_DOWN_HOUR, with at least one focus block today and the day not wrapped up yet,
+ * the agent offers to wrap it up: what got done is named and cleared away, and tomorrow's first task goes on top.
+ */
+export function dayEndNudge(ws: Workspace, today: Day, now: number, wrappedUp: boolean): Nudge | null {
+  if (wrappedUp || today.blocks === 0 || new Date(now).getHours() < WIND_DOWN_HOUR) return null;
+  return {
+    key: `day-end:${dayKey(now)}`,
+    text: `Good work today: ${today.blocks} focus block${today.blocks === 1 ? '' : 's'}. Tap to wrap up your day.`,
+    intent: 'wrap_up',
+    context: wrapUpContext(ws, today),
+  };
+}
+
+/** What the agent needs to wrap up the day: today's blocks and minutes, and what sits in the last columns now. */
+export function wrapUpContext(ws: Workspace, today: Day): string {
+  const done = ws.boards.flatMap((b) => (b.columns.length > 1 ? b.columns[b.columns.length - 1].cards.map((c) => `"${c.title.slice(0, 30)}"`) : []));
+  const named = done.length ? ` Finished, in the last columns: ${done.slice(0, 4).join(', ')}${done.length > 4 ? ' and more' : ''}.` : '';
+  return `The user is wrapping up the day. Today: ${today.blocks} focus blocks, ${today.minutes} min, ${today.done} cards done.${named}`;
 }
 
 /** When a timer rings: after a break, back to focus; after a focus block, the next block. */

@@ -20,6 +20,9 @@ object Guardrails {
     class Facts(val lines: List<String>, val unfinished: List<Card>)
 
     fun facts(request: PlanRequest, nowMs: Double): Facts {
+        if (request.intent == Intent.WrapUp) {
+            return Facts(listOf("This is the end of the user's day: no timers, no new boards, and the space is not rearranged."), emptyList())
+        }
         if (request.intent != Intent.NextBlock && request.intent != Intent.Replan) return Facts(emptyList(), emptyList())
         val inProgress = request.workspace.boards.flatMap { board ->
             board.columns.drop(1).dropLast(1).flatMap { it.cards }
@@ -47,6 +50,9 @@ object Guardrails {
     fun violation(request: PlanRequest, facts: Facts, steps: List<JsonObject>): String? {
         steps.forEachIndexed { i, step ->
             val op = step.string("op")
+            if (request.intent == Intent.WrapUp && op in WRAP_UP_FORBIDDEN) {
+                return "Step ${i + 1} ($op) breaks a rule: wrapping up the day never starts timers, creates boards or rearranges the space."
+            }
             if (request.intent == Intent.Replan) {
                 if (op == "start_timer" || op == "create_board") return "Step ${i + 1} ($op) breaks a rule: a replan never starts timers or creates boards."
                 if (op == "move_card" && movesToLastColumn(request, step)) return "Step ${i + 1} breaks a rule: a replan never moves cards to the last column."
@@ -75,4 +81,6 @@ object Guardrails {
     private fun Board.hasCard(ref: String) = columns.any { c -> c.cards.any { it.id == ref || it.title.equals(ref, ignoreCase = true) } }
 
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
+
+    private val WRAP_UP_FORBIDDEN = setOf("start_timer", "create_board", "arrange_space", "focus_board")
 }

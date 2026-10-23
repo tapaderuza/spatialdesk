@@ -39,6 +39,9 @@ enum class Intent(val label: String) {
     @SerialName("next_block") NextBlock("next block"),
     @SerialName("replan") Replan("replan"),
     @SerialName("regroup") Regroup("regroup"),
+
+    // The end of the day: what got done is cleared away and tomorrow's first task is on top.
+    @SerialName("wrap_up") WrapUp("wrap up my day"),
 }
 
 @Serializable
@@ -141,7 +144,7 @@ class Planner(
         if (plan.steps.size > MAX_STEPS) return Checked.Invalid("The plan has ${plan.steps.size} steps; use at most $MAX_STEPS.")
         val normalised = Normaliser(request.workspace).normalise(plan.steps)
         if (normalised.isEmpty()) {
-            val maySkip = request.intent == Intent.Summarise || request.intent == Intent.Regroup || request.intent == Intent.Custom
+            val maySkip = request.intent in setOf(Intent.Summarise, Intent.Regroup, Intent.Custom, Intent.WrapUp)
             return if (maySkip && plan.summary.isNotBlank()) Checked.Valid(emptyList())
             else Checked.Invalid("The plan has no steps. Call submit_plan with at least one step.")
         }
@@ -328,7 +331,23 @@ class BuiltInPlanner {
             Intent.NextBlock -> focusOn(focus, skipping = request.context)
             Intent.Replan -> prioritise(focus)
             Intent.Regroup -> ModelPlan("Your boards already have a clear place each; nothing to regroup.", emptyList())
+            Intent.WrapUp -> wrapUp(ws)
         }
+    }
+
+    /** The end of the day: what got done is named, then cleared away; tomorrow starts with the first task in progress. */
+    private fun wrapUp(ws: Workspace): ModelPlan {
+        val done = ws.boards.filter { it.columns.size > 1 }.flatMap { b -> b.columns.last().cards.map { it.title } }
+        val focus = ws.boards.firstOrNull { it.id == ws.focusBoardId }
+        val next = focus?.columns?.getOrNull(1)?.cards?.firstOrNull() ?: focus?.columns?.firstOrNull()?.cards?.firstOrNull()
+        val steps = ws.boards.filter { b -> b.columns.size > 1 && b.columns.last().cards.isNotEmpty() }.map { b ->
+            step("clear_done", "Today's finished work, cleared away") { put("board", b.title) }
+        }
+        val finished = when {
+            done.isEmpty() -> "Nothing reached Done today, and that is fine: tomorrow is a fresh start."
+            else -> "Today you finished " + done.take(3).joinToString { "\"$it\"" } + (if (done.size > 3) " and ${done.size - 3} more" else "") + "."
+        }
+        return ModelPlan(finished + (next?.let { " Tomorrow starts with \"${it.title}\"." } ?: ""), steps)
     }
 
     private fun planDay(ws: Workspace, tasks: List<String>): ModelPlan {

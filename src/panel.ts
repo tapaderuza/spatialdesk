@@ -149,11 +149,7 @@ export class PanelSystem extends createSystem({}) {
       sound: { element: element('sound-button'), base: BUTTON.base, action: () => toggleSetting('sound') },
       voice: { element: element('voice-button'), base: BUTTON.base, action: () => toggleSetting('readAloud') },
       handsfree: { element: element('handsfree-button'), base: BUTTON.base, action: () => this.toggleHandsFree() },
-      clear: {
-        element: element('clear-button'),
-        base: BUTTON.base,
-        action: () => workspace.dispatch({ op: 'clear_done' }, { notice: 'Cleared the last column of every board.' }),
-      },
+      wrap: { element: element('wrap-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.wrapUp() },
       xr: { element: xrButton, base: BUTTON.primary, action: () => launchVR(this.world) },
       room: { element: roomButton, base: BUTTON.primary, action: () => launchRoom(this.world) },
       fit: { element: fitButton, base: BUTTON.primary, action: () => void this.world.getSystem(RoomSystem)?.requestFit() },
@@ -296,6 +292,10 @@ export class PanelSystem extends createSystem({}) {
         return;
       case 'fit':
         this.world.getSystem(RoomSystem)?.requestFit();
+        return;
+      case 'wrapup':
+        tell('Wrapping up your day.');
+        agent?.wrapUp();
         return;
       case 'setting':
         if (command.setting === 'handsFree') this.toggleHandsFree(command.value);

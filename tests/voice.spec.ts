@@ -38,6 +38,9 @@ test('voice grammar: buttons by name, settings on and off, the day, and anything
     text: 'Move the dentist call to the top and give me a short break',
   });
   expect(parseCommand('Sí, vale')).toEqual({ kind: 'apply' });
+  for (const said of ['Wrap up my day.', "I'm done for today", 'Call it a day, please', 'Cierra el día']) expect(parseCommand(said), said).toEqual({ kind: 'wrapup' });
+  expect(parseCommand("Let's call it a day")).toEqual({ kind: 'ask', text: "Let's call it a day" }); // longer: the agent reads it
+  expect(parseCommand('Close')).toEqual({ kind: 'discard' }); // "close" alone still closes the card
   expect(parseCommand('banana')).toBeNull(); // one unknown word: a mishearing, not a request
   expect(parseCommand('  ')).toBeNull();
 });

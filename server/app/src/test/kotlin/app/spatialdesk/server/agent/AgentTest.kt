@@ -176,6 +176,30 @@ class PlannerTest {
     }
 
     @Test
+    fun `wrap up clears the day's done work, names it, and never starts anything`() {
+        val day = (
+            WorkspaceEngine.applyAll(starter, listOf(Op.AddCard("Getting started", "Write the report", column = "Done")), clock.millis().toDouble())
+                as EngineResult.Success
+            ).state
+        val wrap = PlanRequest(Intent.WrapUp, null, day, context = "Today: 3 focus blocks, 75 min, 1 cards done.")
+        // A model that starts a timer at the end of the day is sent back; the second plan passes.
+        val model = Scripted(
+            ModelPlan("Good day.", steps("""[{"op":"clear_done","board":"Getting started","why":"Done"},{"op":"start_timer","minutes":25,"why":"One more"}]""")),
+            ModelPlan("You finished the report. Tomorrow starts with Press Focus 25.", steps("""[{"op":"clear_done","board":"Getting started","why":"Today's work, cleared away"}]""")),
+        )
+        val response = planner(model).plan(wrap)
+        assertTrue(response.ok, response.error)
+        assertEquals(2, response.attempts)
+        assertTrue(model.feedback[1]!!.contains("never starts timers"), model.feedback[1])
+        // Without the AI, the built-in planner wraps up the same way and says what got done and what comes next.
+        val builtIn = BuiltInPlanner().plan(wrap)
+        assertEquals(listOf("clear_done"), builtIn.steps.map { it["op"]!!.jsonPrimitive.content })
+        assertTrue("\"Write the report\"" in builtIn.summary && "Tomorrow starts with \"Press Focus 25\"" in builtIn.summary, builtIn.summary)
+        // A day with nothing done needs no steps, only kind words.
+        assertTrue(planner(Scripted(ModelPlan("A quiet day. Tomorrow starts with Press Focus 25.", emptyList()))).plan(PlanRequest(Intent.WrapUp, null, starter)).ok)
+    }
+
+    @Test
     fun `summarise needs no steps`() {
         val response = planner(Scripted(ModelPlan("Two open cards.", emptyList()))).plan(request(Intent.Summarise, null))
         assertTrue(response.ok)
