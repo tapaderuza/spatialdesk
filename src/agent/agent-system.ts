@@ -52,7 +52,7 @@ const TITLES: Record<Intent, string> = {
 };
 const COLOR = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff', text: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 
-type Mode = 'idle' | 'thinking' | 'preview' | 'suggestion' | 'log' | 'error';
+export type Mode = 'idle' | 'thinking' | 'preview' | 'suggestion' | 'log' | 'error';
 type Element = UIKit.Text;
 type Key = 'apply' | 'discard' | 'undo-0' | 'undo-1' | 'undo-2' | 'undo-3';
 
@@ -112,6 +112,11 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.cleanupFuncs.push(onSettings(() => this.render()));
     this.cleanupFuncs.push(() => this.cleanups.forEach((cleanup) => cleanup()));
     (window as unknown as { __agent: AgentSystem }).__agent = this; // driven by the Playwright tests
+  }
+
+  /** What the agent is doing now, read every frame by the companion (no object built, unlike state). */
+  get phase(): Mode {
+    return this.mode;
   }
 
   get state(): { phase: Mode; plan: AgentPlan | null; nudge: Nudge | null; action: AgentAction | null } {

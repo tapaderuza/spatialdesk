@@ -48,6 +48,12 @@
       "transform": { "position": [0.5, 1.1, -0.5], "rotationDeg": [0, 20, 0] }
     },
     {
+      "id": "focus-companion",
+      "name": "Focus Companion",
+      "content": { "type": "asset", "asset": "focus-companion" },
+      "transform": { "position": [0.46, 1.61, -0.58] }
+    },
+    {
       "id": "command-panel",
       "name": "Command Panel",
       "content": {

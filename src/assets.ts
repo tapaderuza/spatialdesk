@@ -1,5 +1,6 @@
 import { AssetType, defineAssets } from '@iwsdk/core';
 import horizon from './scene-assets/dusk-horizon.scene-asset.js';
+import companion from './scene-assets/focus-companion.scene-asset.js';
 import plant from './scene-assets/focus-plant.scene-asset.js';
 import desk from './scene-assets/studio-desk.scene-asset.js';
 
@@ -17,4 +18,5 @@ export default defineAssets({
   'studio-desk': desk,
   'focus-plant': plant,
   'dusk-horizon': horizon,
+  'focus-companion': companion,
 });
