@@ -12,6 +12,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { frames, lookAt, lookWithEyes, pinch, pressXR, restHands, tap, turnHead, type Win } from './helpers.js';
 
+// The whole file is the recording: skipped before any page (and its video, which needs ffmpeg) is created.
+test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
+
 const target = process.env.E2E_URL;
 const mic = process.env.MIC;
 test.use({
@@ -45,7 +48,6 @@ const online = (page: Page) =>
   page.waitForFunction(() => (window as Win).__link?.kind === 'online' && (window as Win).__agent, null, { timeout: 60_000 });
 
 test('demo: plan my day, work, talk, the agent reacts, explain and undo, hands-free, wrap up, room, glasses (< 3 min)', async ({ page }, testInfo) => {
-  test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
   test.setTimeout(300_000);
   const started = Date.now(); // the video starts with the page, a moment before this
   const beats: { id: string; at: number }[] = [];
