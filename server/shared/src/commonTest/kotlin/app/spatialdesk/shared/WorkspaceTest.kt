@@ -224,6 +224,34 @@ class WorkspaceTest {
     }
 
     @Test
+    fun `set_comfort changes one thing at a time, moves what sits in its slot, and keeps what the user placed`() {
+        val ws = Workspace().run(today, Op.CreateBoard("Ideas"), Op.CreateBoard("Errands"), Op.StartTimer(25.0))
+        val errands = ws.boards.first { it.title == "Errands" }.id
+        val placed = Pose(0.4, 1.2, -0.9, yaw = 0.3)
+        val right = ws.run(Op.SetPose(errands, placed)).run(Op.SetComfort(side = Side.Right))
+        assertEquals(Comfort(side = Side.Right), right.comfort)
+        val a = right.anchor
+        assertEquals(Layout.focus(a, right.view, right.comfort), right.boards.first { it.id == right.focusBoardId }.pose)
+        val ideas = right.boards.first { it.title == "Ideas" }.pose
+        assertTrue((0 until Layout.parkedSlots).any { Layout.parked(a, it, false, right.view, right.comfort) == ideas }, "Ideas moved to the new stack")
+        assertEquals(placed, right.boards.first { it.id == errands }.pose, "where the user put it")
+        assertEquals(Layout.timer(a, 0, right.view, right.comfort), right.timers.single().pose)
+
+        // One thing at a time: what was not said stays.
+        val near = right.run(Op.SetComfort(reach = 0.7))
+        assertEquals(Comfort(reach = 0.7, side = Side.Right), near.comfort)
+        // Out of range, or nothing to change: a clear no the agent can act on.
+        assertTrue("reach goes from 0.5 to 1.8" in near.refuse(Op.SetComfort(reach = 0.2)).error)
+        assertTrue("Say what to change" in near.refuse(Op.SetComfort()).error)
+        // The agent writes it as JSON, and saves from before comfort existed load with the designed layout.
+        val ops = (decodeOps("""{"op":"set_comfort","side":"left","turnDeg":25}""") as ParsedOps.Ok).ops
+        assertEquals(listOf<Op>(Op.SetComfort(side = Side.Left, turnDeg = 25.0)), ops)
+        val old = WorkspaceJson.encodeToString(Workspace.serializer(), ws).replace(Regex(""","comfort":\{[^}]*\}"""), "")
+        assertTrue("comfort" !in old)
+        assertEquals(Comfort(), WorkspaceJson.decodeFromString(Workspace.serializer(), Workspaces.load(old)!!).comfort)
+    }
+
+    @Test
     fun `saves from another schema are discarded, not misread`() {
         val saved = Workspaces.apply(Workspaces.empty(), """{"op":"create_board","title":"Keep"}""", now, null)
         val state = WorkspaceJson.decodeFromString(ApplyResult.serializer(), saved).state!!

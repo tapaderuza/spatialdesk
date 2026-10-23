@@ -129,5 +129,9 @@ export function timerContext(timer: Timer, ws: Workspace): { intent: Intent; con
   if (/^break$/i.test(timer.label.trim())) return { intent: 'focus', context: `The ${minutes}-minute break just finished.` };
   let title = timer.label;
   for (const board of ws.boards) for (const column of board.columns) for (const card of column.cards) if (card.id === timer.cardId) title = card.title;
+  // After a first step the user has started: the agent keeps the momentum instead of suggesting a break.
+  if (/^(?:first step|primer paso)/i.test(timer.label.trim())) {
+    return { intent: 'next_block', context: `The ${minutes}-minute first step "${timer.label}" on "${title}" just finished: the user has started.` };
+  }
   return { intent: 'next_block', context: `The ${minutes}-minute focus timer on "${title}" just finished.` };
 }

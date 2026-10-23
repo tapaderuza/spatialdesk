@@ -225,6 +225,88 @@ class PlannerTest {
     }
 
     @Test
+    fun `adapting the space to the body uses set_comfort only, one need per step, and reads plain words without the AI`() {
+        val now = clock.millis().toDouble()
+        val adapt = PlanRequest(Intent.AdaptSpace, "I can't turn my neck and I only use my right hand", starter)
+        assertTrue("Current comfort" in Prompt.user(adapt, now, Guardrails.facts(adapt, now).lines))
+        // A model that also rearranges the boards is sent back; its slips (a nested comfort, "Right", a reach of 0.3)
+        // are read the safe way.
+        val model = Scripted(
+            ModelPlan("Done.", steps("""[{"op":"set_comfort","turnDeg":25,"why":"No neck turn"},{"op":"arrange_space","layout":"focus","why":"Tidy"}]""")),
+            ModelPlan("Adapted.", steps("""[{"op":"set_comfort","comfort":{"side":"Right"},"why":"Your right side"},{"op":"set_comfort","reach":"0.3","why":"Close"}]""")),
+        )
+        val response = planner(model).plan(adapt)
+        assertTrue(response.ok, response.error)
+        assertEquals(2, response.attempts)
+        assertTrue(model.feedback[1]!!.contains("only uses set_comfort"), model.feedback[1])
+        assertEquals("right", response.steps[0].op["side"]?.jsonPrimitive?.content)
+        assertEquals(0.5, response.steps[1].op["reach"]?.jsonPrimitive?.content?.toDouble())
+        // Comfort never changes in a plan that was not about the body.
+        val sneaky = Scripted(
+            ModelPlan("x", steps("""[{"op":"set_comfort","scale":1.5,"why":"x"}]""")),
+            ModelPlan("y", steps("""[{"op":"start_timer","minutes":25,"why":"y"}]""")),
+        )
+        planner(sneaky).plan(request(Intent.Focus, null))
+        assertTrue(sneaky.feedback[1]!!.contains("only when the user asks about their body"), sneaky.feedback[1])
+        // Without the AI: plain words, English or Spanish, one step per need; words it cannot read get a question.
+        val fields = { plan: ModelPlan -> plan.steps.map { s -> s.filterKeys { it != "op" && it != "why" }.mapValues { it.value.jsonPrimitive.content } } }
+        assertEquals(listOf(mapOf("turnDeg" to "25.0"), mapOf("side" to "right")), fields(BuiltInPlanner().plan(adapt)))
+        assertEquals(listOf(mapOf("scale" to "1.4"), mapOf("reach" to "1.4")), fields(BuiltInPlanner().plan(PlanRequest(Intent.AdaptSpace, "Tengo la vista cansada", starter))))
+        val unclear = planner { _, _, _ -> throw AiUnavailableException("busy") }.plan(PlanRequest(Intent.AdaptSpace, "hmm", starter))
+        assertTrue(unclear.ok && unclear.steps.isEmpty() && "Tell me what is hard" in unclear.summary!!, unclear.summary)
+    }
+
+    @Test
+    fun `help me start - five minutes on the task's first bit, then the momentum is kept instead of a break`() {
+        val now = clock.millis().toDouble()
+        val ws = (
+            WorkspaceEngine.applyAll(
+                Workspace(),
+                listOf(Op.CreateBoard("Today", cards = listOf(NewCard("Write the quarterly report", minutes = 120), NewCard("Call the dentist", column = "Doing", minutes = 10)))),
+                now,
+            ) as EngineResult.Success
+            ).state
+        val start = PlanRequest(Intent.FirstStep, "the report", ws)
+        assertEquals("Write the quarterly report", Guardrails.facts(start, now).start?.title, "the card the user named, not the one in progress")
+        // A model that starts a full pomodoro is sent back; the label always says it is a first step.
+        val model = Scripted(
+            ModelPlan("Go.", steps("""[{"op":"start_timer","minutes":25,"card":"Write the quarterly report","why":"Focus"}]""")),
+            ModelPlan(
+                "Open it and write three headings.",
+                steps(
+                    """[{"op":"move_card","card":"Write the quarterly report","column":"Doing","index":0,"why":"Now in progress"},
+                    {"op":"start_timer","minutes":5,"card":"Write the quarterly report","label":"open the doc, write 3 headings","why":"Just five minutes"}]""",
+                ),
+            ),
+        )
+        val response = planner(model).plan(start)
+        assertTrue(response.ok, response.error)
+        assertTrue(model.feedback[1]!!.contains("a first step is 5 minutes"), model.feedback[1])
+        assertEquals("First step: open the doc, write 3 headings", response.steps[1].op["label"]?.jsonPrimitive?.content)
+        // Without the AI: the same shape.
+        val builtIn = planner { _, _, _ -> throw AiUnavailableException("busy") }.plan(start)
+        assertEquals(listOf("move_card", "start_timer"), builtIn.steps.map { it.op["op"]!!.jsonPrimitive.content })
+        assertTrue(builtIn.steps[1].op["label"]!!.jsonPrimitive.content.startsWith("First step"))
+
+        // When the first step ends the user has started: 25 more minutes, never a break.
+        val started = (WorkspaceEngine.applyAll(ws, listOf(Op.MoveCard("Write the quarterly report", "Doing", index = 0)), now - 5 * 60_000) as EngineResult.Success).state
+        val next = PlanRequest(
+            Intent.NextBlock,
+            null,
+            started,
+            context = "The 5-minute first step \"First step: open the doc\" on \"Write the quarterly report\" just finished: the user has started.",
+        )
+        val momentum = Scripted(
+            ModelPlan("Break.", steps("""[{"op":"start_timer","minutes":5,"label":"Break","why":"Rest"}]""")),
+            ModelPlan("Keep going.", steps("""[{"op":"start_timer","minutes":25,"card":"Write the quarterly report","why":"While you are warm"}]""")),
+        )
+        assertTrue(planner(momentum).plan(next).ok)
+        assertTrue(momentum.feedback[1]!!.contains("keep the momentum"), momentum.feedback[1])
+        val offline = planner { _, _, _ -> throw AiUnavailableException("busy") }.plan(next)
+        assertEquals("25", offline.steps.single().op["minutes"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `summarise needs no steps`() {
         val response = planner(Scripted(ModelPlan("Two open cards.", emptyList()))).plan(request(Intent.Summarise, null))
         assertTrue(response.ok)

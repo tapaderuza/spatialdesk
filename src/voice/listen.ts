@@ -18,11 +18,17 @@ export interface ListenHandlers {
 }
 
 const SAMPLE_RATE = 16_000;
-const MAX_MS = 10_000;
+/**
+ * Patient listening: people who speak slowly, with effort or with pauses (age, a stroke, tiredness) are not cut off.
+ * Talk again ends it at once.
+ */
+const MAX_MS = 20_000;
 /** Once words have been heard, this long without new ones ends the utterance... */
-const PAUSE_MS = 1_200;
-/** ...or this long, when Transcribe has already closed the sentence (its last result was final). */
-const PAUSE_AFTER_FINAL_MS = 600;
+const PAUSE_MS = 1_600;
+/** ...or this long, when Transcribe has already closed a sentence (its last result was final): a breath between two. */
+const PAUSE_AFTER_FINAL_MS = 1_500;
+/** The language Transcribe listens for: ?lang=es-ES on the link when it is not the browser's, else the browser's. */
+const LANGUAGE = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('lang')) || navigator.language;
 /** With nothing heard at all, give up after this long. */
 const NOTHING_MS = 6_000;
 /** After the end of the audio, how long Transcribe gets to send its last words. */
@@ -90,7 +96,7 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
     const grant = await fetch('/api/voice/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session': session },
-      body: JSON.stringify({ language: navigator.language }),
+      body: JSON.stringify({ language: LANGUAGE }),
       signal: AbortSignal.timeout(8_000),
     })
       .then((res) => res.json() as Promise<{ ok: boolean; url?: string; error?: string }>)

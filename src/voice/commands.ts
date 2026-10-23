@@ -20,6 +20,8 @@ export type VoiceCommand =
   | { kind: 'exit' }
   | { kind: 'fit' }
   | { kind: 'wrapup' }
+  | { kind: 'start'; task?: string }
+  | { kind: 'comfort'; text: string }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'ask'; text: string };
 
@@ -54,6 +56,13 @@ const SETTINGS: [RegExp, keyof Settings][] = [
   [/^(?:focus )?(?:dimming|dim|bubble)$/, 'focusDim'],
   [/^(?:focus )?(?:nudges?|reminders?|call ?backs?)$/, 'nudges'],
 ];
+/** "Help me start (the report)": the agent makes the task's first five minutes; the rest names the task. */
+const START = new RegExp(
+  String.raw`^(?:help me (?:get )?start(?:ed)?|start small|(?:a |the )?first step|i can ?t (?:get )?start(?:ed)?|just start|ayudame a empezar|no puedo empezar|primer paso)(?: (?:on|with|for|of|con|de|para))?(?: (.+?))?${PLEASE}$`,
+);
+/** Something about the body, eyes or reach ("I can't turn my neck"): the agent adapts the space instead of planning work. */
+const COMFORT =
+  /\b(?:neck|cuello|my (?:left|right) (?:hand|side|arm)|only (?:use )?(?:my )?(?:left|right)|(?:mano|lado|brazo) (?:izquierd|derech)\w*|can ?t (?:turn|reach|see|move)|no (?:puedo|alcanzo) (?:girar|ver|mover|alcanzar)|eyes? (?:are |is )?(?:tired|hurt|strained)|tired eyes|ojos cansados|vista cansada|fatiga visual|low vision|baja vision|bigger|larger|mas grandes?|closer|mas cerca|further away|farther away|mas lejos|lying (?:down|in bed)|tumbad\w*|en la cama|wheelchair|silla de ruedas|tremor|temblor|back to normal|reset (?:the )?(?:space|layout|comfort))\b/;
 /** "Plan my day:" and the like, in the words as heard (the rest keeps its commas for the planner). */
 const PLAN = /^\s*(?:plan|planifica|organiza)(?:\s+(?:my|mi)\s+(?:day|d[ií]a))?(?=$|[\s:,.-])\s*[:,.-]?\s*/i;
 
@@ -71,6 +80,8 @@ function normalise(said: string): string {
 export function parseCommand(said: string): VoiceCommand | null {
   const text = normalise(said);
   if (!text) return null;
+  const start = START.exec(text);
+  if (start) return start[1] ? { kind: 'start', task: start[1] } : { kind: 'start' };
   for (const [pattern, command] of PHRASES) if (pattern.test(text)) return command;
 
   // "turn high contrast on", "hands free off", "switch off sounds", "read aloud"
@@ -82,6 +93,7 @@ export function parseCommand(said: string): VoiceCommand | null {
     }
   }
 
+  if (COMFORT.test(text)) return { kind: 'comfort', text: said.trim() };
   if (PLAN.test(said)) return { kind: 'plan', text: said.replace(PLAN, '').trim() };
 
   // One unknown word is more likely a mishearing than a request.

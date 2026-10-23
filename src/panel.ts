@@ -129,6 +129,8 @@ export class PanelSystem extends createSystem({}) {
         const before = change.previous?.anchor;
         const after = change.state.anchor;
         if (before && (before.x !== after.x || before.z !== after.z || before.yaw !== after.yaw)) this.placeFrames = 1;
+        // The body's comfort moves the console too (nearer, larger, to one side): on a change, not per frame.
+        if (change.previous && JSON.stringify(change.previous.comfort) !== JSON.stringify(change.state.comfort)) this.placeFrames = 1;
       }),
     );
 
@@ -153,6 +155,7 @@ export class PanelSystem extends createSystem({}) {
       },
       arrange: { element: element('arrange-button'), base: BUTTON.base, action: () => this.bringToMe() },
       focus: { element: element('focus-button'), base: BUTTON.base, action: () => this.focus25() },
+      start: { element: element('start-button'), base: BUTTON.base, action: () => this.startSmall() },
       undo: { element: element('undo-button'), base: BUTTON.base, action: () => workspace.undo() && play('undo') },
       // Settings: each toggle shows its state as its colour (blue = on).
       contrast: { element: element('contrast-button'), base: BUTTON.base, action: () => toggleSetting('highContrast') },
@@ -307,6 +310,13 @@ export class PanelSystem extends createSystem({}) {
         tell('Wrapping up your day.');
         agent?.wrapUp();
         return;
+      case 'start':
+        this.startSmall(command.task);
+        return;
+      case 'comfort':
+        tell('Adapting your space to you.');
+        void agent?.run('comfort', command.text);
+        return;
       case 'setting':
         if (command.setting === 'handsFree') this.toggleHandsFree(command.value);
         else {
@@ -331,6 +341,13 @@ export class PanelSystem extends createSystem({}) {
   }
 
   /** A 25-minute timer (for the picked-up card, if any), and the other boards move out of the way. */
+  /** "Start small": the agent makes the first five minutes of the task named, the card held, or the one in progress. */
+  private startSmall(task?: string): void {
+    const card = heldCard();
+    releaseHeld();
+    this.world.getSystem(AgentSystem)?.firstStep(task ?? card?.title);
+  }
+
   private focus25(): void {
     const card = heldCard();
     releaseHeld();

@@ -50,6 +50,8 @@ const TITLES: Record<Intent, string> = {
   replan: 'Re-plan',
   regroup: 'Regroup boards',
   wrap_up: 'Wrap up your day',
+  comfort: 'Your space, adapted to you',
+  first_step: 'A first step',
 };
 const COLOR = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff', text: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
 
@@ -209,6 +211,11 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.mode = 'log';
     this.show();
     this.render();
+  }
+
+  /** "Help me start", from the button or by voice: five minutes on the first bit of [task] (else the task in progress). */
+  firstStep(task = ''): void {
+    void this.run('first_step', task);
   }
 
   /** The end of the day, from the button or by voice: the agent names what got done and clears it for tomorrow. */

@@ -1,6 +1,8 @@
 package app.spatialdesk.server.agent
 
 import app.spatialdesk.shared.Board
+import app.spatialdesk.shared.Card
+import app.spatialdesk.shared.Comfort
 import app.spatialdesk.shared.EngineResult
 import app.spatialdesk.shared.Op
 import app.spatialdesk.shared.Pose
@@ -42,6 +44,12 @@ enum class Intent(val label: String) {
 
     // The end of the day: what got done is cleared away and tomorrow's first task is on top.
     @SerialName("wrap_up") WrapUp("wrap up my day"),
+
+    // The space adapted to the user's body and eyes (reach, neck, one side, low vision, tiredness): set_comfort only.
+    @SerialName("comfort") AdaptSpace("adapt my space"),
+
+    // Starting is the hard part: five minutes on the task's first concrete bit, small enough to say yes to.
+    @SerialName("first_step") FirstStep("help me start"),
 }
 
 @Serializable
@@ -143,9 +151,13 @@ class Planner(
     private fun check(request: PlanRequest, plan: ModelPlan, now: Double, facts: Guardrails.Facts): Checked {
         SummaryCheck.violation(request, plan.summary)?.let { return Checked.Invalid(it) }
         if (plan.steps.size > MAX_STEPS) return Checked.Invalid("The plan has ${plan.steps.size} steps; use at most $MAX_STEPS.")
-        val normalised = Normaliser(request.workspace).normalise(plan.steps)
+        val normalised = Normaliser(request.workspace).normalise(plan.steps).let { steps ->
+            if (request.intent == Intent.FirstStep) steps.map { (op, why) -> Guardrails.firstStepLabel(op) to why } else steps
+        }
         if (normalised.isEmpty()) {
-            val maySkip = request.intent in setOf(Intent.Summarise, Intent.Regroup, Intent.Custom, Intent.WrapUp)
+            // Adapting the space needs to understand what is hard first; a first step needs a task to start.
+            val maySkip = request.intent in setOf(Intent.Summarise, Intent.Regroup, Intent.Custom, Intent.WrapUp, Intent.AdaptSpace) ||
+                (request.intent == Intent.FirstStep && facts.start == null)
             return if (maySkip && plan.summary.isNotBlank()) Checked.Valid(emptyList())
             else Checked.Invalid("The plan has no steps. Call submit_plan with at least one step.")
         }
@@ -173,6 +185,7 @@ class Planner(
         /** What the agent may do. Deleting boards, moving panels or dismissing timers stays with the user's hands. */
         val AGENT_OPS = setOf(
             "create_board", "add_card", "update_card", "move_card", "remove_card", "clear_done", "focus_board", "start_timer", "arrange_space",
+            "set_comfort",
         )
     }
 }
@@ -229,8 +242,22 @@ class Normaliser(private val workspace: Workspace) {
                     val minutes = fields["minutes"]?.jsonPrimitive?.doubleOrNull
                     if (minutes == null || minutes < 1 || minutes > 180) fields["minutes"] = JsonPrimitive(25)
                 }
+                "set_comfort" -> comfort(fields)
             }
             JsonObject(fields) to why
+        }
+    }
+
+    /**
+     * A comfort nested under "comfort" is lifted out; numbers written as text become numbers; a side is lower case;
+     * a value past its range is the nearest safe one (the prompt says so: the safe nearest thing).
+     */
+    private fun comfort(fields: MutableMap<String, JsonElement>) {
+        (fields.remove("comfort") as? JsonObject)?.forEach { (k, v) -> fields.putIfAbsent(k, v) }
+        fields["side"]?.jsonPrimitive?.contentOrNull?.let { fields["side"] = JsonPrimitive(it.trim().lowercase()) }
+        for ((key, range) in COMFORT_RANGES) {
+            val value = fields[key]?.jsonPrimitive?.let { it.doubleOrNull ?: it.contentOrNull?.toDoubleOrNull() } ?: continue
+            fields[key] = JsonPrimitive(value.coerceIn(range))
         }
     }
 
@@ -248,6 +275,10 @@ class Normaliser(private val workspace: Workspace) {
         is JsonNull -> false
         is JsonPrimitive -> !isString || content.isNotBlank()
         else -> true
+    }
+
+    private companion object {
+        val COMFORT_RANGES = listOf("reach" to Comfort.REACH, "scale" to Comfort.SCALE, "turnDeg" to Comfort.TURN_DEG, "tiltDeg" to Comfort.TILT_DEG)
     }
 }
 
@@ -285,7 +316,11 @@ object Prompt {
         }
         append("Timers: ").append(timers.ifEmpty { "none" }).append(". ")
         append("Room for ${4 - ws.boards.size} more boards and ${3 - ws.timers.size} more timers.\n")
+        if (ws.comfort != Comfort()) append("Comfort (the space adapted to the user's body): ").append(comfortLine(ws.comfort)).append(".\n")
     }
+
+    fun comfortLine(c: Comfort): String =
+        "reach ${c.reach}, scale ${c.scale}, side ${c.side.name.lowercase()}, turnDeg ${c.turnDeg}, tiltDeg ${c.tiltDeg}"
 
     private fun boardLine(board: Board, focus: Boolean, nowMs: Double?): String {
         val columns = board.columns.mapIndexed { c, column ->
@@ -316,6 +351,12 @@ class BuiltInPlanner {
     fun plan(request: PlanRequest, facts: Guardrails.Facts = Guardrails.Facts(emptyList(), emptyList())): ModelPlan {
         val ws = request.workspace
         val focus = ws.boards.firstOrNull { it.id == ws.focusBoardId }
+        facts.momentum?.let { card ->
+            return ModelPlan(
+                "You have started \"${card.title}\": 25 more minutes on it while you are warm.",
+                listOf(step("start_timer", "Keep going while you are warm") { put("minutes", 25); put("card", card.id) }),
+            )
+        }
         if (request.intent == Intent.NextBlock && facts.unfinished.isNotEmpty()) {
             val card = facts.unfinished.first()
             return ModelPlan(
@@ -333,8 +374,69 @@ class BuiltInPlanner {
             Intent.Replan -> prioritise(focus)
             Intent.Regroup -> ModelPlan("Your boards already have a clear place each; nothing to regroup.", emptyList())
             Intent.WrapUp -> wrapUp(ws)
+            Intent.AdaptSpace -> adapt(request.text)
+            Intent.FirstStep -> firstStep(ws, facts.start)
         }
     }
+
+    /**
+     * What someone says about their body, read by plain words (English and Spanish): one set_comfort per need, each
+     * with its reason. Anything it cannot read gets a question back, never a guess.
+     */
+    private fun adapt(text: String?): ModelPlan {
+        val said = fold(text.orEmpty())
+        fun says(pattern: String) = Regex("\\b(?:$pattern)").containsMatchIn(said)
+        if (says("normal|reset|default|as (?:it was|before|designed)|como antes|por defecto|restablece")) {
+            return ModelPlan(
+                "Back to the layout as designed. Say undo to have your adapted space back.",
+                listOf(
+                    step("set_comfort", "Back to the layout as designed") {
+                        put("reach", 1.0); put("scale", 1.0); put("side", "both"); put("turnDeg", 120.0); put("tiltDeg", 0.0)
+                    },
+                ),
+            )
+        }
+        val eyes = says("eye|ojo|vista|vision|sight|see |read|leer|bigger|larger|grande|tired|cansad|fatig|squint")
+        val near = says("closer|nearer|near me|reach|alcanz|cerca|arm|brazo|tremor|temblor|my hand|mi mano")
+        val steps = buildList {
+            if (says("neck|cuello|turn my head|girar la cabeza|no puedo girar|can ?t turn")) {
+                add(step("set_comfort", "Within 25 degrees: no neck turn needed") { put("turnDeg", 25.0) })
+            }
+            when {
+                says("right (?:hand|side|arm)|on my right|to my right|derech") -> add(step("set_comfort", "Everything on your right, where you work") { put("side", "right") })
+                says("left (?:hand|side|arm)|on my left|to my left|izquierd") -> add(step("set_comfort", "Everything on your left, where you work") { put("side", "left") })
+            }
+            if (eyes) add(step("set_comfort", "Larger panels: text that is easier to read") { put("scale", 1.4) })
+            when {
+                near -> add(step("set_comfort", "Within easy reach of your hand") { put("reach", 0.75) })
+                eyes -> add(step("set_comfort", "Further away: easier on tired eyes") { put("reach", 1.4) })
+            }
+            if (says("lying|in bed|en la cama|tumbad|recost|reclin")) add(step("set_comfort", "Higher, where your eyes rest lying back") { put("tiltDeg", 20.0) })
+            if (says("wheelchair|silla de ruedas|lower|mas abajo")) add(step("set_comfort", "A little lower, an easier reach from a chair") { put("tiltDeg", -10.0) })
+        }
+        if (steps.isEmpty()) {
+            return ModelPlan("Tell me what is hard: turning your head, reaching, seeing, or one side, and I will adapt the space to you.", emptyList())
+        }
+        return ModelPlan("Your space is adapted to you. Say undo for any step, or tell me what else is hard.", steps)
+    }
+
+    /** Five minutes on the task's first bit (in progress first, so the board says what you are doing). */
+    private fun firstStep(ws: Workspace, task: Card?): ModelPlan {
+        task ?: return ModelPlan("There is nothing to start yet: tell me your day first.", emptyList())
+        val board = ws.boards.first { b -> b.columns.any { c -> c.cards.any { it.id == task.id } } }
+        val column = board.columns.indexOfFirst { c -> c.cards.any { it.id == task.id } }
+        val steps = buildList {
+            if (column == 0 && board.columns.size > 2) {
+                add(step("move_card", "Now in progress") { put("card", task.id); put("column", board.columns[1].id); put("index", 0) })
+            }
+            add(step("start_timer", "Five minutes, then see how it feels") { put("minutes", 5); put("card", task.id); put("label", "First step: open it, do the smallest bit") })
+        }
+        return ModelPlan("Start small: five minutes on the first bit of \"${task.title}\", then see how it feels.", steps)
+    }
+
+    /** Lower case, accents folded: "Ayúdame" -> "ayudame". */
+    private fun fold(text: String): String =
+        java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 
     /** The end of the day: what got done is named, then cleared away; tomorrow starts with the first task in progress. */
     private fun wrapUp(ws: Workspace): ModelPlan {

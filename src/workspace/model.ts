@@ -54,6 +54,17 @@ export interface ViewFit {
   downDeg: number;
 }
 
+export type Side = 'both' | 'left' | 'right';
+
+/** How the user's body wants the space (Workspace.kt Comfort), set by the agent's set_comfort; the defaults are as designed. */
+export interface Comfort {
+  reach: number;
+  scale: number;
+  side: Side;
+  turnDeg: number;
+  tiltDeg: number;
+}
+
 export interface Workspace {
   schema: number;
   revision: number;
@@ -63,6 +74,7 @@ export interface Workspace {
   boards: Board[];
   timers: Timer[];
   view: ViewFit;
+  comfort: Comfort;
 }
 
 export interface NewCard {
@@ -90,7 +102,8 @@ export type Op =
   | { op: 'dismiss_timer'; timer: string }
   | { op: 'arrange_space'; layout?: 'desk' | 'focus' }
   | { op: 'set_pose'; id: string; pose: Pose }
-  | { op: 'set_view'; view: ViewFit };
+  | { op: 'set_view'; view: ViewFit }
+  | { op: 'set_comfort'; reach?: number; scale?: number; side?: Side; turnDeg?: number; tiltDeg?: number };
 
 export interface ApplyResult {
   ok: boolean;

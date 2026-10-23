@@ -18,8 +18,8 @@ import { workspace } from '../workspace/store.js';
 import { timerFinishedListeners } from '../workspace/timers.js';
 
 const engine = Workspaces.getInstance();
-/** The desk's centre, ahead of the eyes: its front edge sits right under the focus board's bar. */
-const DESK_AHEAD = 0.74;
+/** The desk's centre beyond the focus board (0.74 m ahead of the eyes as designed): its front edge under the board's bar. */
+const DESK_BEYOND_BOARD = 0.74 - 0.62;
 /** From the focus board's centre to the bottom of its bar, at scale 1 (pinned.ts: half the board, the gap, the bar). */
 const BOARD_TO_BAR_BOTTOM = 0.25 + 0.025 + 0.06;
 /** The plant on the studio desk, in the desk's frame: just right of the board (its half width at scale 1), nearer the user. */
@@ -119,10 +119,11 @@ export class StudioSystem extends createSystem({}) {
       this.state.plantVisible = plant?.visible ?? false;
       return;
     }
+    // Under the focus slot wherever the body wants it: nearer, further, leaning toward one side.
     const slot = JSON.parse(engine.focusSlot(JSON.stringify(workspace.state))) as Pose;
     const top = slot.y - BOARD_TO_BAR_BOTTOM * workspace.panelScale * Math.cos(slot.pitch) - 0.002;
-    const { x, z, yaw } = workspace.state.anchor;
-    const [cx, cz] = [x - Math.sin(yaw) * DESK_AHEAD, z - Math.cos(yaw) * DESK_AHEAD];
+    const yaw = slot.yaw;
+    const [cx, cz] = [slot.x - Math.sin(yaw) * DESK_BEYOND_BOARD, slot.z - Math.cos(yaw) * DESK_BEYOND_BOARD];
     this.desk?.position.set(cx, top, cz);
     this.desk?.rotation.set(0, yaw, 0);
     if (plant) {

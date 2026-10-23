@@ -89,7 +89,7 @@ test('focus bubble: the world beyond arm\'s reach fades during a focus block, ne
     });
     return found ? found.material.uniforms.equatorColor.value.r : null;
   });
-  expect(dome).toBeCloseTo(0.155 * 0.5, 3); // the dusk sky at half its light
+  expect(dome).toBeCloseTo(0.155 * 0.5, 2); // the dusk sky at half its light (its colour passes through 8 bits)
   const id = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
   await page.evaluate((id) => (window as Win).__workspace.dispatch([{ op: 'dismiss_timer', timer: id }, { op: 'start_timer', minutes: 5, label: 'Break' }]), id);
   await page.waitForFunction(() => (window as Win).__bubble.view.strength === 0, null, { timeout: 4_000 }); // a break: the world comes back
@@ -114,7 +114,7 @@ test('a wandering mind: look away during a focus block and the companion calls y
     await page.waitForTimeout(ms);
   };
   await focus();
-  expect((await wander()).watching).toBe(true);
+  await page.waitForFunction(() => (window as Win).__wander.view.watching, null, { timeout: 3_000 }); // from the next frame
 
   // A glance at the timer beside the board is still the work.
   await turnHead(page, 25, 0, 10);

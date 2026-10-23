@@ -72,10 +72,52 @@ data class Timer(
 @Serializable
 data class ViewFit(val halfWidthDeg: Double = 45.0, val upDeg: Double = 40.0, val downDeg: Double = 40.0)
 
+@Serializable
+enum class Side {
+    @SerialName("both") Both,
+    @SerialName("left") Left,
+    @SerialName("right") Right,
+}
+
+/**
+ * How this person's body and eyes want the space, set by the agent when asked ("I can't turn my neck", "only my right
+ * hand", "bigger, my eyes are tired") and kept with the workspace ([Layout] places everything by it):
+ *  - [reach]: how far what you work with sits (the board, its timers, the agent's card, the console); 1 = 62 cm;
+ *  - [scale]: the panels' size, within what the headset's view allows;
+ *  - [side]: the half of the space everything gathers into, the console included;
+ *  - [turnDeg]: how far the user can comfortably turn the head; the eyes reach [Layout]'s 30 degrees beyond it;
+ *  - [tiltDeg]: the whole space higher (+) or lower (-) round the eyes: reclined, in bed, in a wheelchair.
+ * The defaults are the layout as designed.
+ */
+@Serializable
+data class Comfort(
+    val reach: Double = 1.0,
+    val scale: Double = 1.0,
+    val side: Side = Side.Both,
+    val turnDeg: Double = 120.0,
+    val tiltDeg: Double = 0.0,
+) {
+    companion object {
+        val REACH = 0.5..1.8
+        val SCALE = 0.8..1.8
+        val TURN_DEG = 20.0..120.0
+        val TILT_DEG = -25.0..30.0
+
+        /** What is out of range, as a sentence the agent can act on; null when [c] is a body's. */
+        fun problem(c: Comfort): String? = when {
+            !(c.reach.isFinite() && c.reach in REACH) -> "reach goes from 0.5 to 1.8 (1 puts the board 62 cm away)."
+            !(c.scale.isFinite() && c.scale in SCALE) -> "scale goes from 0.8 to 1.8."
+            !(c.turnDeg.isFinite() && c.turnDeg in TURN_DEG) -> "turnDeg goes from 20 to 120 degrees."
+            !(c.tiltDeg.isFinite() && c.tiltDeg in TILT_DEG) -> "tiltDeg goes from -25 to 30 degrees."
+            else -> null
+        }
+    }
+}
+
 /**
  * The whole workspace: small, plain data, replaced (never mutated) by every operation. [anchor] is the user's home
  * pose (eye position and facing); every layout slot is relative to it, so "bring everything to me" just moves it.
- * [view] is the headset's comfortable view the layout fits into.
+ * [view] is the headset's comfortable view the layout fits into, [comfort] the user's body's.
  */
 @Serializable
 data class Workspace(
@@ -87,6 +129,7 @@ data class Workspace(
     val boards: List<Board> = emptyList(),
     val timers: List<Timer> = emptyList(),
     val view: ViewFit = ViewFit(),
+    val comfort: Comfort = Comfort(),
 )
 
 @Serializable
@@ -203,6 +246,20 @@ sealed class Op {
     @Serializable
     @SerialName("set_view")
     data class SetView(val view: ViewFit) : Op()
+
+    /**
+     * Changes what is given of the user's [Comfort] (the agent changes one thing per step, each with its reason and
+     * its own undo): whatever sits in its slot moves to the new slot; a panel the user placed stays where it is.
+     */
+    @Serializable
+    @SerialName("set_comfort")
+    data class SetComfort(
+        val reach: Double? = null,
+        val scale: Double? = null,
+        val side: Side? = null,
+        val turnDeg: Double? = null,
+        val tiltDeg: Double? = null,
+    ) : Op()
 }
 
 val DEFAULT_COLUMNS = listOf("To do", "Doing", "Done")

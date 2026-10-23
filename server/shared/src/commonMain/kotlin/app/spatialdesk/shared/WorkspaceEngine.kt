@@ -65,6 +65,7 @@ object WorkspaceEngine {
             is Op.ArrangeSpace -> arrange(ws, op.layout)
             is Op.SetPose -> setPose(ws, op)
             is Op.SetView -> setView(ws, op.view)
+            is Op.SetComfort -> setComfort(ws, op)
         }
 
         private fun newId(ws: Workspace, prefix: String): Pair<Workspace, String> {
@@ -91,7 +92,7 @@ object WorkspaceEngine {
             if (columns.distinctBy { it.title.lowercase() }.size != columns.size) throw WorkspaceError("Column titles must differ.")
 
             val makeFocus = op.focus ?: (ws.focusBoardId == null)
-            var board = Board(boardId, title, columns, if (makeFocus) Layout.focus(ws.anchor, ws.view) else freeParkedPose(ws, null))
+            var board = Board(boardId, title, columns, if (makeFocus) Layout.focus(ws.anchor, ws.view, ws.comfort) else freeParkedPose(ws, null))
             for (card in op.cards) {
                 val column = card.column?.let { board.column(it) } ?: board.columns.first()
                 val (next, cardId) = newId(ws, "c")
@@ -158,7 +159,7 @@ object WorkspaceEngine {
             // The next board steps into the focus slot, so there is always something within reach.
             val next = rest.firstOrNull() ?: return ws.copy(boards = rest, focusBoardId = null)
             return ws.copy(
-                boards = rest.map { if (it.id == next.id) it.copy(pose = Layout.focus(ws.anchor, ws.view)) else it },
+                boards = rest.map { if (it.id == next.id) it.copy(pose = Layout.focus(ws.anchor, ws.view, ws.comfort)) else it },
                 focusBoardId = next.id,
             )
         }
@@ -169,7 +170,7 @@ object WorkspaceEngine {
             if (previous == boardId) return ws
             val incoming = ws.board(boardId)
             val outgoing = previous?.let { id -> ws.boards.firstOrNull { it.id == id } }
-            val focusPose = outgoing?.pose ?: Layout.focus(ws.anchor, ws.view)
+            val focusPose = outgoing?.pose ?: Layout.focus(ws.anchor, ws.view, ws.comfort)
             return ws.copy(
                 boards = ws.boards.map {
                     when (it.id) {
@@ -218,27 +219,63 @@ object WorkspaceEngine {
             return ws.copy(
                 anchor = anchor,
                 boards = ws.boards.map { b ->
-                    if (b.id == ws.focusBoardId) b.copy(pose = Layout.focus(anchor, ws.view))
-                    else b.copy(pose = Layout.parked(anchor, parked++, far = layout == Arrangement.Focus))
+                    if (b.id == ws.focusBoardId) b.copy(pose = Layout.focus(anchor, ws.view, ws.comfort))
+                    else b.copy(pose = Layout.parked(anchor, parked++, layout == Arrangement.Focus, ws.view, ws.comfort))
                 },
-                timers = ws.timers.mapIndexed { i, t -> t.copy(pose = Layout.timer(anchor, i, ws.view)) },
+                timers = ws.timers.mapIndexed { i, t -> t.copy(pose = Layout.timer(anchor, i, ws.view, ws.comfort)) },
             )
         }
 
-        /** Refits the layout to [view]: the focus board and the timers still in their slots move to the new slots. */
+        /** The headset's view changed: the layout refits to it ([refit]). */
         private fun setView(ws: Workspace, view: ViewFit): Workspace {
             val angles = listOf(view.halfWidthDeg, view.upDeg, view.downDeg)
             if (!angles.all { it.isFinite() && it in 5.0..90.0 }) throw WorkspaceError("That field of view is not a headset's.")
+            return refit(ws, view, ws.comfort)
+        }
+
+        /** What the user's body asks for, merged into their [Comfort]; the layout refits to it ([refit]). */
+        private fun setComfort(ws: Workspace, op: Op.SetComfort): Workspace {
+            if (listOf(op.reach, op.scale, op.side, op.turnDeg, op.tiltDeg).all { it == null }) {
+                throw WorkspaceError("Say what to change: reach, scale, side, turnDeg or tiltDeg.")
+            }
+            val c = ws.comfort
+            val comfort = Comfort(
+                reach = op.reach ?: c.reach,
+                scale = op.scale ?: c.scale,
+                side = op.side ?: c.side,
+                turnDeg = op.turnDeg ?: c.turnDeg,
+                tiltDeg = op.tiltDeg ?: c.tiltDeg,
+            )
+            Comfort.problem(comfort)?.let { throw WorkspaceError("Comfort: $it") }
+            return refit(ws, ws.view, comfort)
+        }
+
+        /**
+         * Refits the layout to [view] and [comfort]: the focus board, the parked boards and the timers still in their
+         * slots move to the new slots; whatever the user placed elsewhere stays there.
+         */
+        private fun refit(ws: Workspace, view: ViewFit, comfort: Comfort): Workspace {
+            val a = ws.anchor
             fun slotted(pose: Pose, slot: Pose) = Layout.distance(pose, slot) < SLOT_TAKEN_M / 3
-            val focusSlot = Layout.focus(ws.anchor, ws.view)
+            fun parkedSlot(pose: Pose): Pair<Int, Boolean>? {
+                for (far in listOf(false, true)) for (i in 0 until Layout.parkedSlots) {
+                    if (slotted(pose, Layout.parked(a, i, far, ws.view, ws.comfort))) return i to far
+                }
+                return null
+            }
+            val focusSlot = Layout.focus(a, ws.view, ws.comfort)
             return ws.copy(
                 view = view,
+                comfort = comfort,
                 boards = ws.boards.map { b ->
-                    if (b.id == ws.focusBoardId && slotted(b.pose, focusSlot)) b.copy(pose = Layout.focus(ws.anchor, view)) else b
+                    when {
+                        b.id == ws.focusBoardId -> if (slotted(b.pose, focusSlot)) b.copy(pose = Layout.focus(a, view, comfort)) else b
+                        else -> parkedSlot(b.pose)?.let { (i, far) -> b.copy(pose = Layout.parked(a, i, far, view, comfort)) } ?: b
+                    }
                 },
                 timers = ws.timers.map { t ->
-                    val slot = (0 until Layout.timerSlots).firstOrNull { slotted(t.pose, Layout.timer(ws.anchor, it, ws.view)) }
-                    if (slot != null) t.copy(pose = Layout.timer(ws.anchor, slot, view)) else t
+                    val slot = (0 until Layout.timerSlots).firstOrNull { slotted(t.pose, Layout.timer(a, it, ws.view, ws.comfort)) }
+                    if (slot != null) t.copy(pose = Layout.timer(a, slot, view, comfort)) else t
                 },
             )
         }
@@ -288,18 +325,18 @@ object WorkspaceEngine {
     private fun freeParkedPose(ws: Workspace, excluding: String?): Pose {
         val others = ws.boards.filter { it.id != excluding }
         val free = (0 until Layout.parkedSlots).firstOrNull { i ->
-            val slot = Layout.parked(ws.anchor, i)
+            val slot = Layout.parked(ws.anchor, i, view = ws.view, comfort = ws.comfort)
             others.none { Layout.distance(it.pose, slot) < SLOT_TAKEN_M }
         }
-        return Layout.parked(ws.anchor, free ?: others.size)
+        return Layout.parked(ws.anchor, free ?: others.size, view = ws.view, comfort = ws.comfort)
     }
 
     private fun freeTimerPose(ws: Workspace): Pose {
         val free = (0 until Layout.timerSlots).firstOrNull { i ->
-            val slot = Layout.timer(ws.anchor, i, ws.view)
+            val slot = Layout.timer(ws.anchor, i, ws.view, ws.comfort)
             ws.timers.none { Layout.distance(it.pose, slot) < SLOT_TAKEN_M / 3 }
         }
-        return Layout.timer(ws.anchor, free ?: ws.timers.size, ws.view)
+        return Layout.timer(ws.anchor, free ?: ws.timers.size, ws.view, ws.comfort)
     }
 
     private const val SLOT_TAKEN_M = 0.3

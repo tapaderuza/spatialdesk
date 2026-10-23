@@ -55,11 +55,12 @@
     <div id="talk-button" class="primary"><div id="talk-label" class="label">Talk</div></div>
   </div>
   <div class="buttons">
+    <div id="start-button" class="btn"><div class="label">Start small</div></div>
     <div id="focus-button" class="btn"><div class="label">Focus 25</div></div>
     <div id="wrap-button" class="btn"><div class="label">Wrap up</div></div>
-    <div id="log-button" class="btn"><div class="label">AI log</div></div>
   </div>
   <div class="buttons">
+    <div id="log-button" class="btn"><div class="label">AI log</div></div>
     <div id="arrange-button" class="btn"><div class="label">Bring to me</div></div>
     <div id="undo-button" class="btn"><div id="undo-label" class="label">Undo</div></div>
   </div>

@@ -2,9 +2,12 @@ package app.spatialdesk.server.agent
 
 import app.spatialdesk.shared.Board
 import app.spatialdesk.shared.Card
+import app.spatialdesk.shared.Comfort
 import app.spatialdesk.shared.Workspace
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -18,9 +21,51 @@ object Guardrails {
     /** A card counts as unfinished while less than this share of its estimate has been spent in progress. */
     private const val FINISHED_SHARE = 0.8
 
-    class Facts(val lines: List<String>, val unfinished: List<Card>)
+    /**
+     * What the prompt states and the plan is checked against: [unfinished] cards may not move to the last column,
+     * [start] is the task a first step is for, [momentum] the task the user has just started with a first step.
+     */
+    class Facts(val lines: List<String>, val unfinished: List<Card>, val start: Card? = null, val momentum: Card? = null)
 
     fun facts(request: PlanRequest, nowMs: Double): Facts {
+        val ws = request.workspace
+        if (request.intent == Intent.AdaptSpace) {
+            val designed = if (ws.comfort == Comfort()) " (the layout as designed)" else ""
+            return Facts(
+                listOf(
+                    "Current comfort: ${Prompt.comfortLine(ws.comfort)}$designed.",
+                    "Adapt the space with set_comfort steps only, one field per step; no other ops.",
+                ),
+                emptyList(),
+            )
+        }
+        if (request.intent == Intent.FirstStep) {
+            val task = StartTask.of(ws, request.text)
+                ?: return Facts(listOf("There is no open task to start: no steps; the summary asks what is on the user's plate today."), emptyList())
+            val board = ws.boards.first { b -> b.columns.any { c -> c.cards.any { it.id == task.id } } }
+            val column = board.columns.indexOfFirst { c -> c.cards.any { it.id == task.id } }
+            val move = if (column == 0 && board.columns.size > 2) "move_card \"${task.title}\" to \"${board.columns[1].title}\" with index 0, then " else ""
+            return Facts(
+                listOf(
+                    "The task to start: \"${task.title}\"${if (column == 0) " (not started)" else " (in progress)"}.",
+                    "A first step: ${move}one start_timer of 5 minutes with card \"${task.title}\" and a label \"First step: \" plus one concrete action that takes under 5 minutes. Nothing else.",
+                ),
+                emptyList(),
+                start = task,
+            )
+        }
+        if (request.intent == Intent.NextBlock && request.context?.contains("first step", ignoreCase = true) == true) {
+            // The point of a first step: once the user has started, a break would throw the start away.
+            val inProgress = ws.boards.flatMap { b -> b.columns.drop(1).dropLast(1).flatMap { it.cards } }
+            val card = inProgress.firstOrNull { request.context.contains(it.title, ignoreCase = true) } ?: inProgress.firstOrNull()
+            if (card != null) {
+                return Facts(
+                    listOf("\"${card.title}\" had a first step: the user has started. Keep the momentum: start_timer 25 with card \"${card.title}\"; no break, and it is not finished (it stays where it is)."),
+                    listOf(card),
+                    momentum = card,
+                )
+            }
+        }
         if (request.intent == Intent.WrapUp) {
             // Measured on 2026-10-23: asked to wrap up, Nova 2 Lite named the card still in progress as finished.
             val day = WrapUpDay.of(request.workspace)
@@ -62,6 +107,25 @@ object Guardrails {
     fun violation(request: PlanRequest, facts: Facts, steps: List<JsonObject>): String? {
         steps.forEachIndexed { i, step ->
             val op = step.string("op")
+            if (request.intent == Intent.AdaptSpace && op != "set_comfort") {
+                return "Step ${i + 1} ($op) breaks a rule: adapting the space to the user's body only uses set_comfort."
+            }
+            if (op == "set_comfort" && request.intent != Intent.AdaptSpace && request.intent != Intent.Custom) {
+                return "Step ${i + 1} (set_comfort) breaks a rule: comfort changes only when the user asks about their body."
+            }
+            if (request.intent == Intent.FirstStep) {
+                if (op != "start_timer" && op != "move_card") {
+                    return "Step ${i + 1} ($op) breaks a rule: a first step only starts a short timer (and may move the task to its in-progress column)."
+                }
+                val minutes = step.double("minutes") ?: 25.0
+                if (op == "start_timer" && minutes > 10) {
+                    return "Step ${i + 1} starts ${minutes.toInt()} minutes: a first step is 5 minutes (10 at most), small enough to say yes to."
+                }
+                if (op == "move_card" && movesToLastColumn(request, step)) return "Step ${i + 1} breaks a rule: a first step never moves the task to the last column."
+            }
+            if (facts.momentum != null && op == "start_timer" && step.string("label")?.trim()?.equals("break", ignoreCase = true) == true) {
+                return "Step ${i + 1} starts a break, but the user has just started \"${facts.momentum.title}\": keep the momentum with start_timer 25 on it."
+            }
             if (request.intent == Intent.WrapUp && op in WRAP_UP_FORBIDDEN) {
                 return "Step ${i + 1} ($op) breaks a rule: wrapping up the day never starts timers, creates boards or rearranges the space."
             }
@@ -76,8 +140,24 @@ object Guardrails {
                 }
             }
         }
+        val start = facts.start
+        if (request.intent == Intent.FirstStep && start != null && steps.count { it.string("op") == "start_timer" } != 1) {
+            return "Start exactly one 5-minute timer on \"${start.title}\"."
+        }
         return null
     }
+
+    /** A first step's timer says so on its label ("First step: ..."): that is how the headset knows when it ends. */
+    fun firstStepLabel(op: JsonObject): JsonObject {
+        if (op.string("op") != "start_timer") return op
+        val label = op.string("label")?.trim().orEmpty()
+        if (FIRST_STEP.containsMatchIn(label)) return op
+        return JsonObject(op + ("label" to JsonPrimitive(if (label.isEmpty()) "First step" else "First step: $label")))
+    }
+
+    private val FIRST_STEP = Regex("^(first step|primer paso)", RegexOption.IGNORE_CASE)
+
+    private fun JsonObject.double(key: String): Double? = this[key]?.jsonPrimitive?.doubleOrNull
 
     /** The target column is the last one of the target board (the board given, or the card's own board). */
     private fun movesToLastColumn(request: PlanRequest, step: JsonObject): Boolean {
@@ -95,6 +175,20 @@ object Guardrails {
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
 
     private val WRAP_UP_FORBIDDEN = setOf("start_timer", "create_board", "arrange_space", "focus_board")
+}
+
+/** The task a first step is for: the open card the user named (most words in common), else the one the day goes on with. */
+object StartTask {
+    fun of(ws: Workspace, text: String?): Card? {
+        val open = ws.boards.flatMap { b -> (if (b.columns.size > 1) b.columns.dropLast(1) else b.columns).flatMap { it.cards } }
+        val said = words(text.orEmpty())
+        if (said.isNotEmpty()) {
+            open.map { it to words(it.title).count { w -> w in said } }.filter { it.second > 0 }.maxByOrNull { it.second }?.let { return it.first }
+        }
+        return WrapUpDay.of(ws).next
+    }
+
+    private fun words(s: String): Set<String> = s.lowercase().split(Regex("""[^\p{L}\p{N}]+""")).filter { it.length >= 4 }.toSet()
 }
 
 /** The day as a wrap-up sees it: what reached a last column, what is still open, and the card tomorrow starts with. */

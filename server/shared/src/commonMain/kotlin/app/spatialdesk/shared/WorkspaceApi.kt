@@ -54,29 +54,32 @@ object Workspaces {
         )
     }
 
-    /** Where the command panel goes for this workspace's anchor (it is scene content, not workspace state). */
+    /** Where the command panel goes for this workspace's anchor, view and comfort (it is scene content, not state). */
     fun commandPose(stateJson: String): String {
-        val anchor = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson).anchor }.getOrDefault(Layout.DEFAULT_ANCHOR)
-        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.command(anchor))
+        val ws = read(stateJson)
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.command(ws.anchor, ws.view, ws.comfort))
     }
 
     /** The focus board's slot for this workspace's anchor and view: where the studio desk stands it (src/studio). */
     fun focusSlot(stateJson: String): String {
-        val ws = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())
-        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.focus(ws.anchor, ws.view))
+        val ws = read(stateJson)
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.focus(ws.anchor, ws.view, ws.comfort))
     }
 
     /** Where the agent's plan preview goes for this workspace's anchor and view. */
     fun previewPose(stateJson: String): String {
-        val ws = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())
-        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.preview(ws.anchor, ws.view))
+        val ws = read(stateJson)
+        return WorkspaceJson.encodeToString(Pose.serializer(), Layout.preview(ws.anchor, ws.view, ws.comfort))
     }
 
-    /** The scale every panel is drawn at, so the essential ones fit this workspace's view (1 on a Quest). */
+    /** The scale every panel is drawn at: the user's comfort, as far as this workspace's view allows (1 on a Quest). */
     fun panelScale(stateJson: String): Double {
-        val view = runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson).view }.getOrDefault(ViewFit())
-        return Layout.scale(view)
+        val ws = read(stateJson)
+        return Layout.scale(ws.view, ws.comfort)
     }
+
+    private fun read(stateJson: String): Workspace =
+        runCatching { WorkspaceJson.decodeFromString(Workspace.serializer(), stateJson) }.getOrDefault(Workspace())
 
     private fun encode(ws: Workspace): String = WorkspaceJson.encodeToString(Workspace.serializer(), ws)
 

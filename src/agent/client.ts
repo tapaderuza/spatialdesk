@@ -5,7 +5,19 @@
 import { activeSession, forgetActiveSession } from '../backend/link.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
 
-export type Intent = 'plan_my_day' | 'prioritise' | 'focus' | 'clear_done' | 'summarise' | 'custom' | 'next_block' | 'replan' | 'regroup' | 'wrap_up';
+export type Intent =
+  | 'plan_my_day'
+  | 'prioritise'
+  | 'focus'
+  | 'clear_done'
+  | 'summarise'
+  | 'custom'
+  | 'next_block'
+  | 'replan'
+  | 'regroup'
+  | 'wrap_up'
+  | 'comfort'
+  | 'first_step';
 
 export interface PlanStep {
   op: Op;
@@ -112,6 +124,18 @@ export function describeStep(op: Op, workspace: Workspace): string {
     case 'focus_board': return `Bring "${board(op.board)}" within reach`;
     case 'start_timer': return `${op.minutes}-minute timer${op.card ? ` on "${card(op.card)}"` : op.label ? ` "${op.label}"` : ''}`;
     case 'arrange_space': return op.layout === 'focus' ? 'Focus mode: other boards step back' : 'Everything back in its place';
+    case 'set_comfort': return comfortStep(op);
     default: return op.op.replace(/_/g, ' ');
   }
+}
+
+/** One comfort change, as the user will notice it. */
+function comfortStep(op: Extract<Op, { op: 'set_comfort' }>): string {
+  const parts: string[] = [];
+  if (op.reach != null) parts.push(`board ${Math.round(62 * op.reach)} cm away`);
+  if (op.scale != null) parts.push(`panels at ${Math.round(op.scale * 100)}%`);
+  if (op.side != null) parts.push(op.side === 'both' ? 'both sides' : `everything on your ${op.side}`);
+  if (op.turnDeg != null) parts.push(op.turnDeg >= 120 ? 'turn freely' : `no more than a ${Math.round(op.turnDeg)}° turn`);
+  if (op.tiltDeg != null) parts.push(op.tiltDeg === 0 ? 'level' : `${Math.abs(Math.round(op.tiltDeg))}° ${op.tiltDeg > 0 ? 'higher' : 'lower'}`);
+  return `Comfort: ${parts.join(', ')}`;
 }
