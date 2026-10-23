@@ -6,6 +6,7 @@ import { RoomSystem } from './room/room-system.js';
 import { CompanionSystem } from './studio/companion-system.js';
 import { FocusBubbleSystem } from './studio/focus-bubble.js';
 import { StudioSystem } from './studio/studio-system.js';
+import { WanderSystem } from './studio/wander.js';
 import { GazeSystem } from './ui/gaze.js';
 import { HoverSystem } from './ui/hover.js';
 import { BoardSystem } from './workspace/boards.js';
@@ -27,6 +28,7 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   AgentSystem,
   RoomSystem,
   StudioSystem,
+  WanderSystem, // before the companion, which shows its call in the same frame
   CompanionSystem,
   FocusBubbleSystem,
   PanelSystem,

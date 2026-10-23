@@ -5,6 +5,8 @@
  * on, in VR, in your room and in any view, and says it all without a word:
  *  - idle: a slow breath, looking at you;
  *  - focus: it works with you, its gaze on the board, the time left in the block round its middle;
+ *  - calling: your gaze wandered off the work during a block (src/studio/wander.ts): warmer and brighter, looking at
+ *    you with a gentle bob and a soft call from where it floats; when you look back, a hop and a welcome;
  *  - thinking: a quick shimmer while the agent plans;
  *  - something to say (a plan or a suggestion on the card): brighter, looking at you;
  *  - a break: calm green; a day wrapped up: a sleepy glow;
@@ -14,12 +16,14 @@
 import { Color, createSystem, Object3D, Vector3, type Mesh, type ShaderMaterial } from '@iwsdk/core';
 import { AgentSystem } from '../agent/agent-system.js';
 import { createCompanionMaterial } from '../scene-assets/focus-companion.scene-asset.js';
+import { play } from '../ui/sounds.js';
+import { WanderSystem } from './wander.js';
 import type { Timer } from '../workspace/model.js';
 import { progress } from '../workspace/progress.js';
 import { workspace } from '../workspace/store.js';
 import { timerFinishedListeners } from '../workspace/timers.js';
 
-export type Mood = 'idle' | 'focus' | 'thinking' | 'speaking' | 'break' | 'night';
+export type Mood = 'idle' | 'focus' | 'calling' | 'thinking' | 'speaking' | 'break' | 'night';
 
 interface Look {
   core: Color;
@@ -45,6 +49,7 @@ const look = (core: string, rim: string, pulse: number, speed: number, eye: numb
 const MOODS: Record<Mood, Look> = {
   idle: look('#dce9ff', '#6fa8ff', 0.15, 1 / 6, 0.35, [0, 0.1, 1]),
   focus: look('#fff1d6', '#ffb35c', 0.08, 1 / 8, 0.3, [-0.85, -0.25, 0.45]),
+  calling: look('#fff6dc', '#ffc04d', 0.45, 1, 0.95, [0, 0.1, 1], 1.45),
   thinking: look('#ece4ff', '#8f6bff', 0.35, 1.2, 0.15, [0, 1, 0.3]),
   speaking: look('#f4f8ff', '#7fb6ff', 0.25, 0.8, 0.9, [0, 0.1, 1], 1.15),
   break: look('#e6fff0', '#5ee0a0', 0.2, 1 / 10, 0.3, [0, 0.1, 1]),
@@ -58,6 +63,9 @@ const CELEBRATE_MS = 900;
 /** The plant grows its leaf this long after the chime (studio-system.ts): the companion hops with it. */
 const CELEBRATE_DELAY_MS = 1500;
 const WRAPPED_CHECK_FRAMES = 120;
+/** While calling: a gentle bob (a share of the hop), about one a second. */
+const CALL_BOB = 0.3;
+const CALL_BOB_RATE = 5;
 /** A break timer (as timers.ts names it); matched without trimming, so nothing is allocated per frame. */
 const BREAK = /^\s*break\s*$/i;
 
@@ -65,6 +73,9 @@ export class CompanionSystem extends createSystem({}) {
   private mesh: Mesh | null = null;
   private material: ShaderMaterial | null = null;
   private agent: AgentSystem | null = null;
+  private wander: WanderSystem | null = null;
+  private wasCalling = false;
+  private seenReturns = 0;
   private readonly helper = new Object3D();
   private readonly offset = new Vector3();
   private readonly eye = new Vector3();
@@ -87,6 +98,7 @@ export class CompanionSystem extends createSystem({}) {
       this.mesh.material = this.material;
     }
     this.agent = this.world.getSystem(AgentSystem) ?? null;
+    this.wander = this.world.getSystem(WanderSystem) ?? null;
     this.wrapped = progress.wrappedUp();
     (window as unknown as { __companion: CompanionSystem }).__companion = this;
 
@@ -124,9 +136,22 @@ export class CompanionSystem extends createSystem({}) {
     u.uTime.value = time;
     u.uProgress.value = this.view.progress;
 
+    // A wandering mind: a soft call from where it floats, then a hop and a welcome when the gaze comes back.
+    const calling = mood === 'calling';
+    if (calling !== this.wasCalling) {
+      this.wasCalling = calling;
+      if (calling) play('call', this.mesh!.position);
+    }
+    const returns = this.wander?.view.returns ?? 0;
+    if (returns > this.seenReturns) {
+      this.celebrateAt = performance.now();
+      play('welcome', this.mesh!.position);
+    }
+    this.seenReturns = returns;
+
     const t = (performance.now() - this.celebrateAt) / CELEBRATE_MS;
     const celebrating = t > 0 && t < 1;
-    u.uBounce.value = celebrating ? Math.sin(Math.PI * t) : 0;
+    u.uBounce.value = celebrating ? Math.sin(Math.PI * t) : calling ? CALL_BOB * Math.max(0, Math.sin(time * CALL_BOB_RATE)) : 0;
     u.uFlash.value = celebrating ? 0.6 * (1 - t) : 0;
   }
 
@@ -143,7 +168,7 @@ export class CompanionSystem extends createSystem({}) {
       if (timer.state !== 'running' || timer.endsAtMs == null) continue;
       if (BREAK.test(timer.label)) return 'break';
       this.view.progress = Math.max(0, Math.min(1, (timer.endsAtMs - now) / timer.durationMs));
-      return 'focus';
+      return this.wander?.view.calling ? 'calling' : 'focus';
     }
     return this.wrapped ? 'night' : 'idle';
   }

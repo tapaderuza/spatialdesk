@@ -5,7 +5,7 @@
  * the agent has something for you, calm in a break.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, type Win } from './helpers.js';
+import { enterXR, frames, turnHead, type Win } from './helpers.js';
 
 const view = (page: Page) => page.evaluate(() => ({ ...(window as Win).__companion.view }) as { mood: string; progress: number; visible: boolean });
 
@@ -99,5 +99,60 @@ test('focus bubble: the world beyond arm\'s reach fades during a focus block, ne
   await frames(page, 30);
   expect(await bubble()).toEqual({ strength: 0, active: false, overlay: false, sceneLight: 1 }); // the user turned it off: it stays off
   expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Focus dimming off');
+  expect(errors).toEqual([]);
+});
+
+test('a wandering mind: look away during a focus block and the companion calls you back; looking back counts', async ({ page }) => {
+  test.setTimeout(90_000);
+  // The agent's own suggestion when the block ends never answers here, so the notice line stays the block's.
+  await page.route('**/api/agent/plan', () => new Promise(() => {}));
+  const errors = await enterXR(page, '&fast'); // ?fast: the companion calls after 3 s away instead of 45
+  const wander = () => page.evaluate(() => ({ ...(window as Win).__wander.view }) as { watching: boolean; calling: boolean; returns: number });
+  const focus = () => page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'start_timer', minutes: 25, label: 'Write the report' }));
+  const awayFor = async (ms: number) => {
+    await turnHead(page, 100, 0, 10); // out of the window
+    await page.waitForTimeout(ms);
+  };
+  await focus();
+  expect((await wander()).watching).toBe(true);
+
+  // A glance at the timer beside the board is still the work.
+  await turnHead(page, 25, 0, 10);
+  await page.waitForTimeout(3_800);
+  expect((await wander()).calling).toBe(false);
+
+  // Looking away: the companion calls; looking back: it welcomes you, and the block counts it.
+  await turnHead(page, 100, 0, 10);
+  await page.waitForFunction(() => (window as Win).__wander.view.calling, null, { timeout: 6_000 });
+  expect((await view(page)).mood).toBe('calling');
+  await turnHead(page, 0, 0, 10);
+  await page.waitForFunction(() => (window as Win).__wander.view.returns === 1, null, { timeout: 3_000 });
+  expect((await wander()).calling).toBe(false);
+  expect((await view(page)).mood).toBe('focus');
+
+  // A break is not work: looking away calls nothing.
+  const id = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
+  await page.evaluate((id) => (window as Win).__workspace.dispatch([{ op: 'dismiss_timer', timer: id }, { op: 'start_timer', minutes: 5, label: 'Break' }]), id);
+  await awayFor(4_000);
+  expect(await wander()).toEqual({ watching: false, calling: false, returns: 0 });
+
+  // "Nudges off": the user decides; nothing calls.
+  await turnHead(page, 0, 0, 10);
+  await page.evaluate(() => (window as Win).__voice.say('Nudges off'));
+  expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('Nudges off');
+  const breakId = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
+  await page.evaluate((id) => (window as Win).__workspace.dispatch({ op: 'dismiss_timer', timer: id }), breakId);
+  await focus();
+  await awayFor(4_000);
+  expect((await wander()).calling).toBe(false);
+
+  // On again: one wander, one comeback, and the block says so when it ends.
+  await turnHead(page, 0, 0, 10);
+  await page.evaluate(() => (window as Win).__voice.say('Nudges on'));
+  await turnHead(page, 100, 0, 10);
+  await page.waitForFunction(() => (window as Win).__wander.view.calling, null, { timeout: 6_000 });
+  await turnHead(page, 0, 0, 10);
+  await page.waitForFunction(() => (window as Win).__wander.view.returns === 1, null, { timeout: 3_000 });
+  await page.waitForFunction(() => /You came back to it once/.test((window as Win).__notice.text), null, { timeout: 30_000 });
   expect(errors).toEqual([]);
 });

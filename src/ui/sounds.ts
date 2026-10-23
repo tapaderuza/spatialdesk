@@ -36,7 +36,7 @@ export function audioContext(): AudioContext | null {
   return context;
 }
 
-export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen' | 'grow';
+export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen' | 'grow' | 'call' | 'welcome';
 
 // The scale (Hz): C major pentatonic over three octaves.
 const C4 = 261.63, D4 = 293.66, C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880;
@@ -54,6 +54,9 @@ const CUES: Record<Sound, readonly Note[]> = {
   nudge: [[E6, 0, 0.14, 0.06], [G6, 0.11, 0.22, 0.06]],
   listen: [[C5, 0, 0.1, 0.07], [G5, 0.07, 0.18, 0.07]],
   grow: [[C6, 0, 0.5, 0.06], [E6, 0.18, 0.5, 0.06], [G6, 0.36, 0.7, 0.06], [A6, 0.6, 0.9, 0.04]],
+  // The companion calling you back to the work (a soft question), and welcoming you when you look back.
+  call: [[A5, 0, 0.25, 0.06], [E6, 0.2, 0.45, 0.05]],
+  welcome: [[E5, 0, 0.12, 0.06], [G5, 0.08, 0.14, 0.06], [C6, 0.16, 0.4, 0.06]],
 };
 /** The timer's alarm: an arpeggio, twice. */
 const ALARM: readonly Note[] = [0, 1.15].flatMap((t) => [[C5, t, 0.6, 0.2], [E5, t + 0.18, 0.6, 0.2], [G5, t + 0.36, 0.6, 0.2], [C6, t + 0.54, 0.9, 0.18]] as Note[]);

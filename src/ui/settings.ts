@@ -12,10 +12,12 @@ export interface Settings {
   handsFree: boolean;
   /** During a focus block, everything beyond arm's reach fades (src/studio/focus-bubble.ts). */
   focusDim: boolean;
+  /** During a focus block, the companion calls you back when the gaze has wandered off the work (src/studio/wander.ts). */
+  nudges: boolean;
 }
 
 const KEY = 'spatialdesk.settings';
-const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false, handsFree: false, focusDim: true };
+const DEFAULTS: Settings = { highContrast: false, sound: true, readAloud: false, handsFree: false, focusDim: true, nudges: true };
 
 function load(): Settings {
   let loaded: Settings;

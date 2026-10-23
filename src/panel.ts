@@ -29,7 +29,7 @@ const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
 const COACH_BORDER = '#f2b84b';
 // The seven-day strip: a focused day is green with a dark "+" (shape as well as colour), today has a light outline.
 const DAY = { focused: '#5ee0a0', empty: '#2a313b', today: '#eef1f5' } as const;
-const SETTING_NAMES: Record<keyof Settings, string> = { highContrast: 'High contrast', sound: 'Sound', readAloud: 'Read aloud', handsFree: 'Hands-free', focusDim: 'Focus dimming' };
+const SETTING_NAMES: Record<keyof Settings, string> = { highContrast: 'High contrast', sound: 'Sound', readAloud: 'Read aloud', handsFree: 'Hands-free', focusDim: 'Focus dimming', nudges: 'Nudges' };
 let commandHighlight: string | null = null;
 let repaintCommand: (() => void) | null = null;
 
