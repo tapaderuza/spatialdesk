@@ -26,7 +26,8 @@ export class ReachSystem extends createSystem({}) {
   readonly view = { measuring: false, last: null as Reach | null, refused: '' };
 
   init(): void {
-    const material = new MeshBasicMaterial({ color: '#ffb020', depthTest: false, depthWrite: false, toneMapped: false });
+    // Transparent, so it is drawn after the panels and the controllers (see the switch frame), over them.
+    const material = new MeshBasicMaterial({ color: '#ffb020', transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
     const geometry = new SphereGeometry(DOT_RADIUS, 16, 12);
     const dot = (name: string) => {
       const mesh = new Mesh(geometry, material);

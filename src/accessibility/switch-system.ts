@@ -66,7 +66,8 @@ export class SwitchSystem extends createSystem({}) {
   init(): void {
     this.corners = new BufferAttribute(new Float32Array(8 * 3), 3);
     const geometry = new BufferGeometry().setAttribute('position', this.corners).setIndex(OUTLINE_INDEX);
-    const material = new MeshBasicMaterial({ color: OUTLINE_COLOUR, side: DoubleSide, depthTest: false, depthWrite: false, toneMapped: false });
+    // Transparent, like the panels (UIKit draws in the transparent pass): an opaque frame is drawn first and painted over.
+    const material = new MeshBasicMaterial({ color: OUTLINE_COLOUR, side: DoubleSide, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
     const mesh = new Mesh(geometry, material);
     mesh.name = 'switch-outline';
     mesh.renderOrder = 999; // over the panel, under the gaze ring
