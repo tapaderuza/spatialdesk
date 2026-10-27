@@ -6,7 +6,11 @@ export function fingerprint(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
-export const markerColour = (index) => [48 + 64 * (index % 4), 48 + 64 * Math.floor(index / 4), 208];
+/**
+ * Four reds by four greens on a blue of 208 for beats 0 to 15, the same grid on a blue of 80 for beats 16 to 31: every
+ * colour stays at least 64 levels from every other, beyond what VP8 shifts (about 20 to 30).
+ */
+export const markerColour = (index) => [48 + 64 * (index % 4), 48 + 64 * (Math.floor(index / 4) % 4), index < 16 ? 208 : 80];
 
 /** Match the recorder's actual frame clock, which can start before Playwright begins the test. */
 export function calibrateRecording(marks, rgb, fps = 10) {
