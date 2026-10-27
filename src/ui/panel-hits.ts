@@ -44,6 +44,8 @@ export interface GazeTarget {
   isShown(): boolean;
   visibleKeys(out: string[]): string[];
   setScanHover(key: string | null): void;
+  /** A shown control's world matrix (it maps the unit square onto the control) into [out]; false when hidden. */
+  matrixOf(key: string, out: Matrix4): boolean;
 }
 
 /** Which panel this is and whether it takes over while shown (the agent's card): for one-switch scanning. */
@@ -291,6 +293,16 @@ export class PanelHits<K extends string> {
     out.length = 0;
     for (let i = 0; i < this.controls.length; i++) if (this.controls[i][1].isVisible.value) out.push(this.controls[i][0]);
     return out;
+  }
+
+  matrixOf(key: K, out: Matrix4): boolean {
+    const i = this.indexOf(key);
+    if (i < 0 || !this.isShown()) return false;
+    const element = this.controls[i][1];
+    if (!element.isVisible.value) return false;
+    element.updateWorldMatrix(true, false);
+    out.copy(element.matrixWorld);
+    return true;
   }
 
   private setHover(pointerId: number, key: K | null): void {

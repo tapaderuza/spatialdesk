@@ -11,7 +11,8 @@ import { enterXR, openWorkspace, pressXR, screenPoint, type Win } from './helper
 const fastScan = (page: Page) =>
   page.addInitScript(() => localStorage.setItem('spatialdesk.access-preferences', JSON.stringify({ scanIntervalMs: 600 })));
 
-const lit = (page: Page) => page.evaluate(() => ({ ...(window as Win).__switch.view }) as { enabled: boolean; surface: string; highlighted: string | null });
+const lit = (page: Page) =>
+  page.evaluate(() => ({ ...(window as Win).__switch.view }) as { enabled: boolean; surface: string; highlighted: string | null; outlined: boolean });
 const settingsNow = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('spatialdesk.settings') ?? '{}'));
 /** A first visit opens the guided start, modal: one switch skips it too (light Skip, choose it). */
 async function skipGuide(page: Page, press: () => Promise<void>): Promise<void> {
@@ -36,9 +37,25 @@ test('one switch on a screen: the space bar walks the console and picks the cont
   await page.waitForTimeout(300);
   expect((await settingsNow(page)).sound ?? true).toBe(true);
 
-  // The first press starts the scan; the next press, when Contrast is lit, chooses it.
+  // The first press starts the scan, and whichever control is lit is framed in amber, around it and just in front.
   await page.keyboard.press('Space');
   expect((await lit(page)).highlighted).not.toBeNull();
+  const framed = await page.evaluate(() => {
+    const w = (window as Win).__world;
+    const key = (window as Win).__switch.view.highlighted;
+    let outline: any = null;
+    let control: any = null;
+    w.scene.traverse((o: any) => {
+      if (o.name === 'switch-outline') outline = o;
+      if (o.name === `command:${key}-button` || (!control && o.name.startsWith(`command:${key}`))) control = o;
+    });
+    const V = w.camera.position.constructor;
+    return { visible: outline.visible, offset: outline.getWorldPosition(new V()).distanceTo(control.getWorldPosition(new V())) };
+  });
+  expect(framed.visible).toBe(true);
+  expect(framed.offset).toBeLessThan(0.01);
+
+  // The next press, when Contrast is lit, chooses it.
   await waitLit(page, 'contrast');
   await page.keyboard.press('Space');
   await page.waitForTimeout(300);

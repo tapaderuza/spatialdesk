@@ -236,6 +236,7 @@ test('demo: her companion adapts the space, remembers her choice, supports her d
   // 4b. Other ways in: steady aim for a hand that shakes, then one switch: the buttons light up in turn and a trigger
   // (aimed anywhere) chooses the one lit, here Bring to me. Both off again for the rest of the story.
   await beat('switch');
+  await lookAt(page, 'command:arrange-button', 0, 0, 14); // the whole console in view, so the scan's frame is seen
   await page.evaluate(() => (window as Win).__voice.say('tremor mode on'));
   await pause(page, 1.2);
   await page.evaluate(() => (window as Win).__access.set('scanIntervalMs', 800)); // brisk for the video
@@ -250,6 +251,7 @@ test('demo: her companion adapts the space, remembers her choice, supports her d
   await pause(page, 1);
   await page.evaluate(() => (window as Win).__voice.say('switch mode off'));
   await page.evaluate(() => (window as Win).__voice.say('tremor mode off'));
+  await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   await settle();
 
   // 5. One session at her pace. Clear the earlier demo timer before choosing a new block.
