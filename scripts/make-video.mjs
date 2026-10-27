@@ -124,6 +124,7 @@ const STILLS = [
   ['2-space-adapted', 'apply', 7],
   ['3-plan-preview', 'plan', 5],
   ['4-hands-free', 'handsfree', 3],
+  ['17-one-switch', 'switch', 6.5],
   ['5-session-choice', 'session', 2.5],
   ['6-session-finished', 'session-end', 1.5],
   ['7-work-checkpoint', 'pause', 2.5],

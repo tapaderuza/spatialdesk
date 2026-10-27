@@ -11,7 +11,7 @@
  */
 import { createSystem, VisibilityState } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from '../ui/panel-hits.js';
-import { accessPreferences, onAccessPreferences } from './preferences.js';
+import { accessPreferences, onAccessPreferences, setAccessPreference } from './preferences.js';
 import { SwitchAccess } from './switch-access.js';
 
 const CHECK_EVERY_FRAMES = 15;
@@ -36,6 +36,8 @@ export class SwitchSystem extends createSystem({}) {
   init(): void {
     this.access = new SwitchAccess({ onHighlight: (control) => this.paint(control?.key ?? null) });
     (window as unknown as { __switch: SwitchSystem }).__switch = this;
+    // The recorded demo sets a brisk scan pace, as the user's own preference would.
+    (window as unknown as { __access: { set: typeof setAccessPreference } }).__access = { set: setAccessPreference };
     this.cleanupFuncs.push(
       onAccessPreferences(() => this.sync()),
       this.world.visibilityState.subscribe(() => this.bindSession()),

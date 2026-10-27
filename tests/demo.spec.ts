@@ -233,6 +233,25 @@ test('demo: her companion adapts the space, remembers her choice, supports her d
   await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   await settle();
 
+  // 4b. Other ways in: steady aim for a hand that shakes, then one switch: the buttons light up in turn and a trigger
+  // (aimed anywhere) chooses the one lit, here Bring to me. Both off again for the rest of the story.
+  await beat('switch');
+  await page.evaluate(() => (window as Win).__voice.say('tremor mode on'));
+  await pause(page, 1.2);
+  await page.evaluate(() => (window as Win).__access.set('scanIntervalMs', 800)); // brisk for the video
+  await page.evaluate(() => (window as Win).__voice.say('switch mode on'));
+  await page.waitForFunction(() => (window as Win).__switch.view.surface === 'command', null, { timeout: 5_000 });
+  const arrangedBefore = await page.evaluate(() => (window as Win).__workspace.state.revision as number);
+  await demoPress(page, 'command:plan-button'); // the switch: where the ray points does not matter
+  await page.waitForFunction(() => (window as Win).__switch.view.highlighted === 'arrange', null, { timeout: 20_000 });
+  await demoPress(page, 'command:plan-button');
+  await page.waitForFunction((r) => (window as Win).__workspace.state.revision > r, arrangedBefore, { timeout: 5_000 });
+  expect(await page.evaluate(() => (window as Win).__agent.state.phase)).toBe('idle'); // Plan my day was not pressed
+  await pause(page, 1);
+  await page.evaluate(() => (window as Win).__voice.say('switch mode off'));
+  await page.evaluate(() => (window as Win).__voice.say('tremor mode off'));
+  await settle();
+
   // 5. One session at her pace. Clear the earlier demo timer before choosing a new block.
   await page.evaluate(() => {
     for (const t of (window as Win).__workspace.state.timers) (window as Win).__workspace.dispatch({ op: 'dismiss_timer', timer: t.id });
