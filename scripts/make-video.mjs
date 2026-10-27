@@ -142,7 +142,8 @@ const STILLS = [
 for (const [name, id, offset] of STILLS) {
   const mark = marks.find((m) => m.id === id);
   if (!mark) continue;
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', `${mark.at / 1000 + offset}`, '-i', join(out, 'recording.webm'), '-frames:v', '1', join(galleryDir, `${name}.png`)]);
+  // The beat marker in the corner is hidden as in the edit.
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', `${mark.at / 1000 + offset}`, '-i', join(out, 'recording.webm'), '-vf', 'delogo=x=2:y=2:w=28:h=28', '-frames:v', '1', join(galleryDir, `${name}.png`)]);
 }
 
 // 3. The edit.
