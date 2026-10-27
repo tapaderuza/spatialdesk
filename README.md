@@ -26,6 +26,8 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
   see what the agent does when a focus block ends.
 - **Without hands:** add `?handsfree` to start in hands-free mode, and press *Talk* (by gaze) for voice.
 - **In another language:** voice follows the browser's language; add `?lang=es-ES` (or another) to choose it.
+- **With hands that shake:** add `?steady` (or say "tremor mode on").
+- **With one switch:** add `?switch` and use the space bar, Enter, or any pinch or trigger (or say "switch mode on").
 - **As on Meta VR Glasses:** add `?emulate&glasses`: the glasses' narrower view, eye tracking and hands. Look at a
   card and pinch (hold the left mouse button in IWER's *Gaze + Hands* mode) to pick it up.
 
@@ -39,6 +41,13 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
   the view allows; everything gathers on one side, the console by the hand that works; nothing sits beyond the turn
   your neck allows; the whole space tilts up for a reclined body or down for a chair. Your comfort is kept with the
   workspace, so tomorrow starts adapted; one undo, or "back to normal", takes it back.
+- **Steady aim for hands that shake.** Tremor mode (`?steady`, or "tremor mode on") presses the control you have been
+  aiming at for most of the last half second, not the one under the ray when the pinch jolts it; the highlight follows
+  the same control, so it stops flickering, and a press between controls goes to the nearest one within 1.5 cm.
+- **One switch runs everything.** In switch mode (`?switch`, set up by whoever helps, or "switch mode on") the
+  controls light up one after another, the agent's card alone while it is open, and one press chooses: the space bar
+  or Enter (what USB and Bluetooth switch adapters send), or any pinch or trigger in XR, wherever it points. Whoever
+  can press one thing, or pinch but not aim, can use every control.
 - **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
   link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
@@ -196,6 +205,8 @@ production build:
 | A reason to come back | Streaks that survive the morning, the seven-day strip, and the agent's start-of-day plan from yesterday's open work; the evening wrap-up (server guardrails: no timers, no new boards) and the next morning starting from it; a focus block grows the plant a leaf, a break does not. |
 | Ready for Meta VR Glasses | In IWER's glasses profile: the measured view is 58 x 54 degrees, and every corner of the focus board, its timer and the agent's card lies inside it; a look and a pinch of either hand picks a card up and drops it; hands-free presses a control with the eyes while the head stays still. Engine tests: the Quest layout is exactly as designed, and a view too narrow for anything still gets a readable one. |
 | Holds up in rooms never tested | *Fit room* in all 13 rooms of Meta's Synthetic Environment Module (8 procedural, 5 scanned), the user seated at whatever surface each has: the board stands 3 cm above it at 0.62 m and never through a wall, timers stand on it or hover above the board on a small one, the plant stays inside its outline, boards hang clear of doors and windows. 11 rooms have a desk-height surface; in the other 2 nothing moves onto one. |
+| Steady aim | Synthetic tremor on the command panel's real button grid (a 4-6 Hz sweep, slow drift, sensor noise and the jolt of the pinch; 3,000 presses per strength): with a moderate 3.5 cm tremor, 81.2% of presses land on the intended button without tremor mode and 100% with it; with a strong 5 cm tremor, 59.0% and 100%; no wrong press with it. In the app, a shaky hover on Contrast whose press slips onto Sound turns Sound off without it and Contrast on with it. A model of selection, not a clinical measure. |
+| One switch | On a screen the space bar skips the guided start and chooses a control while a mouse tap presses nothing; in XR a trigger aimed elsewhere chooses the control lit; the agent's card takes over the scan while it is open. |
 | Adapts to the body | Engine tests for nine bodies (a stiff neck, one side only, close by, tired eyes, lying back, and a bad day that combines them) and three postures: nothing overlaps, every parked board stays in sight and in reach of a pinch ray from either shoulder, everything sits within the turn the neck allows, and the default is the layout exactly as designed. Agent tests: comfort plans use set_comfort only, out-of-range values become the safe nearest, plans about anything else may not change comfort, and the built-in planner reads English and Spanish. In the emulator: a spoken request gathers everything on the right with the console by the right hand, and one undo takes it back. |
 | The companion and the bubble | The companion stays beside the board wherever it goes, and its mood follows the work: idle, focus (the time left shrinking), thinking while the agent plans, speaking when a plan arrives, calm in a break. The bubble eases in during a focus block, never in a break, and stays off once turned off by voice; Focus 25 in the room never moves a board. |
 | The studio and its sound | The board's bar rests on the desk (within 1 cm) wherever the workspace goes; the focus ambience follows focus blocks and never plays in a break, a pause or with sounds off. |

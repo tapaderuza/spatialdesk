@@ -7,7 +7,8 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 - **Track:** Productivity. **Division:** New.
 - **Special awards** (judged across all entries, rules section "Special Awards"):
   - Best Accessibility Forward Experience: the space adapts to the body on request (reach, one side, a stiff neck,
-    tired eyes, lying down), every control works by voice and by the eyes alone, patient listening in the user's
+    tired eyes, lying down), steady aim for hands that shake (measured: 59-81% of presses on target without it, 100%
+    with it), one switch runs every control, every control works by voice and by the eyes alone, patient listening in the user's
     language, high contrast, read-aloud; for the mind, a companion that calls you back and a first step of five
     minutes.
   - Best Agentic Interaction: an agent that acts on the space (the user's work and the user's comfort), talks and
@@ -70,6 +71,9 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
    **Then adapt the space to a body:** press **Talk** and say "I can't turn my neck and I only use my right hand,
    bring everything closer". The agent answers with comfort changes, each with its reason; **Apply** brings the board,
    the timers and the console within a small turn, on your right. "Back to normal" (or Undo) restores the layout.
+   **Other ways in:** open https://d2p3027seoreck.cloudfront.net/?fast&steady for **steady aim** (a shaking hand
+   presses what it aimed at), or **?fast&switch** for **one switch** (controls light up in turn; the space bar, Enter,
+   or any pinch or trigger chooses the one lit).
 3. The small light beside the board is your **focus companion**. During a focus block it works with you, the time left
    shown round its middle, and the world beyond arm's reach fades so the board stands out (the **focus bubble**). A
    break brings the world back. Say "dimming off" to turn the fading off.
@@ -175,6 +179,10 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
   the view allows; everything gathers on one side, the console by the hand that works; nothing sits beyond the turn
   your neck allows; the whole space tilts up for a reclined body or down for a chair. Your comfort is kept with the
   workspace, so tomorrow starts adapted; one undo, or "back to normal", takes it back.
+- **Steady aim for hands that shake.** Tremor mode presses the control you have been aiming at for most of the last
+  half second, not the one under the ray when the pinch jolts it; the highlight follows it, so it stops flickering.
+- **One switch runs everything.** In switch mode the controls light up in turn and one press chooses: the space bar
+  or Enter (what switch adapters send), or any pinch or trigger in XR, wherever it points.
 - **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
   link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
@@ -321,6 +329,10 @@ starts on the most important task.
 - **Designing for a field of view we cannot see.** No Meta VR Glasses here, so the app never assumes a device: it
   reads the projection the headset reports, and a test checks every corner of the essential panels against the
   glasses' perceived view in IWER's glasses profile.
+- **Tremor and the jolt of the pinch.** A hand that shakes sweeps the ray across the target, and closing the fingers
+  jolts it again at the very moment of the press. Pressing what was aimed at over the last half second, instead of
+  what is under the ray at that instant, is simple to say and easy to get wrong without allocating per sample; a
+  synthetic tremor model on the real button grid measures it (59-81% without, 100% with, no wrong press).
 - **A layout that bends without breaking.** Moving panels for a body is easy; keeping every rule while doing it is
   not. Nearer panels look larger and pushed the console into the timers; a neck that turns 25 degrees left no room
   for the shelf; raising each panel for someone lying back crowded the side ones together. Each is now a rule of the
@@ -341,6 +353,8 @@ starts on the most important task.
 
 - A spatial workspace that adapts to the body you have today, from a sentence in your own language, with every change
   explained and undoable.
+- Steady aim: with a strong synthetic tremor, presses land on the intended button 59% of the time without it and 100%
+  with it; and one switch can run every control.
 - A body double that needs no camera, no stranger and no booking, and goes wherever the headset goes.
 - An agent you can audit: every action has a reason and its own undo.
 - Every control has four ways in: hands (poke or pinch), look and pinch, voice, and the eyes alone.
