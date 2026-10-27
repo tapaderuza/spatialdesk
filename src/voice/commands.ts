@@ -29,6 +29,7 @@ export type VoiceCommand =
   | { kind: 'open-return' | 'save-return' | 'resume-return' | 'forget-return' }
   | { kind: 'return-note'; text: string }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
+  | { kind: 'steady'; value?: boolean }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -110,6 +111,15 @@ export function parseCommand(said: string): VoiceCommand | null {
     }
   }
 
+  // "tremor mode on", "steady aim off", "my hands shake": the steady aim of src/ui/aim.ts (before body talk, which
+  // would otherwise take "tremor" to the agent).
+  const steady = /^(?:turn |switch )?(on |off )?(?:tremor mode|steady aim|steady mode|modo temblor)( on| off)?$/.exec(text);
+  if (steady) {
+    const value = (steady[1] ?? steady[2])?.trim();
+    return value ? { kind: 'steady', value: value === 'on' } : { kind: 'steady' };
+  }
+  // Said on its own; a longer sentence ("... and I can't turn my neck") goes to the agent, which adapts the space too.
+  if (/^(?:my hands? (?:shake|shakes|tremble)|i have (?:a )?tremor|me tiemblan las manos|tengo temblor)$/.test(text)) return { kind: 'steady', value: true };
   if (COMFORT.test(text)) return { kind: 'comfort', text: said.trim() };
   const sessionChoice = sessionChoiceFromWords(text);
   if (sessionChoice || /^(?:next session|my next session|plan my session|siguiente sesion|mi siguiente sesion|prepara mi sesion)$/.test(text)) return { kind: 'session', text: said.trim(), choice: sessionChoice ?? undefined };

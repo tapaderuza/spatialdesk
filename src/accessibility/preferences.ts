@@ -4,6 +4,8 @@ export interface AccessPreferences {
   readDwellMs: number;
   settleMs: number;
   tremorTolerance: boolean;
+  /** Tremor mode: how much recent aim decides which control a press means (src/ui/aim.ts). */
+  aimWindowMs: number;
   targetGraceMs: number;
   clickCooldownMs: number;
   cuesVolume: number;
@@ -24,7 +26,7 @@ export interface AccessPreferences {
 
 export const DEFAULT_ACCESS_PREFERENCES: Readonly<AccessPreferences> = Object.freeze({
   dwellMs: 1000, readDwellMs: 1600, settleMs: 150,
-  tremorTolerance: false, targetGraceMs: 200, clickCooldownMs: 350,
+  tremorTolerance: false, aimWindowMs: 450, targetGraceMs: 200, clickCooldownMs: 350,
   cuesVolume: 1, ambienceVolume: 1, voiceVolume: 1, speechRate: 1, monoAudio: false,
   listenPauseMs: 1600, listenFinalPauseMs: 1500, listenMaxMs: 20_000,
   switchEnabled: false, scanIntervalMs: 1500, reducedMotion: false, readingScale: 1, captionSize: 1, presentationMode: false,
@@ -35,7 +37,7 @@ type StorageAccess = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 type BooleanPreference = 'tremorTolerance' | 'monoAudio' | 'switchEnabled' | 'reducedMotion' | 'presentationMode';
 const fractional = new Set<keyof AccessPreferences>(['cuesVolume', 'ambienceVolume', 'voiceVolume', 'speechRate', 'readingScale', 'captionSize']);
 const ranges: Record<Exclude<keyof AccessPreferences, BooleanPreference>, readonly [number, number]> = {
-  dwellMs: [400, 5000], readDwellMs: [600, 8000], settleMs: [0, 1500], targetGraceMs: [0, 600], clickCooldownMs: [0, 1500],
+  dwellMs: [400, 5000], readDwellMs: [600, 8000], settleMs: [0, 1500], aimWindowMs: [200, 1200], targetGraceMs: [0, 600], clickCooldownMs: [0, 1500],
   cuesVolume: [0, 1], ambienceVolume: [0, 1], voiceVolume: [0, 1], speechRate: [0.5, 2], listenPauseMs: [800, 6000], listenFinalPauseMs: [800, 6000], listenMaxMs: [10_000, 60_000],
   scanIntervalMs: [600, 6000], readingScale: [0.8, 1.6], captionSize: [0.8, 1.8],
 };
@@ -57,6 +59,8 @@ export function readAccessPreferences(storage?: StorageAccess): AccessPreference
       if (validAccessPreference(key, value)) Object.assign(clean, { [key]: value });
     }
   } catch { /* unavailable storage leaves the current defaults */ }
+  // ?steady: a link that starts in tremor mode, for someone whose hands shake (and for judges to try it).
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('steady')) clean.tremorTolerance = true;
   return clean;
 }
 

@@ -16,6 +16,7 @@ import { timerFinishedListeners } from './workspace/timers.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
 import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js';
 import { parseCommand } from './voice/commands.js';
+import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
 
 const engine = Workspaces.getInstance();
@@ -372,6 +373,12 @@ export class PanelSystem extends createSystem({}) {
         tell('Adapting your space to you.');
         void agent?.run('comfort', command.text);
         return;
+      case 'steady': {
+        const on = command.value ?? !accessPreferences.tremorTolerance;
+        setAccessPreference('tremorTolerance', on);
+        tell(on ? 'Steady aim on: the button you aim at is the one pressed, even if your hand shakes.' : 'Steady aim off.');
+        return;
+      }
       case 'setting':
         if (command.setting === 'handsFree') this.toggleHandsFree(command.value);
         else {

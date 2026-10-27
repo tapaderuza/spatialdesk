@@ -13,6 +13,7 @@
 import { Matrix4, Vector3, type Object3D, type UIKit } from '@iwsdk/core';
 import { play, unlockAudio } from './sounds.js';
 import { accessPreferences } from '../accessibility/preferences.js';
+import { AimTrail, outside, SNAP_METRES } from './aim.js';
 
 type Element = UIKit.Text;
 
@@ -57,6 +58,9 @@ export class PanelHits<K extends string> {
   private rectsAt = -Infinity;
   private lastPressKey: K | null = null;
   private lastPressAt = -Infinity;
+  /** Tremor mode: each pointer's recent aim, and a scratch tally, one slot per control (src/ui/aim.ts). */
+  private readonly trails = new Map<number, AimTrail>();
+  private readonly tally: Float64Array;
 
   /**
    * @param controls most specific first (a card before its column): the first rectangle containing the point wins.
@@ -69,13 +73,31 @@ export class PanelHits<K extends string> {
   ) {
     (root as Element & { intersectChildren?: boolean }).intersectChildren = false;
     this.rects = new Float32Array(controls.length * 4);
+    this.tally = new Float64Array(controls.length);
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
-      const key = this.hit(event.point);
+      const key = accessPreferences.tremorTolerance ? this.steadyHit(event.pointerId ?? 0, event.point) : this.hit(event.point);
       if (key != null) this.press(key);
     };
-    const move = (event: PanelPointerEvent) => this.setHover(event.pointerId ?? 0, this.hit(event.point));
-    const leave = (event: PanelPointerEvent) => this.setHover(event.pointerId ?? 0, null);
+    const move = (event: PanelPointerEvent) => {
+      const pointer = event.pointerId ?? 0;
+      const key = this.hit(event.point);
+      if (!accessPreferences.tremorTolerance) {
+        this.setHover(pointer, key);
+        return;
+      }
+      // Tremor mode: the highlight follows the control aimed at, as the press will.
+      const now = performance.now();
+      const trail = this.trail(pointer);
+      trail.record(now, this.indexOf(key));
+      const aimed = trail.intended(now, accessPreferences.aimWindowMs, this.tally);
+      this.setHover(pointer, aimed >= 0 ? this.controls[aimed][0] : key);
+    };
+    const leave = (event: PanelPointerEvent) => {
+      // A tremor can take the ray off the panel for a moment: that counts as aiming at nothing, not a fresh start.
+      this.trails.get(event.pointerId ?? 0)?.record(performance.now(), -1);
+      this.setHover(event.pointerId ?? 0, null);
+    };
     root.addEventListener('click', click);
     root.addEventListener('pointermove', move);
     root.addEventListener('pointerleave', leave);
@@ -102,6 +124,53 @@ export class PanelHits<K extends string> {
     unlockAudio();
     play('tap', this.positionOf(key));
     this.handlers.click(key);
+  }
+
+  /**
+   * Tremor mode's press: the control aimed at for most of the last moment (the jolt of the pinch does not count),
+   * else the one under the point, else the nearest within a fingertip.
+   */
+  private steadyHit(pointer: number, point: Vector3 | undefined): K | null {
+    const trail = this.trails.get(pointer);
+    if (trail) {
+      const aimed = trail.intended(performance.now(), accessPreferences.aimWindowMs, this.tally);
+      if (aimed >= 0 && this.controls[aimed][1].isVisible.value) return this.controls[aimed][0];
+    }
+    return this.hit(point) ?? this.nearest(point);
+  }
+
+  /** The visible control whose rectangle is nearest a point that is on none, within [SNAP_METRES]. Allocation-free. */
+  private nearest(point: Vector3 | undefined): K | null {
+    if (!point) return null;
+    let best: K | null = null;
+    let bestDistance = SNAP_METRES;
+    for (let i = 0; i < this.controls.length; i++) {
+      const [key, element] = this.controls[i];
+      if (!element.isVisible.value) continue;
+      element.updateWorldMatrix(true, false);
+      this.local.copy(point).applyMatrix4(this.inverse.copy(element.matrixWorld).invert());
+      const e = element.matrixWorld.elements;
+      const width = Math.hypot(e[0], e[1], e[2]);
+      const height = Math.hypot(e[4], e[5], e[6]);
+      const distance = outside(this.local.x * width, this.local.y * height, width, height);
+      if (distance <= bestDistance) {
+        best = key;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
+  private trail(pointer: number): AimTrail {
+    let trail = this.trails.get(pointer);
+    if (!trail) this.trails.set(pointer, (trail = new AimTrail()));
+    return trail;
+  }
+
+  private indexOf(key: K | null): number {
+    if (key == null) return -1;
+    for (let i = 0; i < this.controls.length; i++) if (this.controls[i][0] === key) return i;
+    return -1;
   }
 
   /** Where a control is in the room (a shared scratch vector: read it at once). */
