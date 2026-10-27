@@ -14,6 +14,7 @@ import { createSystem, SceneUnderstandingSystem, SessionMode, VisibilityState, X
 import type { Pose } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
 import { deskPose } from '../workspace/viewer.js';
+import { announceAnchored } from '../ui/anchor-feedback.js';
 import { fitToRoom, invertRigid, isSeat, matrixPose, multiply, poseMatrix, type RoomPlane, type Vec3 } from './fit.js';
 
 const KEY = 'spatialdesk.room';
@@ -226,6 +227,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     if (applied.ok) {
       if (result.plant) this.plantPose = result.plant;
       this.anchorHere(viewer);
+      if (result.desk) announceAnchored('surface'); // the board now stands on a surface: a flash and a faint pulse
     }
   }
 

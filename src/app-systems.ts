@@ -1,5 +1,6 @@
 import type { World } from '@iwsdk/core';
 import { ReachSystem } from './accessibility/reach-system.js';
+import { AnchorFeedbackSystem } from './ui/anchor-feedback.js';
 import { SwitchSystem } from './accessibility/switch-system.js';
 import { AgentSystem } from './agent/agent-system.js';
 import { CoachSystem } from './onboarding/coach.js';
@@ -38,5 +39,6 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   GazeSystem,
   SwitchSystem, // before HoverSystem, which fades the control it lights
   ReachSystem,
+  AnchorFeedbackSystem, // the amber flash and the faint pulse when the space settles on the body or a surface
   HoverSystem,
 ];
