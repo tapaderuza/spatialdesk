@@ -122,8 +122,10 @@ Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under
   This is my mum. On a bad day her neck hurts and she is tired, so she asks SpatialDesk, in her own words and in
   Spanish, to bring everything closer, on her right, with bigger text. Amazon Transcribe hears her, an AI agent (Amazon
   Nova 2 Lite on Amazon Bedrock) answers with changes to her space, each with its reason and its own undo, and the
-  space adapts. Then it plans her day, works hands-free with her eyes alone, turns starting into five minutes, and a
-  small companion calls her back when her mind wanders. In VR, in her real room, and on Meta VR Glasses.
+  space adapts. Her companion asks how it feels, and she saves the setup that works. Then other ways in: her eyes
+  alone, steady aim when her hands shake, one switch for every control, and fit to my reach, where one pinch where her
+  hand is comfortable measures the space for her. A session at her pace, a return point when she has to stop, an AI
+  log with an undo per step, and her own room in mixed reality.
 
   The real app, recorded in Meta's IWER emulator against production; her voice is the real recording, played into
   the browser's microphone. Timers run in seconds in this video (the ?fast option). Voice-over generated locally with
