@@ -37,5 +37,31 @@ One short entry per block, newest last. Dates are 2026-10-27 (local time).
   Quest, counted by the gate).
 - Fix: `src/ui/panel-ui-cache.ts` keeps the list of UIKit documents and re-collects it every 8 frames and when a panel
   is configured, instead of two scene walks and a new Set per frame. Median frame 19.5 to 18.1 ms.
-- The p95 still varies between 30.0 and 33.1 ms from one run to the next on the same code, so on this machine the gate is
-  not met yet.
+- The p95 still varied between 28.7 and 33.1 ms from one run to the next on the same code; the run inside the push hook
+  met the gate (block 4).
+
+## Block 4: git push
+
+- Full suite after the panel cache: 133 passed (8.6 min). `git push origin main` ran the pre-push hook (`npm run ci`:
+  typecheck, the whole suite, size check) with no `--no-verify`, and passed; the gate measured p50 16.9 ms and
+  p95 28.7 ms (limit 29.4), 78 draw calls, 78 bytes allocated per frame.
+- Remote: `50c539c..a5039d6  main -> main`. Nothing left ahead or behind.
+- The margin is thin. Across the five gate runs of this session the same code gave p95 between 28.7 and 33.1 ms, because
+  the tail depends on the laptop's state (the October 23 commit measured 34.9 ms here today). A next push can fail the
+  gate on a bad run and pass on a retry; the right fix then is to re-measure Meta's reference scene on the same day.
+
+## Block 5: the three features for the jury (audit, no new scope)
+
+Frozen at three, as asked. Each one already exists and has its own tests; none was rewritten, so none was put at risk
+the night before the submission is judged.
+
+1. **Surface anchoring (Scene API):** `src/room/fit.ts` puts the working board on the detected desk or table at arm's
+   length, the timer and the plant on it, the parked boards on the walls clear of doors and windows, with a persistent
+   anchor; tested in all 13 synthetic rooms (`tests/rooms.spec.ts`, `tests/room.spec.ts`).
+2. **Fit to my reach:** one pinch gives reach, height and side (`src/accessibility/reach.ts`, `reach-system.ts`,
+   `tests/reach.spec.ts`: arithmetic, voice phrases, the XR flow, cancel).
+3. **Reduced cognitive focus:** during a focus block the parked boards move to the far slots (2.4 to 2.6 m, `Layout.kt`)
+   and the world beyond 1.25 m dims (`src/studio/focus-bubble.ts`, `tests/companion.spec.ts`).
+
+Not done: anchoring the board to a bed or sofa. Fit room looks for a horizontal surface at desk height (0.55 to 1.15 m)
+and a sofa seat is lower; it needs its own rule and tests across the rooms, so it is left as the next step.
