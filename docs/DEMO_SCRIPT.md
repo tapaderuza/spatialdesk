@@ -1,48 +1,101 @@
-# SpatialDesk Command Center: the demo video
+# SpatialDesk: the current accessibility demo
 
-The video is built by one command, with no manual editing:
+The source of truth is [video/narration.json](video/narration.json), performed by
+`tests/demo.spec.ts`. The previous recording starting with `describe` is obsolete.
+Do not combine it with current narration or manually rename its markers.
 
+```powershell
+# Validate a take before any audio, gallery or editing writes.
+$env:VIDEO_DIR='D:\spatialdesk\.video\runs\<take>'
+node scripts/make-video.mjs --check
+
+# Capture again and include the approved opening.
+Remove-Item Env:VIDEO_DIR -ErrorAction SilentlyContinue
+node scripts/make-video.mjs --approved
+
+# Re-edit a verified take.
+$env:VIDEO_DIR='D:\spatialdesk\.video\runs\<take>'
+node scripts/make-video.mjs --edit --approved
 ```
-node scripts/make-video.mjs            # against production; E2E_URL=... for another deployment
-node scripts/make-video.mjs --edit     # re-edit the last recording (after changing cards or captions)
-```
 
-1. **Voice-over:** each line of [video/narration.json](video/narration.json) is spoken by Piper (an open-source voice
-   that runs locally in Docker: no account, no key, no cost). The lines are only re-spoken when the text changes.
-2. **Recording:** `tests/demo.spec.ts` plays the demo in the IWER Quest 3 emulator with the controller ray and the
-   trigger, against the real server and the real AI (it fails if the plan comes from the built-in fallback). Each beat
-   waits until its line has been spoken, so picture and voice stay in sync whatever the AI's latency.
-3. **Edit (ffmpeg):** title card, the recording, end card, the voice laid at each beat, and captions burned in (also
-   written to `.video/captions.srt` for YouTube). The build fails if the cut is 3 minutes or longer.
+New takes go into separate timestamped directories under `.video/runs/`; the old
+recording and approved v3 stay untouched. `VIDEO_DIR` overrides the destination.
+`--edit` and `--check` default to `.video` for compatibility, but reject the old
+capture. Metadata binds video, markers, narration, recording test, input helpers,
+voice files, source speech, voice lengths, app source and planner source with SHA-256. Matching step names
+alone is insufficient.
 
-Output: `.video/spatialdesk-demo.mp4` (1280x720, H.264 + AAC).
+Current takes also carry a small calibration marker during capture. Its colour is decoded from the video's
+frame clock, removed in editing, and used to align every beat. `clockAt` retains the original test clock;
+`at` and `end` are the measured video interval. The preparation gap between visits is excluded from the edit.
 
-## What is real and what is staged
+On this workstation the existing system FFmpeg is also available to Playwright
+in `.video/playwright`. Set `$env:PLAYWRIGHT_BROWSERS_PATH='D:\spatialdesk\.video\playwright'`
+before capturing. On another workstation, install Playwright's recorder with
+`npx playwright install ffmpeg` instead.
 
-- Everything on screen is the production app, driven the way a user would drive it: ray and trigger, head turns
-  toward the panel being tapped.
-- The app runs with `?fast`, the same option judges can use: timers run in seconds instead of minutes, and the
-  narration says so.
-- The emulator's field of view is narrowed to 72° vertical, and the view pitched 6° down, so a 16:9 frame shows
-  roughly what the wearer looks at. At the default 90°, a 16:9 frame is 121° wide and the boards look small.
-- The first guided-start step is skipped; `tests/accessibility.spec.ts` measures it separately.
+The demo keeps the controller at z=0 for console controls and z=0.2 for the near agent card,
+behind its contact zone, so the test exercises the pointing ray consistently.
+The usual helper default remains unchanged for other tests. `tests/demo-input.spec.ts`
+checks that Plan my day receives a real controller click after all four comfort
+changes, including 1.5x scale and 0.8 reach.
 
-## Beats
+The capture defaults to production. Set `E2E_URL` for another deployment.
+Successful recording proves the observed deployed behavior, not that a remote
+server contains every local commit.
+
+## Approved opening
+
+`scripts/render-approved.py` incorporates the treatment from `work/render_v2.py`
+and `work/render_v3.py` in the previous chat. It reuses the first 10.9 seconds of
+`outputs/SpatialDesk-pantalla-v3.mp4`, preserving approved color and bilingual
+subtitles. The mother's actual approved audio continues through 13.7 seconds,
+including her final words over the transition. Her voice is not synthesized.
+
+The 2.8-second perspective transition covers the laptop display from frame one
+with an image from the verified new recording, retaining the approved background
+and final Spanish/English caption. Its mask extends past the lower/right display
+edge so the original reading text cannot peek out beside the inserted picture.
+The new demo follows with its narration,
+captions and end card; its duplicate opening and title are omitted. The other
+narration remains English, as in the approved edit.
+
+It reuses `facelessyt.video.assemble` and `data/music/loop.wav` at gain 0.07:
+
+- Python: `python` with NumPy and Pillow (`FACELESS_PYTHON` override).
+- FacelessYT: `D:/FacelessYT` (`FACELESS_ROOT` override).
+- Approved folder: `C:/Users/Apasp/Documents/Codex/2026-10-23/eres-un-experto-en-hackathon-estamos-2`
+  (`SPATIALDESK_APPROVED_ROOT` override).
+
+Output: `<take>/SpatialDesk-actual-aprobado.mp4`, 1920x1080, 30 fps, H.264/AAC,
+under 180 seconds. `approved/sources.json` records provenance. The approved source
+folder is read-only input; nothing is written back to it.
+
+## Current beats
 
 | Beat | On screen |
 |---|---|
-| describe | The page: the day typed into *Describe your day* |
-| enter | Into the workspace: the board within reach, the rest at the sides |
-| coach | The guided start's first step, then Skip |
-| plan | A glance at the left panel, *Plan my day*; the agent thinks |
-| preview | The plan card: each step with its reason, the model and its latency |
-| apply | *Apply*: the Today board and its focus timer |
-| hands | A card picked up and dropped in *Doing* |
-| timer | The 25-second focus block ends: chime and flash |
-| suggestion | The agent's own suggestion: a break, because the report is not finished |
-| accept | One tap: the break timer starts |
-| log | *AI log*: every action with its reason and its own Undo |
-| undo | One step undone; the notice says what else went with it |
-| contrast | High contrast on |
-| arrange | *Bring to me* |
-| end | End card with the link |
+| enter | Workspace before adaptation |
+| talk | Talk, to request adaptation |
+| say | Mother's Spanish request enters the microphone |
+| heard | Transcription and proposed comfort changes |
+| apply | Workspace comes closer, larger and to her right |
+| dialogue | Live Nova corrects the previous distance in response to her feedback |
+| saved | She explicitly saves five settings in this browser |
+| plan | Agent plans her day |
+| handsfree | Gaze activates controls |
+| session | She chooses time and energy; Nova proposes one bounded block on an existing task |
+| pause | She dictates the next action, explicitly saves it and pauses the same timer |
+| return | A new visit recalls the work checkpoint locally; review and Apply resume the same clock |
+| session-end | Local completion card offers stopping or choosing again; the task stays open |
+| log | Reasons and individual undo actions |
+| recall | A new visit, local restore preview, and approval of the saved setup |
+| room | Fit room and focus in the simulated room |
+| end | End card, authored in editing rather than captured |
+
+Recording uses IWER, IWSDK's browser-based headset emulator, with an active XR
+(immersive) session. See [Testing Your Experience](https://iwsdk.dev/guides/02-testing-experience.html).
+It requires real Bedrock and Transcribe responses and rejects fallback plans.
+Timers use `?fast`: minutes pass as seconds in the demo. This is not physical
+headset evidence. Piper supplies other narration locally in Docker; FFmpeg,
+FFprobe and Edge must be available.

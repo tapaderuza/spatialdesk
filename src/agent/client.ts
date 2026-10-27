@@ -4,6 +4,8 @@
  */
 import { activeSession, forgetActiveSession } from '../backend/link.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
+import type { ConversationTurn } from './conversation.js';
+import type { SessionChoice } from './session-input.js';
 
 export type Intent =
   | 'plan_my_day'
@@ -12,6 +14,8 @@ export type Intent =
   | 'clear_done'
   | 'summarise'
   | 'custom'
+  | 'companion'
+  | 'session'
   | 'next_block'
   | 'replan'
   | 'regroup'
@@ -43,10 +47,10 @@ const OFFLINE: AgentPlan = {
 };
 
 /** [context] says what just happened (a timer ended, a card is running over), for the agent's own suggestions. */
-export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string): Promise<AgentPlan> {
+export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string, conversation: ConversationTurn[] = [], sessionChoice?: SessionChoice): Promise<AgentPlan> {
   const session = await waitForSession(4000);
   if (!session) return OFFLINE;
-  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context });
+  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context, conversation, sessionChoice });
   try {
     let res = await post(session, body);
     if (res.status === 401) {
@@ -93,7 +97,11 @@ function localTime(now = new Date()): string {
 
 /** Where a plan came from, in words. Never blurred: a fallback plan says it was not the AI. */
 export function sourceLabel(source: string | undefined): string {
+  if (source === 'local-accessibility') return 'Your choices';
+  if (source === 'saved-work') return 'Local checkpoint';
   if (!source) return '';
+  if (source === 'saved-setup') return 'Saved by you';
+  if (source === 'session-clock') return 'Session complete';
   if (source === 'built-in') return 'Built-in planner';
   if (source.includes('nova-2-lite')) return 'Amazon Nova 2 Lite';
   if (source.includes('nova')) return 'Amazon Nova';

@@ -18,6 +18,10 @@
   .step-undo { flex-shrink: 0; width: 8; height: 6; align-items: center; justify-content: center; border-radius: 1; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .step-undo-label { font-size: 1.5; font-weight: 700; color: #eef1f5; }
   .note { height: 2.4; font-size: 1.4; color: #f2b84b; }
+  .conversation { display: none; flex-direction: column; justify-content: space-between; height: 18.6; gap: 1; padding-top: 1; padding-bottom: 1; }
+  .said { font-size: 1.6; color: #b9c2cf; height: 4.6; overflow: hidden; }
+  .memory { font-size: 1.5; color: #9cc3ff; height: 4; }
+  .forget { height: 6; align-items: center; justify-content: center; border-radius: 1.4; border-width: 0.3; border-color: #2a313b; background-color: #2a313b; }
   .buttons { flex-direction: row; gap: 1.2; height: 7; }
   .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .primary { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
@@ -28,6 +32,8 @@
   .step:dark { background-color: #000000; }
   .step-why:dark { color: #ffffff; }
   .note:dark { color: #ffd400; }
+  .memory:dark { color: #ffffff; }
+  .said:dark { color: #ffffff; }
   .label:dark { color: #ffffff; }
 </style>
 <div id="plan-root" class="root">
@@ -36,15 +42,44 @@
     <div id="plan-source" class="source">Amazon Nova</div>
   </div>
   <div id="plan-summary" class="summary">Planning...</div>
-  <div class="steps">
+  <div id="plan-steps" class="steps">
     <div id="step-0" class="step"><div class="step-text"><div id="step-0-title" class="step-title">Step</div><div id="step-0-why" class="step-why">Why</div></div><div id="step-0-undo" class="step-undo"><div id="step-0-undo-label" class="step-undo-label">Undo</div></div></div>
     <div id="step-1" class="step"><div class="step-text"><div id="step-1-title" class="step-title">Step</div><div id="step-1-why" class="step-why">Why</div></div><div id="step-1-undo" class="step-undo"><div id="step-1-undo-label" class="step-undo-label">Undo</div></div></div>
     <div id="step-2" class="step"><div class="step-text"><div id="step-2-title" class="step-title">Step</div><div id="step-2-why" class="step-why">Why</div></div><div id="step-2-undo" class="step-undo"><div id="step-2-undo-label" class="step-undo-label">Undo</div></div></div>
     <div id="step-3" class="step"><div class="step-text"><div id="step-3-title" class="step-title">Step</div><div id="step-3-why" class="step-why">Why</div></div><div id="step-3-undo" class="step-undo"><div id="step-3-undo-label" class="step-undo-label">Undo</div></div></div>
   </div>
+  <div id="plan-conversation" class="conversation">
+    <div id="plan-said" class="said"></div>
+    <div id="plan-memory" class="memory">This visit only. You control what changes.</div>
+    <div id="plan-forget" class="forget"><div id="plan-forget-label" class="label">Forget conversation</div></div>
+    <div id="plan-profile-controls" class="buttons" style="display: none; height: 6">
+      <div id="plan-restore-setup" class="primary"><div id="plan-restore-label" class="label">Restore</div></div>
+      <div id="plan-forget-setup" class="btn"><div id="plan-forget-setup-label" class="label">Forget saved</div></div>
+    </div>
+    <div id="plan-session-controls" style="display: none; flex-direction: column; gap: 1.5">
+      <div class="buttons" style="height: 6">
+        <div id="session-5" class="btn"><div id="session-5-label" class="label">5 min</div></div>
+        <div id="session-15" class="btn"><div id="session-15-label" class="label">15 min</div></div>
+        <div id="session-25" class="btn"><div id="session-25-label" class="label">25 min</div></div>
+      </div>
+      <div class="buttons" style="height: 6">
+        <div id="energy-low" class="btn"><div id="energy-low-label" class="label">Low energy</div></div>
+        <div id="energy-steady" class="btn"><div id="energy-steady-label" class="label">Steady</div></div>
+      </div>
+      <div id="session-return" class="forget"><div id="session-return-label" class="label">Pause / resume</div></div>
+    </div>
+    <div id="plan-return-controls" style="display: none; flex-direction: column; gap: 1">
+      <div id="return-edit-controls" class="buttons" style="height: 6">
+        <div id="return-task" class="btn"><div id="return-task-label" class="label">Other task</div></div>
+        <div id="return-note" class="btn"><div id="return-note-label" class="label">Dictate next step</div></div>
+      </div>
+      <div id="return-forget" class="forget"><div id="return-forget-label" class="label">Forget checkpoint</div></div>
+    </div>
+  </div>
   <div id="plan-note" class="note">-</div>
   <div class="buttons">
     <div id="plan-apply" class="primary"><div id="plan-apply-label" class="label">Apply</div></div>
+    <div id="plan-reply" class="primary" style="display: none"><div id="plan-reply-label" class="label">Reply</div></div>
     <div id="plan-discard" class="btn"><div id="plan-discard-label" class="label">Discard</div></div>
   </div>
 </div>

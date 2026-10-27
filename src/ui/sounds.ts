@@ -8,9 +8,21 @@
  */
 import { Quaternion, Vector3, type Object3D } from '@iwsdk/core';
 import { onSettings, settings } from './settings.js';
+import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 
 let context: AudioContext | null = null;
 let master: GainNode | null = null;
+let cuesBus: GainNode | null = null;
+let ambienceBus: GainNode | null = null;
+
+function applyAccessMix(): void {
+  if (!context || !master) return;
+  const at = context.currentTime;
+  cuesBus?.gain.setTargetAtTime(accessPreferences.cuesVolume, at, 0.03);
+  ambienceBus?.gain.setTargetAtTime(accessPreferences.ambienceVolume, at, 0.03);
+  master.channelCount = accessPreferences.monoAudio ? 1 : 2;
+  master.channelCountMode = accessPreferences.monoAudio ? 'explicit' : 'max';
+}
 
 /** Browsers start audio only after a gesture: called on every tap. */
 export function unlockAudio(): void {
@@ -23,6 +35,13 @@ export function unlockAudio(): void {
       master = context.createGain();
       master.gain.value = 1;
       master.connect(soften).connect(context.destination);
+      cuesBus = context.createGain();
+      cuesBus.gain.value = accessPreferences.cuesVolume;
+      cuesBus.connect(master);
+      ambienceBus = context.createGain();
+      ambienceBus.gain.value = accessPreferences.ambienceVolume;
+      ambienceBus.connect(master);
+      applyAccessMix();
     }
     // A focus block may already be running when the first gesture lets audio start.
     if (context.state === 'suspended') void context.resume().then(() => setAmbience(ambienceWanted));
@@ -91,7 +110,8 @@ export function bindHead(camera: Object3D): void {
 
 /** Where a cue goes: placed at [at] around the listener (HRTF), or straight to the mix. */
 function output(ctx: AudioContext, at?: { x: number; y: number; z: number }): AudioNode {
-  if (!at || !head || !master) return master ?? ctx.destination;
+  const bus = cuesBus ?? master ?? ctx.destination;
+  if (!at || !head || !master || accessPreferences.monoAudio) return bus;
   head.getWorldPosition(headPosition);
   head.getWorldQuaternion(headRotation);
   local.set(at.x, at.y, at.z).sub(headPosition).applyQuaternion(headRotation.invert());
@@ -103,13 +123,13 @@ function output(ctx: AudioContext, at?: { x: number; y: number; z: number }): Au
   panner.positionX.value = local.x;
   panner.positionY.value = local.y;
   panner.positionZ.value = local.z;
-  panner.connect(master);
+  panner.connect(bus);
   return panner;
 }
 
 /** A cue, from [at] in the room when given (a control, a timer, the plant). */
 export function play(sound: Sound, at?: { x: number; y: number; z: number }): void {
-  if (!settings.sound || !context || context.state !== 'running') return;
+  if (!settings.sound || accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
   const out = output(context, at);
   const now = context.currentTime + 0.01;
   for (const note of CUES[sound]) mallet(context, out, note, now);
@@ -117,7 +137,7 @@ export function play(sound: Sound, at?: { x: number; y: number; z: number }): vo
 
 /** The timer's alarm, from the timer: plays even with sounds off. */
 export function alarm(at: { x: number; y: number; z: number }): void {
-  if (!context || context.state !== 'running') return;
+  if (accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
   const out = output(context, at);
   const now = context.currentTime + 0.02;
   for (const note of ALARM) mallet(context, out, note, now);
@@ -149,7 +169,7 @@ export function setAmbience(on: boolean): void {
   ambienceWanted = on;
   const ctx = context;
   if (!ctx || !master || ctx.state !== 'running') return;
-  if (on && settings.sound && !ambience) {
+  if (on && settings.sound && accessPreferences.ambienceVolume > 0 && !ambience) {
     const source = ctx.createBufferSource();
     source.buffer = brownNoise(ctx);
     source.loop = true;
@@ -165,11 +185,11 @@ export function setAmbience(on: boolean): void {
     const depth = ctx.createGain();
     depth.gain.value = AMBIENCE_LEVEL * 0.25;
     breath.connect(depth).connect(gain.gain);
-    source.connect(air).connect(gain).connect(master);
+    source.connect(air).connect(gain).connect(ambienceBus ?? master);
     source.start();
     breath.start();
     ambience = { source, breath, gain };
-  } else if ((!on || !settings.sound) && ambience) {
+  } else if ((!on || !settings.sound || accessPreferences.ambienceVolume === 0) && ambience) {
     const { source, breath, gain } = ambience;
     const end = ctx.currentTime + AMBIENCE_OUT_S;
     gain.gain.cancelScheduledValues(ctx.currentTime);
@@ -182,6 +202,11 @@ export function setAmbience(on: boolean): void {
 }
 
 onSettings(() => setAmbience(ambienceWanted));
+onAccessPreferences(() => { applyAccessMix(); setAmbience(ambienceWanted); });
 
 // Read by the Playwright tests.
-(window as unknown as { __sound: unknown }).__sound = { ambienceOn: () => ambience != null, running: () => context?.state === 'running' };
+(window as unknown as { __sound: unknown }).__sound = {
+  ambienceOn: () => ambience != null,
+  running: () => context?.state === 'running',
+  mix: () => ({ cues: cuesBus?.gain.value ?? 0, ambience: ambienceBus?.gain.value ?? 0, channels: master?.channelCount ?? 2 }),
+};

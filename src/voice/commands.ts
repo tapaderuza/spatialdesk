@@ -6,6 +6,7 @@
  * English, plus the obvious Spanish replies; the agent itself understands any language Transcribe heard.
  */
 import type { Settings } from '../ui/settings.js';
+import { sessionChoiceFromWords, type SessionChoice } from '../agent/session-input.js';
 
 export type VoiceCommand =
   | { kind: 'plan'; text: string }
@@ -17,11 +18,16 @@ export type VoiceCommand =
   | { kind: 'arrange' }
   | { kind: 'clear' }
   | { kind: 'log' }
+  | { kind: 'forget' }
+  | { kind: 'save-setup' | 'restore-setup' | 'open-setup' | 'forget-setup' }
   | { kind: 'exit' }
   | { kind: 'fit' }
   | { kind: 'wrapup' }
   | { kind: 'start'; task?: string }
   | { kind: 'comfort'; text: string }
+  | { kind: 'session'; text: string; choice?: SessionChoice }
+  | { kind: 'open-return' | 'save-return' | 'resume-return' | 'forget-return' }
+  | { kind: 'return-note'; text: string }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'ask'; text: string };
 
@@ -31,6 +37,15 @@ const NO = 'no|nope|discard|cancel|not now|close|dismiss|never mind|nevermind|ca
 /** One or two of [words] ("yes, apply it", "no, cancel"), then an optional object and "please". */
 const reply = (words: string) => new RegExp(String.raw`^(?:${words})(?: (?:${words}))?(?: it| that| this| the plan)?${PLEASE}$`);
 const PHRASES: [RegExp, VoiceCommand][] = [
+  [/^(?:pause and resume|pause my work|i need to stop|necesito parar|pausa mi trabajo|punto de retorno)$/, { kind: 'open-return' }],
+  [/^(?:save and pause|save my place|guarda y pausa|guarda mi punto|guarda el punto de retorno)$/, { kind: 'save-return' }],
+  [/^(?:where was i|resume my work|return to my task|por donde iba|donde estaba|retoma mi trabajo|vuelve a mi tarea)$/, { kind: 'resume-return' }],
+  [/^(?:forget (?:my |the )?(?:checkpoint|return point)|(?:olvida|borra) (?:mi |el )?punto de retorno)$/, { kind: 'forget-return' }],
+  [/^(?:remember (?:this|my) (?:setup|space)|save (?:this|my|the) (?:setup|space)|(?:recuerda|guarda) (?:este|mi|el) (?:ajuste|espacio))$/, { kind: 'save-setup' }],
+  [/^(?:restore (?:my|the|saved) (?:setup|space)|(?:recupera|restaura) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'restore-setup' }],
+  [/^(?:my setup|show (?:my|the|saved) (?:setup|space)|mi ajuste|muestra mi ajuste)$/, { kind: 'open-setup' }],
+  [/^(?:forget (?:my|the|saved) (?:setup|space)|(?:olvida|borra) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'forget-setup' }],
+  [/^(?:forget (?:our |the )?conversation|clear (?:our |the )?conversation|olvida (?:la |nuestra )?conversacion|borra (?:la |nuestra )?conversacion)$/, { kind: 'forget' }],
   [reply(YES), { kind: 'apply' }],
   [reply(NO), { kind: 'discard' }],
   [new RegExp(String.raw`^(?:undo|deshacer|deshaz)(?: that| it| the last (?:step|change)| last)?${PLEASE}$`), { kind: 'undo' }],
@@ -62,7 +77,7 @@ const START = new RegExp(
 );
 /** Something about the body, eyes or reach ("I can't turn my neck"): the agent adapts the space instead of planning work. */
 const COMFORT =
-  /\b(?:neck|cuello|my (?:left|right) (?:hand|side|arm)|only (?:use )?(?:my )?(?:left|right)|(?:mano|lado|brazo) (?:izquierd|derech)\w*|can ?t (?:turn|reach|see|move)|no (?:puedo|alcanzo) (?:girar|ver|mover|alcanzar)|eyes? (?:are |is )?(?:tired|hurt|strained)|tired eyes|ojos cansados|vista cansada|fatiga visual|low vision|baja vision|bigger|larger|mas grandes?|closer|mas cerca|further away|farther away|mas lejos|lying (?:down|in bed)|tumbad\w*|en la cama|wheelchair|silla de ruedas|tremor|temblor|back to normal|reset (?:the )?(?:space|layout|comfort))\b/;
+  /\b(?:neck|cuello|my (?:left|right) (?:hand|side|arm)|only (?:use )?(?:my )?(?:left|right)|(?:mano|lado|brazo) (?:izquierd|derech)\w*|can ?t (?:turn|reach|see|move)|no (?:puedo|alcanzo) (?:girar|ver|mover|alcanzar)|eyes? (?:are |is )?(?:tired|hurt|strained)|tired eyes|ojos cansados|(?:me )?duelen? (?:los )?ojos|vista cansada|fatiga visual|low vision|baja vision|bigger|larger|mas grandes?|closer|mas cerca|further away|farther away|mas lejos|lying (?:down|in bed)|tumbad\w*|en la cama|wheelchair|silla de ruedas|tremor|temblor|back to normal|reset (?:the )?(?:space|layout|comfort))\b/;
 /** "Plan my day:" and the like, in the words as heard (the rest keeps its commas for the planner). */
 const PLAN = /^\s*(?:plan|planifica|organiza)(?:\s+(?:my|mi)\s+(?:day|d[ií]a))?(?=$|[\s:,.-])\s*[:,.-]?\s*/i;
 
@@ -80,6 +95,8 @@ function normalise(said: string): string {
 export function parseCommand(said: string): VoiceCommand | null {
   const text = normalise(said);
   if (!text) return null;
+  const note = /^\s*(?:cuando vuelva|mi siguiente paso es|when i (?:come back|return)|my next step is)\s*[:,.-]?\s+(.+)$/i.exec(said.trim());
+  if (note) return { kind: 'return-note', text: note[1].trim() };
   const start = START.exec(text);
   if (start) return start[1] ? { kind: 'start', task: start[1] } : { kind: 'start' };
   for (const [pattern, command] of PHRASES) if (pattern.test(text)) return command;
@@ -94,6 +111,8 @@ export function parseCommand(said: string): VoiceCommand | null {
   }
 
   if (COMFORT.test(text)) return { kind: 'comfort', text: said.trim() };
+  const sessionChoice = sessionChoiceFromWords(text);
+  if (sessionChoice || /^(?:next session|my next session|plan my session|siguiente sesion|mi siguiente sesion|prepara mi sesion)$/.test(text)) return { kind: 'session', text: said.trim(), choice: sessionChoice ?? undefined };
   if (PLAN.test(said)) return { kind: 'plan', text: said.replace(PLAN, '').trim() };
 
   // One unknown word is more likely a mishearing than a request.

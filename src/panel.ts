@@ -94,6 +94,7 @@ export class PanelSystem extends createSystem({}) {
     const agent = this.world.getSystem(AgentSystem);
     if (agent) {
       this.cleanupFuncs.push(
+        agent.onReply(() => void this.talk()),
         agent.onNudge((nudge) => {
           if (!nudge) return;
           if (this.noticeTimer) clearTimeout(this.noticeTimer);
@@ -144,6 +145,8 @@ export class PanelSystem extends createSystem({}) {
       prioritise: { element: element('prioritise-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('prioritise') },
       talk: { element: element('talk-button'), base: BUTTON.primary, action: () => void this.talk() },
       log: { element: element('log-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.openLog() },
+      memory: { element: element('memory-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.openComfortMemory() },
+      session: { element: element('session-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.openSession() },
       // The notice line is a control too: a nudge goes to the agent, otherwise it explains what the AI last did.
       notice: {
         element: notice,
@@ -245,20 +248,37 @@ export class PanelSystem extends createSystem({}) {
       stopListening();
       return;
     }
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    const agent = this.world.getSystem(AgentSystem);
+    if (agent?.phase === 'thinking') agent.close();
+    const conversationVersion = agent?.conversationVersion;
+    const returnVersion = agent?.phase === 'resume' ? agent.returnVersion : undefined;
+    const returnDictation = agent?.awaitingReturnNote === true;
     this.talkLabel?.setProperties({ text: 'Stop' });
-    this.showNotice({ text: 'Listening: say a command, or what you want the AI to do.', error: false }, this.notice, false);
+    this.showNotice({ text: returnVersion === undefined ? 'Listening: say a command, or what you want the AI to do.' : 'Di "cuando vuelva, ..." / "when I return, ...". La pista no se guarda hasta confirmar.', error: false }, this.notice, false);
     play('listen');
-    const result = await listen({ partial: (text) => this.showNotice({ text: `"${text}"`, error: false }, this.notice, false) });
+    const result = await listen({ partial: (text) => {
+      if (conversationVersion === agent?.conversationVersion) this.showNotice({ text: `"${text}"`, error: false }, this.notice, false);
+    } });
     this.talkLabel?.setProperties({ text: 'Talk' });
-    if (result.ok) this.runVoice(result.text);
+    if (conversationVersion !== agent?.conversationVersion) return; // forgotten during microphone capture
+    if (returnVersion !== undefined && (agent?.phase !== 'resume' || returnVersion !== agent.returnVersion)) return;
+    if (returnDictation) {
+      const command = result.ok ? parseCommand(result.text) : null;
+      agent?.finishReturnDictation(result.ok && command?.kind !== 'discard' ? command?.kind === 'return-note' ? command.text : result.text : undefined);
+    }
+    else if (result.ok) this.runVoice(result.text);
     else this.showNotice({ text: result.error, error: result.error !== 'Stopped.' }, this.notice);
   }
 
   /** Does what the words ask (src/voice/commands.ts); requests the buttons cannot express go to the agent. */
   runVoice(said: string): void {
-    const command = parseCommand(said);
-    (window as unknown as { __heard: unknown }).__heard = { said, command }; // read by the Playwright tests
+    let command = parseCommand(said);
     const agent = this.world.getSystem(AgentSystem);
+    // A short answer belongs to the question, not to the Apply button. Explicit cancel still closes it.
+    if (agent?.awaitingReply && (command?.kind === 'apply' || /^(no|nope)[.!?]*$/i.test(said.trim()))) command = { kind: 'ask', text: said };
+    if (!command && said.trim() && agent?.awaitingReply) command = { kind: 'ask', text: said };
+    (window as unknown as { __heard: unknown }).__heard = { said, command }; // read by the Playwright tests
     const heard = `Heard "${said.replace(/[.!?]+$/, '')}".`;
     const tell = (text: string, error = false) => this.showNotice({ text: `${heard} ${text}`, error }, this.notice);
     if (!command) {
@@ -266,13 +286,48 @@ export class PanelSystem extends createSystem({}) {
       return;
     }
     switch (command.kind) {
+      case 'open-return':
+        agent?.openReturn();
+        return;
+      case 'save-return':
+        agent?.saveReturn();
+        return;
+      case 'resume-return':
+        agent?.openReturn(true);
+        return;
+      case 'forget-return':
+        agent?.forgetReturn();
+        return;
+      case 'return-note':
+        agent?.setReturnNote(command.text);
+        return;
+      case 'session':
+        if (command.choice) agent?.planSession(command.choice, command.text);
+        else agent?.openSession();
+        return;
+      case 'save-setup':
+        agent?.saveComfort();
+        return;
+      case 'restore-setup':
+        agent?.restoreComfort();
+        return;
+      case 'open-setup':
+        agent?.openComfortMemory();
+        return;
+      case 'forget-setup':
+        agent?.forgetComfort();
+        return;
+      case 'forget':
+        agent?.forgetConversation();
+        tell('Conversation forgotten.');
+        return;
       case 'plan':
         tell('Planning your day.');
         void agent?.run('plan_my_day', command.text || dayText());
         return;
       case 'ask':
         tell('Asking the AI.');
-        void agent?.run('custom', command.text);
+        void agent?.run('companion', command.text);
         return;
       case 'prioritise':
         tell('Prioritising.');

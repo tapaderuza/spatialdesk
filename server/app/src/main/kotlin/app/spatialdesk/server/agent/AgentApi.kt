@@ -85,6 +85,7 @@ class AgentController(
         if (body.length > props.maxBodyBytes) return error(413, "This workspace is too large to plan.")
         val request = runCatching { WorkspaceJson.decodeFromString(PlanRequest.serializer(), body) }.getOrNull()
             ?: return error(400, "The request could not be read.")
+        if (request.intent == Intent.Session && request.sessionChoice?.valid() != true) return error(400, "Choose 5 to 90 available minutes and low or steady energy.")
         quota.take(session)?.let { return error(429, it) }
         val response = planner.plan(request)
         return ResponseEntity.status(if (response.ok) 200 else 502).body(WorkspaceJson.encodeToString(PlanResponse.serializer(), response))

@@ -16,11 +16,7 @@
 import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from './panel-hits.js';
 import { settings } from './settings.js';
-
-const DWELL_MS = 1000;
-const READ_DWELL_MS = 1600;
-/** The ring starts filling a moment after the gaze lands, so a sweep across a panel presses nothing. */
-const SETTLE_MS = 150;
+import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 /** After a press, the head turns at least this much before anything else can be pressed. */
 const REARM_COS = Math.cos((3 * Math.PI) / 180);
 const RETICLE_SIZE = 0.036; // 3.6 cm: about 3.4 degrees at arm's length, the fill readable at a glance
@@ -30,7 +26,7 @@ const TEST_EVERY_FRAMES = 3;
 
 /** Controls that are also read (cards, columns, the notice line) wait longer than buttons. */
 function dwellFor(key: string): number {
-  return key === 'notice' || key === 'board' || key.startsWith('card-') || key.startsWith('col-') ? READ_DWELL_MS : DWELL_MS;
+  return key === 'notice' || key === 'board' || key.startsWith('card-') || key.startsWith('col-') ? accessPreferences.readDwellMs : accessPreferences.dwellMs;
 }
 
 // A dark rim and a white ring (visible on any panel colour), the fill as a clockwise arc from 12 o'clock, a centre dot.
@@ -70,7 +66,10 @@ export class GazeSystem extends createSystem({}) {
   private since = 0;
   private frame = 0;
   /** The control pressed last, until the gaze leaves it. */
-  private spent: { panel: GazeTarget; key: string } | null = null;
+  private spentPanel: GazeTarget | null = null;
+  private spentKey: string | null = null;
+  private lostAt = -1;
+  private onTarget = false;
   /** True from a press until the head has moved [REARM_COS] away from where it was. */
   private settling = false;
   /** Read by the Playwright tests. */
@@ -91,6 +90,7 @@ export class GazeSystem extends createSystem({}) {
     mesh.visible = false;
     this.reticle = this.world.createTransformEntity(mesh);
     (window as unknown as { __gaze: GazeSystem['state'] }).__gaze = this.state;
+    this.cleanupFuncs.push(onAccessPreferences(() => { this.since = performance.now(); this.lostAt = -1; }));
   }
 
   update(): void {
@@ -126,12 +126,14 @@ export class GazeSystem extends createSystem({}) {
     reticle.visible = true;
 
     let progress = 0;
-    if (key != null && !this.spent && !this.settling) {
-      progress = Math.max(0, (performance.now() - this.since - SETTLE_MS) / dwellFor(key));
-      if (progress >= 1 && testing) {
+    if (key != null && !this.spentPanel && !this.settling) {
+      const now = this.lostAt >= 0 ? this.lostAt : performance.now();
+      progress = Math.max(0, (now - this.since - accessPreferences.settleMs) / dwellFor(key));
+      if (progress >= 1 && testing && this.onTarget) {
         // Pressed only right after a test, so never on a control the gaze has just left.
         progress = 0;
-        this.spent = { panel, key };
+        this.spentPanel = panel;
+        this.spentKey = key;
         this.settling = true;
         this.pressedFrom.copy(this.direction);
         this.state.presses++;
@@ -154,19 +156,36 @@ export class GazeSystem extends createSystem({}) {
         best = livePanels[i];
       }
     }
-    if (!best) return false;
+    const now = performance.now();
+    if (!best) return this.holdTarget(now);
     this.distance = distance;
     this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
     const key = best.gazeHit(this.point, best !== this.panel);
+    if (best === this.panel && key == null && this.holdTarget(now)) return true;
     if (best !== this.panel || key !== this.key) {
       if (this.panel !== best) this.panel?.setGazeHover(null);
       best.setGazeHover(key);
       this.panel = best;
       this.key = key;
-      this.since = performance.now();
-      if (this.spent && (this.spent.panel !== best || this.spent.key !== key)) this.spent = null;
+      this.since = now;
+      if (this.spentPanel && (this.spentPanel !== best || this.spentKey !== key)) {
+        this.spentPanel = null;
+        this.spentKey = null;
+      }
+    } else if (this.lostAt >= 0) {
+      this.since += now - this.lostAt; // do not count time away from the control toward a selection
     }
+    this.lostAt = -1;
+    this.onTarget = key != null;
     return true;
+  }
+
+  /** Brief tracking misses may freeze progress; no selection can occur until the same visible control is hit again. */
+  private holdTarget(now: number): boolean {
+    if (!accessPreferences.tremorTolerance || accessPreferences.targetGraceMs === 0 || !this.panel || this.key == null || livePanels.indexOf(this.panel) < 0) return false;
+    if (this.lostAt < 0) this.lostAt = now;
+    this.onTarget = false;
+    return now - this.lostAt <= accessPreferences.targetGraceMs;
   }
 
   private leave(reticle: { visible: boolean }): void {
@@ -174,7 +193,10 @@ export class GazeSystem extends createSystem({}) {
     this.panel?.setGazeHover(null);
     this.panel = null;
     this.key = null;
-    this.spent = null;
+    this.spentPanel = null;
+    this.spentKey = null;
+    this.lostAt = -1;
+    this.onTarget = false;
     this.material.uniforms.progress.value = 0;
     this.state.key = null;
     this.state.progress = 0;

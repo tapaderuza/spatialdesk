@@ -67,6 +67,7 @@ test('comfort: said in plain words, everything gathers within reach on the right
   await frames(page, 5);
   const back = await yaws(page);
   expect(back.console).toBeCloseTo(before.console, 3);
+  expect(await page.evaluate(() => (window as Win).__agent.state.phase)).toBe('idle'); // the applied check-in is obsolete after Undo
   back.boards.forEach((yaw, i) => expect(yaw).toBeCloseTo(before.boards[i], 3));
   expect(errors).toEqual([]);
 });

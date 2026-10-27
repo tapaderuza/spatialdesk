@@ -7,14 +7,37 @@
 // Needs Docker (builds the spatialdesk-tts image once), ffmpeg/ffprobe on PATH, and Edge. Output in .video/.
 import { execFileSync, execSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
+import { calibrateRecording, captureIdentity, fingerprintTree, validateIdentity, validateRecording } from './video-contract.mjs';
 
 const root = process.cwd();
-const out = join(root, '.video');
+const editing = process.argv.includes('--edit') || process.argv.includes('--check');
+// Each new take has its own directory: failed captures never replace an approved cut.
+const out = resolve(process.env.VIDEO_DIR ?? (editing ? join(root, '.video') : join(root, '.video', 'runs', new Date().toISOString().replace(/[:.]/g, '-'))));
 const voiceDir = join(out, 'voice');
-mkdirSync(voiceDir, { recursive: true });
 const script = JSON.parse(readFileSync(join(root, 'docs/video/narration.json'), 'utf-8'));
+const markersFile = join(out, 'markers.json');
+const identityPaths = () => ({ narration: join(root, 'docs/video/narration.json'), demo: join(root, 'tests/demo.spec.ts'),
+  helpers: join(root, 'tests/helpers.ts'), durations: join(out, 'durations.json'), markers: markersFile, recording: join(out, 'recording.webm'),
+  ...Object.fromEntries(script.beats.map(({ id }) => [`voice:${id}`, join(voiceDir, `${id}.wav`)])),
+  ...Object.fromEntries(script.beats.filter(b => b.audio).map(b => [`source:${b.id}`, join(root, b.audio)])) });
+const identityFile = join(out, 'capture.json');
+const appIdentity = () => fingerprintTree(root, ['src', 'public', 'vendor/spatialdesk-shared', 'server/app/src/main', 'server/shared/src', 'iwsdk.config.json', 'package-lock.json']);
+const currentIdentity = () => ({ ...captureIdentity(identityPaths()), app: appIdentity() });
+if (editing) {
+  validateRecording(script, JSON.parse(readFileSync(markersFile, 'utf-8')).beats,
+    JSON.parse(readFileSync(join(out, 'durations.json'), 'utf-8')));
+  validateIdentity(existsSync(identityFile) ? JSON.parse(readFileSync(identityFile, 'utf-8')).identity : null, currentIdentity());
+  if (process.argv.includes('--check')) { console.log('Capture matches current script, pacing, test and video.'); process.exit(0); }
+}
+mkdirSync(voiceDir, { recursive: true });
+if (!editing && existsSync(markersFile)) throw new Error('This VIDEO_DIR already contains a take. Choose a new directory or use --edit.');
+console.log(`Video working directory: ${out}`);
+if (!editing) {
+  const cache = process.env.VIDEO_VOICE_CACHE ?? join(root, '.video', 'voice');
+  if (existsSync(cache)) for (const file of readdirSync(cache)) copyFileSync(join(cache, file), join(voiceDir, file));
+}
 const url = process.env.E2E_URL ?? 'https://d2p3027seoreck.cloudfront.net';
 const [W, H, FPS] = [1280, 720, 30];
 const TITLE_S = 4.5; // title card
@@ -66,17 +89,34 @@ execFileSync('ffmpeg', [
 console.log(`${script.beats.length} lines, ${Object.values(durations).reduce((a, b) => a + b, 0).toFixed(1)} s of voice`);
 
 // 2. Recording, paced by the voice.
-const markersFile = join(out, 'markers.json');
 if (!process.argv.includes('--edit')) {
+  run('npm run --if-present typecheck');
+  if (process.env.DEMO_CONFIG) run('npm run build'); // alternate capture configs may reuse a running preview
   step(`Recording the demo in IWER against ${url}`);
-  run('npx playwright test tests/demo.spec.ts', { DEMO: '1', E2E_URL: url, NARRATION: join(out, 'durations.json'), MARKERS: markersFile, MIC: mic });
+  const appBefore = appIdentity();
+  const staticPaths = Object.fromEntries(Object.entries(identityPaths()).filter(([key]) => key !== 'markers' && key !== 'recording'));
+  const staticBefore = captureIdentity(staticPaths);
+  writeFileSync(join(out, 'capture-start.json'), JSON.stringify({ url, identity: { ...staticBefore, app: appBefore } }, null, 2));
+  const config = process.env.DEMO_CONFIG ? ['--config', process.env.DEMO_CONFIG] : [];
+  execFileSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', 'tests/demo.spec.ts', ...config],
+    { cwd: root, stdio: 'inherit', env: { ...process.env, DEMO: '1', E2E_URL: url, NARRATION: join(out, 'durations.json'), MARKERS: markersFile, MIC: mic } });
+  if (appBefore !== appIdentity()) throw new Error('The application changed during recording. Record a new take.');
+  validateIdentity(staticBefore, captureIdentity(staticPaths));
   copyFileSync(JSON.parse(readFileSync(markersFile, 'utf-8')).video, join(out, 'recording.webm'));
+  const raw = JSON.parse(readFileSync(markersFile, 'utf-8'));
+  const pixels = execFileSync('ffmpeg', ['-v', 'error', '-i', join(out, 'recording.webm'), '-vf', 'fps=10,crop=4:4:14:14,scale=1:1', '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-'], { maxBuffer: 2 * 1024 * 1024 });
+  raw.beats = calibrateRecording(raw.beats, pixels);
+  raw.timing = 'frame-marker-v1';
+  writeFileSync(markersFile, JSON.stringify(raw, null, 2));
 }
 const marks = JSON.parse(readFileSync(markersFile, 'utf-8')).beats; // [{ id, at }] ms since the recording began
+validateRecording(script, marks, durations);
+if (!editing) writeFileSync(identityFile, JSON.stringify({ url, identity: currentIdentity() }, null, 2));
 
 // Gallery stills for Devpost, from the recording (no captions): [file, beat, seconds into that beat].
 step('Gallery');
 const galleryDir = join(out, 'gallery');
+if (resolve(galleryDir) !== resolve(out, 'gallery')) throw new Error('Invalid gallery destination');
 rmSync(galleryDir, { recursive: true, force: true }); // only this cut's stills
 mkdirSync(galleryDir, { recursive: true });
 const STILLS = [
@@ -84,14 +124,18 @@ const STILLS = [
   ['2-space-adapted', 'apply', 7],
   ['3-plan-preview', 'plan', 5],
   ['4-hands-free', 'handsfree', 3],
-  ['5-start-small', 'start', 5],
-  ['6-momentum', 'momentum', 1.5],
-  ['7-companion', 'companion', 3.5],
+  ['5-session-choice', 'session', 2.5],
+  ['6-session-finished', 'session-end', 1.5],
+  ['7-work-checkpoint', 'pause', 2.5],
+  ['16-return-review', 'return', 3],
   ['8-ai-log', 'log', 2.5],
   ['9-in-my-room', 'room', 8.5],
   ['10-room-focus', 'room', 13],
   ['11-glasses', 'glasses', 7],
   ['12-studio', 'enter', 0.8],
+  ['13-dialogue', 'dialogue', 3],
+  ['14-saved-setup', 'saved', 3],
+  ['15-recall', 'recall', 1.5],
 ];
 for (const [name, id, offset] of STILLS) {
   const mark = marks.find((m) => m.id === id);
@@ -122,23 +166,39 @@ step('Edit');
 const recorded = marks.map((m) => ({ ...m, s: m.at / 1000 }));
 const last = recorded[recorded.length - 1];
 const trimStart = Math.max(0, recorded[0].s - LEAD_S);
-const mainS = last.s + durations[last.id] + TAIL_S - trimStart;
+const calibrated = recorded.every((m) => Number.isFinite(m.end));
+const mainS = calibrated ? recorded.reduce((n, m) => n + m.end - m.s, 0) : last.s + durations[last.id] + TAIL_S - trimStart;
 const endS = END_LEAD_S + durations.end + END_HOLD_S;
 const totalS = OPEN_S + TITLE_S + mainS + endS;
+let nextVoiceStart = OPEN_S + TITLE_S;
 const voice = [
-  ...recorded.map((m) => ({ id: m.id, start: OPEN_S + TITLE_S + m.s - trimStart })),
+  ...recorded.map((m) => {
+    const v = { id: m.id, start: calibrated ? nextVoiceStart : OPEN_S + TITLE_S + m.s - trimStart };
+    nextVoiceStart += m.end - m.s;
+    return v;
+  }),
   { id: 'end', start: OPEN_S + TITLE_S + mainS + END_LEAD_S },
 ];
+const approvedMainStart = voice.find((v) => v.id === 'heard')?.start ?? OPEN_S + TITLE_S;
+const deliveryS = process.argv.includes('--approved') ? 13.7 + totalS - approvedMainStart : totalS;
+if (deliveryS >= MAX_S) throw new Error(`Cut would be ${deliveryS.toFixed(1)} s, limit ${MAX_S} s. No video replaced.`);
 writeFileSync(join(out, 'captions.srt'), captions(voice));
 
 const inputs = [];
 if (open) inputs.push('-t', `${OPEN_S}`, '-i', join(root, open.clip));
 const first = inputs.length / 4; // the title card's input index: 1 after the opening clip, else 0
-inputs.push('-loop', '1', '-t', `${TITLE_S}`, '-i', 'title.png', '-ss', `${trimStart}`, '-t', `${mainS}`, '-i', 'recording.webm');
+inputs.push('-loop', '1', '-t', `${TITLE_S}`, '-i', 'title.png');
+if (!calibrated) inputs.push('-ss', `${trimStart}`, '-t', `${mainS}`);
+inputs.push('-i', 'recording.webm');
 inputs.push('-loop', '1', '-t', `${endS}`, '-i', 'end.png');
 for (const v of voice) inputs.push('-i', join('voice', `${v.id}.wav`));
 const fade = 0.4;
 const graph = [
+  ...(calibrated ? [
+    `[${first + 1}:v]split=${recorded.length}${recorded.map((_, i) => `[raw${i}]`).join('')}`,
+    ...recorded.map((m, i) => `[raw${i}]trim=start=${m.s}:end=${m.end},setpts=PTS-STARTPTS,delogo=x=2:y=2:w=28:h=28[part${i}]`),
+    `${recorded.map((_, i) => `[part${i}]`).join('')}concat=n=${recorded.length}:v=1:a=0[recorded]`,
+  ] : []),
   ...(open
     ? [
         `[0:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade},fade=t=out:st=${OPEN_S - fade}:d=${fade}[vo]`,
@@ -146,7 +206,7 @@ const graph = [
       ]
     : []),
   `[${first}:v]fps=${FPS},format=yuv420p,setsar=1,${open ? `fade=t=in:st=0:d=${fade},` : ''}fade=t=out:st=${TITLE_S - fade}:d=${fade}[v0]`,
-  `[${first + 1}:v]fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v1]`,
+  `${calibrated ? '[recorded]' : `[${first + 1}:v]`}fps=${FPS},scale=${W}:${H},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v1]`,
   `[${first + 2}:v]fps=${FPS},format=yuv420p,setsar=1,fade=t=in:st=0:d=${fade}[v2]`,
   `${open ? '[vo]' : ''}[v0][v1][v2]concat=n=${open ? 4 : 3}:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H38000000,Outline=6,Shadow=0,MarginV=22'[v]`,
   ...voice.map((v, i) => `[${first + 3 + i}:a]aresample=48000,adelay=${Math.round(v.start * 1000)}:all=1[a${i}]`),
@@ -161,9 +221,15 @@ execFileSync(
 );
 const final = seconds(join(out, 'spatialdesk-demo.mp4'));
 console.log(`\n.video/spatialdesk-demo.mp4: ${final.toFixed(1)} s (captions also in .video/captions.srt)`);
-if (final >= MAX_S) {
+if (final >= MAX_S && !process.argv.includes('--approved')) {
   console.error(`Too long: ${final.toFixed(1)} s, the limit is ${MAX_S} s.`);
   process.exit(1);
+}
+writeFileSync(join(out, 'edit.json'), JSON.stringify({ mainStart: OPEN_S + TITLE_S, approvedMainStart, totalSeconds: final,
+  identity: { ...currentIdentity(), cut: captureIdentity({ cut: join(out, 'spatialdesk-demo.mp4') }).cut } }, null, 2));
+if (process.argv.includes('--approved')) {
+  const python = process.env.FACELESS_PYTHON ?? 'python';
+  execFileSync(python, ['scripts/render-approved.py', '--take', out], { cwd: root, stdio: 'inherit' });
 }
 
 /** Each line as captions of at most two lines of ~42 characters, timed by length within the line's audio. */
@@ -206,6 +272,34 @@ function captions(voiceTrack) {
       for (const c of beat.captions) timed(v.start + c.at, v.start + c.to, c.text);
       continue;
     }
+    if (beat.subtitles?.length) {
+      const split = (text, fraction = 0.5) => {
+        const words = text.split(' ');
+        let best = 1;
+        for (let i = 1; i < words.length; i++) {
+          const left = words.slice(0, i).join(' ');
+          const score = Math.abs(left.length / text.length - fraction) - (left.endsWith(',') ? 0.2 : 0);
+          const candidate = words.slice(0, best).join(' ');
+          const previous = Math.abs(candidate.length / text.length - fraction) - (candidate.endsWith(',') ? 0.2 : 0);
+          if (score < previous) best = i;
+        }
+        return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+      };
+      const pairs = beat.subtitles.flatMap(([es, en]) => {
+        if (es.length <= 42 && en.length <= 42) return [[es, en]];
+        const a = split(en);
+        const b = split(es, a[0].length / en.length);
+        return [[b[0], a[0]], [b[1], a[1]]];
+      });
+      const weight = pairs.reduce((n, pair) => n + pair[1].length, 0);
+      let at = v.start;
+      for (const [es, en] of pairs) {
+        const length = durations[v.id] * en.length / weight;
+        timed(at, at + length, `${twoLines(es)}\n${twoLines(en)}`);
+        at += length;
+      }
+      continue;
+    }
     const parts = chunks(beat.text);
     const total = parts.reduce((n, p) => n + p.length, 0);
     let t = v.start;
@@ -231,10 +325,10 @@ function cards() {
   const cardsHtml = {
     title: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.subtitle}</p>
       <div class="tags">${tags}</div>
-      <div class="small">The real app, recorded in Meta's IWER emulator (Quest 3 and Meta VR Glasses profiles). The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
+      <div class="small">The real app, recorded in Meta's IWER emulator (Quest 3). The AI runs live on Amazon Bedrock; voice on Amazon Transcribe.</div></div>`,
     end: `${base}<div class="wrap"><h1>${script.title}</h1><p>${script.end_line}</p>
-      <div class="url">${url.replace(/^https:\/\//, '')}</div>
-      <div class="small">Meta Immersive Web SDK, TypeScript, Kotlin Multiplatform, Spring Boot, Amazon Bedrock (Nova 2 Lite), Amazon Transcribe, AWS CDK</div></div>`,
+      <div class="url">${/^https?:\/\/(localhost|127\.)/.test(url) ? '' : url.replace(/^https:\/\//, '')}</div>
+      <div class="small">Recorded in Meta's IWER Quest 3 emulator. Live Amazon Nova and Transcribe.<br>Meta IWSDK · TypeScript · Kotlin Multiplatform · Spring Boot · AWS</div></div>`,
   };
   if (!open) return cardsHtml;
   // The thumbnail: the person it is for, and the promise.

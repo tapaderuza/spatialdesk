@@ -52,6 +52,28 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
 - **It notices things on its own.** When a focus block ends it suggests the next one (or a break, if the task is not
   done yet); when a task runs over its estimate it offers to replan; when a board gets crowded it offers to regroup.
   Suggestions wait for one tap; the agent never acts without you.
+- **A conversation that follows your choices.** Talk can ask one question before proposing a change. Short replies
+  carry the last six exchanges, including whether a proposal was applied or discarded. Nothing moves until Apply;
+  after a comfort adjustment the companion asks how it feels. Reply opens the microphone again, and Forget
+  conversation (also by voice, in English or Spanish) clears the dialogue. Dialogue is held in memory for this
+  visit; applied actions remain in AI log. This is an accessibility companion, with no diagnosis or treatment role.
+  It uses the existing Amazon Nova connection; an outage shows an error instead of inventing a task plan.
+- **Remember the setup you choose.** My setup stores a bookmark only when you press Save current or say
+  "remember this setup" / "recuerda este ajuste". The browser stores five settings, with no conversation or health
+  notes. Restore previews the changes before Apply, works without an AI call, and remains undoable. Forget saved
+  removes the bookmark without changing the current space. A temporary adjustment does not replace the bookmark.
+- **A session at your pace.** Next session asks for available time and self-reported energy. Nova proposes one
+  existing open task and a single block within that budget (at most five minutes with low energy). Review and Apply
+  start it. When it ends, a local card offers stopping or choosing again; it never completes the task or starts
+  another block automatically. Time and energy are used for this proposal, with no saved energy profile. Voice also
+  accepts "Tengo diez minutos y estoy cansada". A running timer must be paused or finished before another session.
+- **Pause without losing your place.** Next session → Pause / resume lets you choose an existing open task and
+  dictate a short next step. Save and pause stores one local checkpoint and pauses the current block. On a later
+  visit, "where was I?" / "por dónde iba" shows the task's current title and your own note, without an AI request.
+  Review return and Apply bring back the board and continue the same paused clock with its remaining time.
+  Finished or deleted tasks are never recreated; another running block is preserved. Forget checkpoint deletes the
+  bookmark, without changing your tasks or timers. The checkpoint stores IDs and your explicit note; no energy
+  profile or conversation is copied into it. It stays in this browser and does not sync across devices.
 - **A companion beside your board.** A small light floats by the board you work on, wherever the board goes. Through
   a focus block it works with you, its gaze on the board and the time left round its middle; if your gaze wanders off
   the work for a while it calls you back with a soft chime, and welcomes you when you look back. It shimmers while the

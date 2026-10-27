@@ -111,9 +111,9 @@ export async function lookAt(page: Page, name: string, u = 0, v = 0, steps = 1):
 }
 
 /** Points a controller's ray at a named element and pulls the trigger (the ray sweeps on first, as a hand would). */
-export async function pressXR(page: Page, name: string, hand: 'left' | 'right' = 'right'): Promise<void> {
+export async function pressXR(page: Page, name: string, hand: 'left' | 'right' = 'right', originZ = -0.25): Promise<void> {
   await page.evaluate(
-    async ({ name, hand }) => {
+    async ({ name, hand, originZ }) => {
       const w = (window as Win).__world;
       const device = (window as Win).__xrDevice;
       let element: any = null;
@@ -126,7 +126,7 @@ export async function pressXR(page: Page, name: string, hand: 'left' | 'right' =
       const Q = w.camera.quaternion.constructor;
       const targetPoint = new V(0, 0, 0).applyMatrix4(element.matrixWorld);
       const controller = device.controllers[hand];
-      const from = new V(hand === 'right' ? 0.18 : -0.18, 1.3, -0.25);
+      const from = new V(hand === 'right' ? 0.18 : -0.18, 1.3, originZ);
       const frames = (n: number) =>
         new Promise<void>((resolve) => {
           let left = n;
@@ -148,7 +148,7 @@ export async function pressXR(page: Page, name: string, hand: 'left' | 'right' =
       controller.updateButtonValue('trigger', 0);
       await frames(4);
     },
-    { name, hand },
+    { name, hand, originZ },
   );
 }
 

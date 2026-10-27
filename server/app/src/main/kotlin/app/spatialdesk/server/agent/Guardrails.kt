@@ -29,6 +29,7 @@ object Guardrails {
 
     fun facts(request: PlanRequest, nowMs: Double): Facts {
         val ws = request.workspace
+        if (request.intent == Intent.Session) return Facts(SessionRules.facts(request), emptyList())
         if (request.intent == Intent.AdaptSpace) {
             val designed = if (ws.comfort == Comfort()) " (the layout as designed)" else ""
             val asked = ComfortNeeds.of(request.text).filter { it.required }
@@ -114,7 +115,7 @@ object Guardrails {
             if (request.intent == Intent.AdaptSpace && op != "set_comfort") {
                 return "Step ${i + 1} ($op) breaks a rule: adapting the space to the user's body only uses set_comfort."
             }
-            if (op == "set_comfort" && request.intent != Intent.AdaptSpace && request.intent != Intent.Custom) {
+            if (op == "set_comfort" && request.intent !in setOf(Intent.AdaptSpace, Intent.Custom, Intent.Companion)) {
                 return "Step ${i + 1} (set_comfort) breaks a rule: comfort changes only when the user asks about their body."
             }
             if (request.intent == Intent.FirstStep) {
@@ -166,6 +167,7 @@ object Guardrails {
         if (FIRST_STEP.containsMatchIn(label)) return op
         return JsonObject(op + ("label" to JsonPrimitive(if (label.isEmpty()) "First step" else "First step: $label")))
     }
+
 
     private val FIRST_STEP = Regex("^(first step|primer paso)", RegexOption.IGNORE_CASE)
 

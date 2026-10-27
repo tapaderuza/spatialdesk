@@ -52,3 +52,9 @@ yarn-error.log*
 
 # Submission video build (scripts/make-video.mjs)
 .video/
+
+# Local tooling and review captures (personal paths; not part of the app)
+.work/
+artifacts/
+scripts/pal-*.py
+scripts/render-approved.py

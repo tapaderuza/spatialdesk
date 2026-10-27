@@ -15,9 +15,11 @@
  */
 import { Color, createSystem, Object3D, Vector3, type Mesh, type ShaderMaterial } from '@iwsdk/core';
 import { AgentSystem } from '../agent/agent-system.js';
+import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 import { createCompanionMaterial } from '../scene-assets/focus-companion.scene-asset.js';
 import { play } from '../ui/sounds.js';
 import { WanderSystem } from './wander.js';
+import { companionBounce, companionFlash, companionTime } from './companion-motion.js';
 import type { Timer } from '../workspace/model.js';
 import { progress } from '../workspace/progress.js';
 import { workspace } from '../workspace/store.js';
@@ -63,9 +65,6 @@ const CELEBRATE_MS = 900;
 /** The plant grows its leaf this long after the chime (studio-system.ts): the companion hops with it. */
 const CELEBRATE_DELAY_MS = 1500;
 const WRAPPED_CHECK_FRAMES = 120;
-/** While calling: a gentle bob (a share of the hop), about one a second. */
-const CALL_BOB = 0.3;
-const CALL_BOB_RATE = 5;
 /** A break timer (as timers.ts names it); matched without trimming, so nothing is allocated per frame. */
 const BREAK = /^\s*break\s*$/i;
 
@@ -110,8 +109,10 @@ export class CompanionSystem extends createSystem({}) {
       () => timerFinishedListeners.delete(onTimer),
       workspace.subscribe(() => this.place()),
       this.world.visibilityState.subscribe(() => this.place()),
+      onAccessPreferences(() => this.applyMotionPreference()),
     );
     this.place();
+    this.applyMotionPreference();
   }
 
   update(_delta: number, time: number): void {
@@ -124,16 +125,17 @@ export class CompanionSystem extends createSystem({}) {
     this.view.mood = mood;
 
     const target = MOODS[mood];
+    const reducedMotion = accessPreferences.reducedMotion;
     const k = 1 - Math.exp(-dt * EASE_PER_S);
     const u = material.uniforms;
     (u.uCore.value as Color).lerp(target.core, k);
     (u.uRim.value as Color).lerp(target.rim, k);
     (u.uEyeDir.value as Vector3).lerp(target.gaze, k);
-    u.uPulse.value += (target.pulse - u.uPulse.value) * k;
+    u.uPulse.value += ((reducedMotion ? 0 : target.pulse) - u.uPulse.value) * k;
     u.uSpeed.value += (target.speed - u.uSpeed.value) * k;
     u.uEye.value += (target.eye - u.uEye.value) * k;
     u.uDim.value += (target.dim - u.uDim.value) * k;
-    u.uTime.value = time;
+    u.uTime.value = companionTime(time, reducedMotion);
     u.uProgress.value = this.view.progress;
 
     // A wandering mind: a soft call from where it floats, then a hop and a welcome when the gaze comes back.
@@ -150,9 +152,18 @@ export class CompanionSystem extends createSystem({}) {
     this.seenReturns = returns;
 
     const t = (performance.now() - this.celebrateAt) / CELEBRATE_MS;
-    const celebrating = t > 0 && t < 1;
-    u.uBounce.value = celebrating ? Math.sin(Math.PI * t) : calling ? CALL_BOB * Math.max(0, Math.sin(time * CALL_BOB_RATE)) : 0;
-    u.uFlash.value = celebrating ? 0.6 * (1 - t) : 0;
+    u.uBounce.value = companionBounce(time, t, calling, reducedMotion);
+    u.uFlash.value = companionFlash(t, reducedMotion);
+  }
+
+  /** Stop the shader's idle drift and celebrations immediately, including while the companion is hidden. */
+  private applyMotionPreference(): void {
+    if (!this.material || !accessPreferences.reducedMotion) return;
+    const u = this.material.uniforms;
+    u.uTime.value = 0;
+    u.uPulse.value = 0;
+    u.uBounce.value = 0;
+    u.uFlash.value = 0;
   }
 
   /** What the companion shows now: the agent first (it is the agent's presence), then the running block, then the day. */
@@ -160,7 +171,7 @@ export class CompanionSystem extends createSystem({}) {
     const phase = this.agent?.phase;
     this.view.progress = -1;
     if (phase === 'thinking') return 'thinking';
-    if (phase === 'preview' || phase === 'suggestion' || phase === 'error') return 'speaking';
+    if (phase === 'preview' || phase === 'suggestion' || phase === 'error' || phase === 'memory' || phase === 'session' || phase === 'resume') return 'speaking';
     const now = Date.now();
     const timers = workspace.state.timers;
     for (let i = 0; i < timers.length; i++) {

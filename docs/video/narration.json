@@ -1,26 +1,60 @@
 {
   "_comment": "The submission video, one entry per beat of tests/demo.spec.ts. scripts/make-video.mjs speaks each line with Piper (or plays a beat's own 'audio'), the demo waits for each line to finish before the next beat, and the captions are burned in ('captions' times are seconds into the beat or clip). The 'say' beat's 'mic' is played into the browser's microphone, so the real Amazon Transcribe hears exactly what the video plays. 'open' is real footage before the title card; its files live in .video/source, outside the repository (the edit runs without them).",
   "title": "SpatialDesk",
-  "subtitle": "A workspace should adapt to the person. Say what is hard today: an AI agent reshapes your space to your body and your mind, and you can undo any step.",
-  "tags": ["Productivity", "Accessibility", "Agentic AI", "Voice and eyes only", "Mixed reality", "Meta VR Glasses ready"],
-  "end_line": "Your body. Your mind. Your space. Open it on a Quest: no install, no account.",
+  "subtitle": "A companion that adapts your workspace, asks what works, and remembers only the setup you choose to save.",
+  "tags": [
+    "Productivity",
+    "Accessibility",
+    "Agentic AI",
+    "You choose what is remembered",
+    "Mixed reality"
+  ],
+  "end_line": "A workspace that remembers what works for you.",
   "open": {
     "clip": ".video/source/mum-open.mp4",
     "seconds": 6.6,
     "captions": [
-      { "at": 0.3, "to": 3.1, "text": "This is my mum." },
-      { "at": 3.3, "to": 4.9, "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today." },
-      { "at": 4.9, "to": 6.6, "text": "Y estoy cansada.\nAnd I'm tired." }
+      {
+        "at": 0.3,
+        "to": 3.1,
+        "text": "This is my mum."
+      },
+      {
+        "at": 3.3,
+        "to": 4.9,
+        "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today."
+      },
+      {
+        "at": 4.9,
+        "to": 6.6,
+        "text": "Y estoy cansada.\nAnd I'm tired."
+      }
     ]
   },
   "beats": [
     {
       "id": "enter",
-      "text": "Spatial apps expect you to turn your head, reach out and pinch the air. On a bad day, she can't. So SpatialDesk adapts to her."
+      "text": "A workspace should adapt to the person. On a bad day, turning and reaching are hard.",
+      "subtitles": [
+        [
+          "El espacio debe adaptarse a la persona.",
+          "A workspace should adapt to the person."
+        ],
+        [
+          "En un día difícil, girar o alcanzar cuesta.",
+          "On a bad day, turning and reaching are hard."
+        ]
+      ]
     },
     {
       "id": "talk",
-      "text": "She presses Talk, and says it in her own words."
+      "text": "She presses Talk, and asks in her own words.",
+      "subtitles": [
+        [
+          "Ella pulsa Hablar y lo pide a su manera.",
+          "She presses Talk, and asks in her own words."
+        ]
+      ]
     },
     {
       "id": "say",
@@ -28,59 +62,227 @@
       "mic": ".video/source/mum-say-16k.wav",
       "text": "Hoy me duele mucho el cuello, y estoy cansada. Acércalo todo por la derecha, y la letra más grande, por favor.",
       "captions": [
-        { "at": 0.45, "to": 2.0, "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today." },
-        { "at": 2.0, "to": 3.6, "text": "Y estoy cansada.\nAnd I'm tired." },
-        { "at": 3.8, "to": 6.4, "text": "Acércalo todo por la derecha\nBring everything closer, on the right," },
-        { "at": 6.6, "to": 9.3, "text": "y la letra más grande, por favor.\nand the text bigger, please." }
+        {
+          "at": 0.45,
+          "to": 2,
+          "text": "Hoy me duele mucho el cuello.\nMy neck hurts a lot today."
+        },
+        {
+          "at": 2,
+          "to": 3.6,
+          "text": "Y estoy cansada.\nAnd I'm tired."
+        },
+        {
+          "at": 3.8,
+          "to": 6.4,
+          "text": "Acércalo todo por la derecha\nBring everything closer, on the right,"
+        },
+        {
+          "at": 6.6,
+          "to": 9.3,
+          "text": "y la letra más grande, por favor.\nand the text bigger, please."
+        }
       ]
     },
     {
       "id": "heard",
-      "text": "Amazon Transcribe hears her Spanish. The agent, a specialist in ergonomics, answers with changes to her space, each with its reason."
+      "text": "Transcribe hears her Spanish. Nova proposes changes, each with a reason.",
+      "subtitles": [
+        [
+          "Transcribe entiende su español.",
+          "Transcribe hears her Spanish."
+        ],
+        [
+          "Nova propone cambios y explica cada uno.",
+          "Nova proposes changes, each with a reason."
+        ]
+      ]
     },
     {
       "id": "apply",
-      "text": "One tap. Everything comes closer and larger, on her right, within a small turn of her neck. Every change has its own undo."
+      "text": "She reviews the changes and chooses Apply. Closer, larger, and on her right.",
+      "subtitles": [
+        [
+          "Ella revisa y decide qué aplicar.",
+          "She reviews the changes and chooses Apply."
+        ],
+        [
+          "Más cerca, más grande y a su derecha.",
+          "Closer, larger, and on her right."
+        ]
+      ]
+    },
+    {
+      "id": "dialogue",
+      "text": "Her companion asks how it feels. The conversation keeps the context.",
+      "subtitles": [
+        [
+          "El acompañante pregunta cómo le resulta.",
+          "Her companion asks how it feels."
+        ],
+        [
+          "La conversación conserva el contexto.",
+          "The conversation keeps the context."
+        ]
+      ]
+    },
+    {
+      "id": "saved",
+      "text": "When it feels right, she chooses to save it. Five settings only, in this browser.",
+      "subtitles": [
+        [
+          "Si funciona, ella elige guardarlo.",
+          "When it feels right, she chooses to save it."
+        ],
+        [
+          "Solo cinco ajustes, en este navegador.",
+          "Five settings only, in this browser."
+        ]
+      ]
     },
     {
       "id": "plan",
-      "text": "Then her day, written in plain words. Amazon Nova plans it, and the same Kotlin engine that runs in the headset checks every step."
-    },
-    {
-      "id": "planned",
-      "text": "Nothing changes until she says yes."
+      "text": "She describes her day. The agent proposes a plan. She reviews and approves.",
+      "subtitles": [
+        [
+          "Ella describe su día.",
+          "She describes her day."
+        ],
+        [
+          "El agente propone un plan.",
+          "The agent proposes a plan."
+        ],
+        [
+          "Ella lo revisa y lo aprueba.",
+          "She reviews and approves."
+        ]
+      ]
     },
     {
       "id": "handsfree",
-      "text": "When her hands are tired, she looks at a button and holds her gaze. Where the headset tracks the eyes, her eyes alone are enough."
+      "text": "She can also look at a button and hold her gaze. Her hands can rest.",
+      "subtitles": [
+        [
+          "También puede mirar y mantener la mirada.",
+          "She can also look at a button and hold her gaze."
+        ],
+        [
+          "Las manos pueden descansar.",
+          "Her hands can rest."
+        ]
+      ]
     },
     {
-      "id": "start",
-      "text": "Starting is the hardest part. Start small turns her first task into five minutes."
+      "id": "session",
+      "text": "She chooses her time and energy. One task, one short block.",
+      "subtitles": [
+        [
+          "Ella elige su tiempo y su energía.",
+          "She chooses her time and energy."
+        ],
+        [
+          "Una tarea y un bloque corto.",
+          "One task, one short block."
+        ]
+      ]
     },
     {
-      "id": "momentum",
-      "text": "Five minutes later she has started, so the agent offers to keep going, not a break."
+      "id": "pause",
+      "text": "She can pause and save her own next step. Her task stays open.",
+      "subtitles": [
+        [
+          "Puede parar y guardar su siguiente paso.",
+          "She can pause and save her own next step."
+        ],
+        [
+          "La tarea sigue abierta.",
+          "Her task stays open."
+        ]
+      ]
     },
     {
-      "id": "companion",
-      "text": "A small companion works beside her board. If her mind wanders, it calls her back, gently."
+      "id": "return",
+      "text": "On her next visit, her next step is here. The same clock waits for her approval.",
+      "subtitles": [
+        [
+          "Al volver, encuentra su siguiente paso.",
+          "On her next visit, her next step is here."
+        ],
+        [
+          "El mismo reloj espera su aprobación.",
+          "The same clock waits for her approval."
+        ]
+      ]
+    },
+    {
+      "id": "session-end",
+      "text": "At the end, she can stop or choose again. Her task stays open.",
+      "subtitles": [
+        [
+          "Al terminar, decide si parar o seguir.",
+          "At the end, she can stop or choose again."
+        ],
+        [
+          "Su tarea sigue abierta.",
+          "Her task stays open."
+        ]
+      ]
     },
     {
       "id": "log",
-      "text": "Every change the agent made is in the AI log, with its reason and its own undo."
+      "text": "She can see what changed, and why. And undo any step.",
+      "subtitles": [
+        [
+          "Puede ver qué cambió y por qué.",
+          "She can see what changed, and why."
+        ],
+        [
+          "Y deshacer cada paso.",
+          "And undo any step."
+        ]
+      ]
+    },
+    {
+      "id": "recall",
+      "text": "On another visit, she restores what works for her. Review before Apply. No new AI call is needed.",
+      "subtitles": [
+        [
+          "En otra visita, recupera lo que le funciona.",
+          "On another visit, she restores what works for her."
+        ],
+        [
+          "Revisa antes de aplicar. No necesita otra llamada a la IA.",
+          "Review before Apply. No new AI call is needed."
+        ]
+      ]
     },
     {
       "id": "room",
-      "text": "On a Quest 3 it works in her real room. Fit room stands her board on her real desk, and in a focus block the room recedes."
-    },
-    {
-      "id": "glasses",
-      "text": "And it is ready for Meta VR Glasses: the layout fits their narrower view, and she just looks and pinches."
+      "text": "The workspace also adapts to her room. Boards use the detected desk and walls.",
+      "subtitles": [
+        [
+          "El espacio también se adapta a su habitación.",
+          "The workspace also adapts to her room."
+        ],
+        [
+          "Los tableros usan la mesa y las paredes detectadas.",
+          "Boards use the detected desk and walls."
+        ]
+      ]
     },
     {
       "id": "end",
-      "text": "Your body. Your mind. Your space. SpatialDesk adapts to you. Open the link: there is nothing to install."
+      "text": "Your body. Your mind. Your space. SpatialDesk remembers what you choose.",
+      "subtitles": [
+        [
+          "Tu cuerpo. Tu mente. Tu espacio.",
+          "Your body. Your mind. Your space."
+        ],
+        [
+          "SpatialDesk recuerda lo que tú eliges.",
+          "SpatialDesk remembers what you choose."
+        ]
+      ]
     }
   ]
 }

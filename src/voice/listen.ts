@@ -2,13 +2,14 @@
  * Speech to text for voice commands. The microphone is streamed as 16 kHz 16-bit PCM straight to Amazon Transcribe,
  * over a WebSocket URL the command server presigns: the browser never holds AWS credentials, no audio passes through
  * our server, and every listen counts against the server's quotas. One utterance per listen: it ends at a pause after
- * words, on stopListening(), or after MAX_MS.
+ * words, on stopListening(), or after the user's configured maximum duration.
  *
  * The browser's own speech recognition is not used: it is missing from some browsers and could not be verified on
  * Meta Quest Browser, while this path needs only a microphone and a WebSocket.
  */
 import { activeSession } from '../backend/link.js';
 import { audioEvent, decodeMessage, type EventMessage } from './eventstream.js';
+import { accessPreferences } from '../accessibility/preferences.js';
 
 export type ListenResult = { ok: true; text: string } | { ok: false; error: string };
 
@@ -18,15 +19,6 @@ export interface ListenHandlers {
 }
 
 const SAMPLE_RATE = 16_000;
-/**
- * Patient listening: people who speak slowly, with effort or with pauses (age, a stroke, tiredness) are not cut off.
- * Talk again ends it at once.
- */
-const MAX_MS = 20_000;
-/** Once words have been heard, this long without new ones ends the utterance... */
-const PAUSE_MS = 1_600;
-/** ...or this long, when Transcribe has already closed a sentence (its last result was final): a breath between two. */
-const PAUSE_AFTER_FINAL_MS = 1_500;
 /** The language Transcribe listens for: ?lang=es-ES on the link when it is not the browser's, else the browser's. */
 const LANGUAGE = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('lang')) || navigator.language;
 /** With nothing heard at all, give up after this long. */
@@ -76,6 +68,10 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
   if (current) return { ok: false, error: 'Already listening.' };
   const session = activeSession();
   if (!session) return { ok: false, error: 'Voice needs the command server, which is offline. Tap the buttons instead.' };
+  // One deliberate setting snapshot per listen, so changing controls mid-sentence cannot cut someone off.
+  const maxMs = accessPreferences.listenMaxMs;
+  const pauseMs = accessPreferences.listenPauseMs;
+  const finalPauseMs = accessPreferences.listenFinalPauseMs;
 
   // Until the stream is up, stopping just cancels: nothing has been heard yet.
   let cancelled = false;
@@ -160,8 +156,8 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
       const clock = setInterval(() => {
         const now = performance.now();
         const text = heard();
-        const pause = partial ? PAUSE_MS : PAUSE_AFTER_FINAL_MS;
-        if (now - started > MAX_MS || (text && now - lastChange > pause) || (!text && now - started > NOTHING_MS)) finish();
+        const pause = partial ? pauseMs : finalPauseMs;
+        if (now - started > maxMs || (text && now - lastChange > pause) || (!text && now - started > NOTHING_MS)) finish();
       }, 100);
 
       ws.onmessage = (event: MessageEvent<ArrayBuffer>) => {

@@ -2,8 +2,7 @@
  * The end-to-end demo, under 3 minutes, played in the IWER Quest 3 emulator with the controller ray and the trigger,
  * as a judge would with a headset, and recorded as video for the submission. The story is accessibility: a real
  * person's request in her own voice and language ("my neck hurts, I'm tired: bring everything closer, on the right,
- * and the text bigger") reshapes the space, then her day, hands-free, a first step, the companion, the AI log, her
- * room and the glasses.
+ * and the text bigger") reshapes the space, then her day, hands-free, a session she chooses, the AI log and her room.
  * Needs the command server (Bedrock, Transcribe): local `npm run server:run` + preview proxy, or E2E_URL=https://<cloudfront>.
  *   DEMO=1 npx playwright test tests/demo.spec.ts          (video in test-results/)
  *   node scripts/make-video.mjs                             (the narrated, captioned cut, paced by NARRATION)
@@ -13,7 +12,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { frames, lookAt, lookWithEyes, pinch, pressXR, restHands, tap, turnHead, type Win } from './helpers.js';
+import { markerColour } from '../scripts/video-contract.mjs';
+import { frames, lookAt, pressXR, restHands, tap, turnHead, type Win } from './helpers.js';
 
 // The whole file is the recording: skipped before any page (and its video, which needs ffmpeg) is created.
 test.skip(!process.env.DEMO, 'demo only (DEMO=1)');
@@ -41,7 +41,7 @@ test.use({
 const narration: Record<string, number> | null = process.env.NARRATION ? JSON.parse(readFileSync(process.env.NARRATION, 'utf-8')) : null;
 const GAP_MS = 350; // between lines
 /** Framing for video: at the emulator's default 90° vertical field of view a 16:9 frame is 121° wide and boards look small. */
-const FOVY_DEG = 72;
+const FOVY_DEG = 90; // native emulator view: the whole review card and its controls remain in frame
 const HEAD_PITCH_DEG = -6;
 /** A glance toward the console before tapping it, as a seated user does: half its angle, within a small neck turn. */
 const GLANCE_MAX_DEG = 26;
@@ -49,7 +49,32 @@ const GLANCE_MAX_DEG = 26;
 const DAY = 'Call the doctor at 10:00, pay the electricity bill, write to my sister and order the shopping for Friday.';
 
 const pause = (page: Page, seconds: number) => page.waitForTimeout(seconds * 1000);
-const phase = (page: Page, p: string) => page.waitForFunction((want) => (window as Win).__agent.state.phase === want, p, { timeout: 30_000 });
+/** Keep the ray origin behind the nearby, enlarged panels; rest inactive inputs between clicks. */
+const demoPress = async (page: Page, name: string, hand: 'left' | 'right' = 'right') => {
+  await restHands(page);
+  await pressXR(page, name, hand, name.startsWith('agent:') ? 0.2 : 0);
+  await page.evaluate(() => {
+    const device = (window as Win).__xrDevice;
+    for (const side of ['left', 'right'] as const) {
+      const controller = device.controllers[side];
+      controller.updateButtonValue('trigger', 0);
+      controller.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+    }
+  });
+  await frames(page, 6);
+};
+const phase = async (page: Page, p: string) => {
+  try {
+    await page.waitForFunction((want) => {
+      const state = (window as Win).__agent.state;
+      if (state.phase === 'error') throw new Error(`Agent rejected the request: ${JSON.stringify(state.plan)}`);
+      return state.phase === want;
+    }, p, { timeout: 30_000 });
+  } catch (cause) {
+    const state = await page.evaluate(() => ({ agent: (window as Win).__agent.state, heard: (window as Win).__heard }));
+    throw new Error(`Expected agent phase ${p}; observed ${JSON.stringify(state)}`, { cause });
+  }
+};
 const online = (page: Page) =>
   page.waitForFunction(() => (window as Win).__link?.kind === 'online' && (window as Win).__agent, null, { timeout: 60_000 });
 /** The console's yaw from the user's anchor, in degrees (+ is left): it moves with the body's comfort. */
@@ -63,10 +88,21 @@ const consoleYaw = (page: Page) =>
     return (y * 180) / Math.PI;
   });
 
-test('demo: her request reshapes the space, then her day, hands-free, start small, the companion, the AI log, her room, the glasses (< 3 min)', async ({ page }, testInfo) => {
+test('demo: her companion adapts the space, remembers her choice, supports her day and returns to her setup (< 3 min)', async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   const started = Date.now(); // the video starts with the page, a moment before this
   const beats: { id: string; at: number }[] = [];
+  const sync = async (colour: number[] | null) => page.evaluate((colour) => {
+    let dot = document.getElementById('demo-frame-sync');
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.id = 'demo-frame-sync';
+      dot.style.cssText = 'position:fixed;left:4px;top:4px;width:24px;height:24px;pointer-events:none;z-index:2147483647';
+      document.body.append(dot);
+    }
+    dot.style.display = colour ? 'block' : 'none';
+    if (colour) dot.style.backgroundColor = `rgb(${colour.join(',')})`;
+  }, colour);
   let speakingUntil = 0;
   /** Waits until the line being spoken has finished. */
   const settle = async () => {
@@ -79,13 +115,15 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
     if (!(id in narration)) throw new Error(`docs/video/narration.json has no line "${id}"`);
     await settle();
     beats.push({ id, at: Date.now() - started });
+    await sync(markerColour(beats.length - 1));
+    console.log(`DEMO beat: ${id}`);
     speakingUntil = Date.now() + narration[id] * 1000;
   };
   /** Glances toward the console (wherever the body's comfort put it) and taps one of its buttons with that side's hand. */
   const command = async (button: string) => {
     const yaw = await consoleYaw(page);
     await turnHead(page, Math.max(-GLANCE_MAX_DEG, Math.min(GLANCE_MAX_DEG, yaw / 2)), HEAD_PITCH_DEG, 14);
-    await pressXR(page, `command:${button}`, yaw > 0 ? 'left' : 'right');
+    await demoPress(page, `command:${button}`, yaw > 0 ? 'left' : 'right');
     await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   };
 
@@ -104,6 +142,7 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
     const day = (blocks: number, minutes: number, done: number) => ({ blocks, minutes, done });
     localStorage.setItem('spatialdesk.progress', JSON.stringify({ days: { [key(1)]: day(3, 75, 4), [key(2)]: day(2, 50, 3), [key(3)]: day(4, 100, 6), [key(5)]: day(1, 25, 2) } }));
     localStorage.removeItem('spatialdesk.settings');
+    localStorage.removeItem('spatialdesk.comfort-memory');
   });
   await page.reload();
   await online(page);
@@ -115,7 +154,7 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await page.evaluate(() => (window as Win).__world.launchXR());
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
   await turnHead(page, 0, HEAD_PITCH_DEG);
-  await pressXR(page, 'coach:coach-skip');
+  await demoPress(page, 'coach:coach-skip');
   await beat('enter');
   await pause(page, 1.5);
   await turnHead(page, 40, HEAD_PITCH_DEG, 24); // what a turn of the head costs: the console...
@@ -130,7 +169,7 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await settle();
   const yaw = await consoleYaw(page);
   await turnHead(page, Math.min(GLANCE_MAX_DEG, yaw / 2), HEAD_PITCH_DEG, 14);
-  await pressXR(page, 'command:talk-button', 'left');
+  await demoPress(page, 'command:talk-button', 'left');
   await beat('say');
   await page.waitForFunction(() => (window as Win).__heard != null, null, { timeout: 40_000 });
   const heard = await page.evaluate(() => (window as Win).__heard);
@@ -145,7 +184,7 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await pause(page, 3);
   await settle();
   await beat('apply');
-  await pressXR(page, 'agent:plan-apply');
+  await demoPress(page, 'agent:plan-apply');
   await frames(page, 10);
   expect(await consoleYaw(page)).toBeLessThan(0); // the console came to her right hand
   await pause(page, 2.5);
@@ -154,6 +193,25 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await turnHead(page, 0, HEAD_PITCH_DEG, 18);
   await settle();
 
+  await beat('dialogue');
+  const initialReach = await page.evaluate(() => (window as Win).__workspace.state.comfort.reach);
+  await page.evaluate(() => (window as Win).__voice.say('Un poco más lejos, por favor.'));
+  await phase(page, 'preview');
+  expect(await page.evaluate(() => (window as Win).__agent.state.plan?.source)).toContain('nova');
+  expect(await page.evaluate((reach) => (window as Win).__agent.state.plan?.steps.some((s: any) => s.op.op === 'set_comfort' && s.op.reach > reach), initialReach)).toBe(true);
+  await pause(page, 1.5);
+  await demoPress(page, 'agent:plan-apply');
+  await settle();
+  await beat('saved');
+  await command('memory-button');
+  await phase(page, 'memory');
+  await pause(page, 1);
+  await pressXR(page, 'agent:plan-reply', 'right', 0.2);
+  await page.waitForFunction(() => !!localStorage.getItem('spatialdesk.comfort-memory'));
+  await pause(page, 2);
+  await settle();
+  await demoPress(page, 'agent:plan-discard');
+
   // 3. Her day: the agent plans it, she reviews, applies.
   await beat('plan');
   await command('plan-button');
@@ -161,8 +219,7 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   expect(await page.evaluate(() => (window as Win).__agent.state.plan?.source)).toContain('nova');
   await pause(page, 2);
   await settle();
-  await beat('planned');
-  await pressXR(page, 'agent:plan-apply');
+  await demoPress(page, 'agent:plan-apply');
   await pause(page, 2.5);
 
   // 4. Hands-free: on with a tap, then the gaze alone brings everything to her and turns it off again.
@@ -176,38 +233,70 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   await settle();
 
-  // 5. Start small: five minutes on the first bit (?fast: five seconds); when they end the plant grows a leaf and the
-  // agent, told she has started, offers to keep going rather than a break.
-  await beat('start');
-  // A timer from her plan may be running: the first step gets its own block.
+  // 5. One session at her pace. Clear the earlier demo timer before choosing a new block.
   await page.evaluate(() => {
     for (const t of (window as Win).__workspace.state.timers) (window as Win).__workspace.dispatch({ op: 'dismiss_timer', timer: t.id });
   });
-  await command('start-button');
+  const doneBefore = await page.evaluate(() => (window as Win).__workspace.state.boards.flatMap((b: any) => b.columns.at(-1).cards.map((c: any) => c.id)));
+  await beat('session');
+  await command('session-button');
+  await phase(page, 'session');
+  await demoPress(page, 'agent:session-15');
+  await demoPress(page, 'agent:energy-low');
+  await pause(page, 1.5);
+  await demoPress(page, 'agent:plan-reply');
   await phase(page, 'preview');
+  const session = await page.evaluate(() => (window as Win).__agent.state.plan);
+  expect(session.source).toContain('nova');
+  const timers = session.steps.filter((s: any) => s.op.op === 'start_timer');
+  expect(timers).toHaveLength(1);
+  expect(timers[0].op.minutes).toBeLessThanOrEqual(5);
   await pause(page, 1.5);
-  await pressXR(page, 'agent:plan-apply');
-  await page.waitForFunction(() => (window as Win).__workspace.state.timers.some((t: any) => /^first step/i.test(t.label)), null, { timeout: 5_000 });
-  const growth = await page.evaluate(() => (window as Win).__studio.state.growth as number);
-  await page.waitForFunction((g) => (window as Win).__studio.state.growth >= g + 1, growth, { timeout: 20_000 });
-  await phase(page, 'suggestion');
-  await settle();
-  await beat('momentum');
-  await pause(page, 2.5);
-  await pressXR(page, 'agent:plan-apply');
-  await phase(page, 'idle');
-  await settle();
+  await demoPress(page, 'agent:plan-apply');
+  const sessionTimer = await page.evaluate(() => (window as Win).__workspace.state.timers.find((t: any) => t.state === 'running' && /^Session: /.test(t.label)));
+  expect(sessionTimer).toBeTruthy();
 
-  // 6. The companion: she looks away during the block, it calls her back; she looks back, it welcomes her.
-  await beat('companion');
-  await pause(page, 1);
-  await turnHead(page, 70, 2, 18);
-  await page.waitForFunction(() => (window as Win).__wander.view.calling, null, { timeout: 8_000 });
-  await pause(page, 1);
-  await turnHead(page, 0, HEAD_PITCH_DEG, 16);
-  await page.waitForFunction(() => (window as Win).__wander.view.returns >= 1, null, { timeout: 4_000 });
-  await pause(page, 1.5);
+  // A voluntary interruption: the user's next action is saved locally and the same clock is paused.
+  await beat('pause');
+  await page.evaluate(() => (window as Win).__voice.say('Necesito parar'));
+  await phase(page, 'resume');
+  const nextStep = /bill|factura/i.test(sessionTimer.label) ? 'comprobar el importe de la factura' : 'revisar el primer detalle de esta tarea';
+  await page.evaluate((text) => (window as Win).__voice.say(`Cuando vuelva, ${text}`), nextStep);
+  await pause(page, 0.5);
+  await demoPress(page, 'agent:plan-reply');
+  const frozen = await page.evaluate((id) => (window as Win).__workspace.state.timers.find((t: any) => t.id === id), sessionTimer.id);
+  expect(frozen.state).toBe('paused');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('spatialdesk.resume-note')!).nextStep)).toBe(nextStep);
   await settle();
+  expect(await page.evaluate((id) => (window as Win).__workspace.state.timers.find((t: any) => t.id === id).remainingMs, sessionTimer.id)).toBe(frozen.remainingMs);
+
+  await sync(null); // the page-loading gap is excluded by the frame calibration
+  await page.evaluate(() => { (window as Win).__agent.close(); (window as Win).__workspace.flush(); });
+  await pause(page, 0.5);
+  await page.reload();
+  await online(page);
+  await page.evaluate((fovy) => { (window as Win).__xrDevice.fovy = fovy * Math.PI / 180; (window as Win).__world.launchXR(); }, FOVY_DEG);
+  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible');
+  await turnHead(page, 0, HEAD_PITCH_DEG);
+  await page.evaluate(() => (window as Win).__voice.say('Por dónde iba'));
+  await phase(page, 'resume');
+  await beat('return');
+  await pause(page, 1.5);
+  await demoPress(page, 'agent:plan-apply');
+  await phase(page, 'preview');
+  expect(await page.evaluate(() => (window as Win).__agent.state.plan?.source)).toBe('saved-work');
+  expect(await page.evaluate((id) => (window as Win).__workspace.state.timers.find((t: any) => t.id === id).state, sessionTimer.id)).toBe('paused');
+  await settle();
+  await demoPress(page, 'agent:plan-apply');
+  await page.waitForFunction(() => (window as Win).__agent.state.plan?.source === 'session-clock', null, { timeout: 20_000 });
+  expect(await page.evaluate((id) => (window as Win).__workspace.state.timers.find((t: any) => t.id === id).state, sessionTimer.id)).toBe('done');
+  expect(await page.evaluate(() => (window as Win).__workspace.state.boards.flatMap((b: any) => b.columns.at(-1).cards.map((c: any) => c.id)))).toEqual(doneBefore);
+  expect(await page.evaluate(() => (window as Win).__workspace.state.timers.some((t: any) => t.state === 'running'))).toBe(false);
+  await settle();
+  await beat('session-end');
+  await pause(page, 3);
+  await settle();
+  await demoPress(page, 'agent:plan-discard');
 
   // 7. What did the AI do? Every step with its reason, and an Undo for each.
   await beat('log');
@@ -215,8 +304,32 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await phase(page, 'log');
   await pause(page, 3);
   await settle();
-  await pressXR(page, 'agent:plan-discard');
+  await demoPress(page, 'agent:plan-discard');
   await pause(page, 0.5);
+
+  // Another visit after trying the default layout. The bookmark is restored locally, with review and Undo.
+  await sync(null); // preparation and page loading are outside the edited story
+  await page.evaluate(() => (window as Win).__voice.say('back to normal'));
+  await phase(page, 'preview');
+  await demoPress(page, 'agent:plan-apply');
+  await page.evaluate(() => { (window as Win).__agent.close(); (window as Win).__workspace.flush(); });
+  await pause(page, 0.5);
+  await page.reload();
+  await online(page);
+  await page.evaluate((fovy) => { (window as Win).__xrDevice.fovy = fovy * Math.PI / 180; (window as Win).__world.launchXR(); }, FOVY_DEG);
+  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible');
+  await turnHead(page, 0, HEAD_PITCH_DEG);
+  await page.evaluate(() => (window as Win).__voice.say('recupera mi ajuste'));
+  await phase(page, 'preview');
+  expect(await page.evaluate(() => (window as Win).__agent.state.plan?.source)).toBe('saved-setup');
+  expect(await page.evaluate(() => (window as Win).__agent.state.plan?.steps.length)).toBeGreaterThan(0);
+  await beat('recall');
+  await pause(page, 2);
+  await demoPress(page, 'agent:plan-apply');
+  await page.waitForFunction(() => (window as Win).__workspace.state.comfort.side === 'right');
+  await pause(page, 1.5);
+  await settle();
+  await demoPress(page, 'agent:plan-discard');
 
   // 8. In her room: passthrough in IWER's home office, seated at the desk; Fit room uses the detected desk and walls,
   // and a focus block lets the room recede.
@@ -241,32 +354,8 @@ test('demo: her request reshapes the space, then her day, hands-free, start smal
   await turnHead(page, 0, HEAD_PITCH_DEG, 20);
   await settle();
 
-  // 9. Meta VR Glasses: the same workspace in IWER's glasses profile (its narrower view masked), fitted to the view
-  // the headset reports; the eyes aim and a pinch picks a card up and drops it.
-  await beat('glasses');
-  await page.evaluate(() => (window as Win).__world.exitXR());
-  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive' && !(window as Win).__world.session);
-  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: { x: 0, y: 1.6, z: 0, yaw: 0, pitch: 0 } }));
-  await pause(page, 1); // the workspace is saved (debounced) before the page reloads as the glasses
-  await page.goto('/?emulate&fast&glasses');
-  await online(page);
-  await page.evaluate(() => (window as Win).__world.launchXR());
-  await page.waitForFunction(() => (window as Win).__workspace.state.view?.halfWidthDeg < 35, null, { timeout: 30_000 });
-  await restHands(page);
-  await turnHead(page, 0, -4);
-  await pause(page, 2.5);
-  const board = await page.evaluate(() => (window as Win).__workspace.state.focusBoardId as string);
-  await lookWithEyes(page, board + ':card-0-0');
-  await pause(page, 0.8);
-  await pinch(page, 'right');
-  await pause(page, 1.2);
-  await lookWithEyes(page, board + ':col-1');
-  await pause(page, 0.8);
-  await pinch(page, 'left');
-  await pause(page, 2);
-  await settle();
-
   // Playwright saves the video there once the page closes.
+  await sync(null);
   if (process.env.MARKERS) writeFileSync(process.env.MARKERS, JSON.stringify({ video: join(testInfo.outputDir, 'video.webm'), beats }, null, 2));
   const seconds = (Date.now() - started) / 1000;
   console.log(`DEMO ${seconds.toFixed(0)} s`);

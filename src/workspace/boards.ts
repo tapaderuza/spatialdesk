@@ -5,6 +5,8 @@
  * Panels are only touched when the workspace or the selection changes, never per frame.
  */
 import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { onAccessPreferences } from '../accessibility/preferences.js';
+import { boardPresentation, presentationText } from '../accessibility/presentation.js';
 import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder, onSettings } from '../ui/settings.js';
@@ -103,7 +105,8 @@ class BoardView {
     const board = this.board();
     const slots = this.slots;
     if (!board || !slots) return;
-    slots.title.setProperties({ text: panelText(board.title) });
+    const content = boardPresentation(board);
+    slots.title.setProperties({ text: panelText(content.title) });
     this.paintFocus();
 
     const maxChars = CARD_CHARS[Math.min(board.columns.length, COLUMNS)];
@@ -117,7 +120,7 @@ class BoardView {
       if (this.pages[c] >= pages) this.pages[c] = 0;
       const first = this.pages[c] * CARDS;
       this.paintColumn(c);
-      slot.title.setProperties({ text: panelText(column.title) });
+      slot.title.setProperties({ text: panelText(content.columns[c].title) });
       slot.count.setProperties({ text: String(column.cards.length) });
       slot.more.setProperties({
         text: column.cards.length > CARDS ? `${first + 1}-${Math.min(first + CARDS, column.cards.length)} of ${column.cards.length}, tap` : '',
@@ -127,7 +130,7 @@ class BoardView {
         this.paintCard(c, k);
         if (!card) return;
         cardSlot.mark.setProperties({ backgroundColor: COLOR.mark[card.priority] });
-        cardSlot.text.setProperties({ text: fit(panelText(card.title), maxChars) });
+        cardSlot.text.setProperties({ text: fit(panelText(content.columns[c].cards[first + k]), maxChars) });
         cardSlot.min.setProperties({ text: minutesLabel(card) });
       });
     });
@@ -208,7 +211,7 @@ class BoardView {
     if (held == null) {
       held = { boardId: board.id, cardId: card.id };
       play('pick', board.pose);
-      workspace.notify({ text: `Holding "${panelText(card.title)}". Tap a column to drop it.`, error: false });
+      workspace.notify({ text: `Holding "${panelText(presentationText(card.title))}". Tap a column to drop it.`, error: false });
       this.system.renderAll();
     } else if (held.cardId === card.id) {
       held = null;
@@ -250,7 +253,7 @@ class BoardView {
 
   tapFocus(): void {
     const board = this.board();
-    if (board) workspace.dispatch({ op: 'focus_board', board: board.id }, { notice: `"${panelText(board.title)}" is within reach.` });
+    if (board) workspace.dispatch({ op: 'focus_board', board: board.id }, { notice: `"${panelText(presentationText(board.title))}" is within reach.` });
   }
 
   dispose(): void {
@@ -321,6 +324,7 @@ export class BoardSystem extends createSystem({}) {
   init(): void {
     this.cleanupFuncs.push(workspace.subscribe(({ state }) => this.sync(state)));
     this.cleanupFuncs.push(onSettings(() => this.renderAll())); // high contrast changes the outlines
+    this.cleanupFuncs.push(onAccessPreferences(() => this.renderAll()));
     repaintBoards = () => this.renderAll();
     this.cleanupFuncs.push(() => (repaintBoards = null));
     this.sync(workspace.state);
@@ -341,7 +345,7 @@ export class BoardSystem extends createSystem({}) {
     const column = board.columns.find((c) => c.id === columnId);
     const result = workspace.dispatch(
       { op: 'move_card', card: card.id, board: board.id, column: columnId, index },
-      { label: 'move card', notice: `Moved "${panelText(card.title)}" to ${panelText(column?.title ?? 'column')}.` },
+      { label: 'move card', notice: `Moved "${panelText(presentationText(card.title))}" to ${panelText(presentationText(column?.title ?? 'column'))}.` },
     );
     if (result.ok) play('drop', board.pose);
     else this.renderAll();

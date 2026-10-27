@@ -1,0 +1,112 @@
+.sd-access-root {
+  --sd-access-scale: 1;
+  --sd-access-caption-scale: 1;
+  --sd-access-surface: #151c27;
+  --sd-access-raised: #202d40;
+  --sd-access-input: #0c1320;
+  --sd-access-text: #f1f5fb;
+  --sd-access-muted: #c1cedf;
+  --sd-access-border: #8093b0;
+  --sd-access-primary: #b9d7ff;
+  --sd-access-primary-text: #10223c;
+  --sd-access-focus: #ffe36b;
+  color: var(--sd-access-text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: calc(1rem * var(--sd-access-scale));
+  line-height: 1.55;
+}
+
+.sd-access-root *, .sd-access-root *::before, .sd-access-root *::after { box-sizing: border-box; }
+.sd-access-root [hidden] { display: none !important; }
+.sd-access-root button, .sd-access-root input, .sd-access-root textarea, .sd-access-root select { font: inherit; }
+.sd-access-root button {
+  min-height: 3rem;
+  padding: 0.65em 1em;
+  border: 2px solid var(--sd-access-border);
+  border-radius: 0.65rem;
+  color: var(--sd-access-text);
+  background: var(--sd-access-raised);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.sd-access-root button:disabled { opacity: 0.65; cursor: wait; }
+.sd-access-root button:hover:not(:disabled) { border-color: var(--sd-access-focus); }
+.sd-access-root :is(button,input,textarea,select):focus-visible { outline: 3px solid var(--sd-access-focus); outline-offset: 3px; }
+.sd-access-root h2, .sd-access-root h3, .sd-access-root p { margin: 0; }
+.sd-access-root h2 { font-size: 1.5em; line-height: 1.25; }
+.sd-access-root h3 { font-size: 1.15em; }
+.sd-access-root h2:focus { outline: 3px solid var(--sd-access-focus); outline-offset: 0.35rem; }
+.sd-access-launcher { position: fixed; right: 1rem; bottom: 1rem; z-index: 10020; box-shadow: 0 0.25rem 1rem #0008; }
+
+.sd-access-dialog {
+  width: min(68rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  border: 2px solid var(--sd-access-border);
+  border-radius: 1rem;
+  color: var(--sd-access-text);
+  background: var(--sd-access-surface);
+  font: inherit;
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 1rem 4rem #000b;
+}
+.sd-access-dialog::backdrop { background: #030811d9; }
+.sd-access-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 1.5rem; }
+.sd-access-close { flex-shrink: 0; }
+.sd-access-nav { display: flex; gap: 0.5rem; padding: 0.5rem 1.5rem 1rem; overflow-x: auto; border-bottom: 1px solid var(--sd-access-border); }
+.sd-access-root .sd-access-tab { flex: 0 0 auto; white-space: nowrap; }
+.sd-access-root .sd-access-tab[aria-selected="true"] { color: var(--sd-access-primary-text); background: var(--sd-access-primary); border-color: var(--sd-access-primary); font-weight: 700; }
+.sd-access-panel { display: grid; gap: 1rem; padding: 1.5rem; }
+.sd-access-summary { font-size: 1.08em; max-width: 72ch; overflow-wrap: anywhere; }
+.sd-access-status, .sd-access-error, .sd-access-caption { padding: 0.85rem 1rem; border: 2px solid var(--sd-access-border); border-radius: 0.6rem; overflow-wrap: anywhere; }
+.sd-access-status { background: #172b44; }
+.sd-access-error { border-color: #ffad9c; color: #ffe2dc; background: #45251f; }
+.sd-access-caption { background: #080c12; font-size: calc(1em * var(--sd-access-caption-scale)); }
+.sd-access-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); gap: 0.8rem; }
+.sd-access-root .sd-access-action { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; text-align: start; min-height: 4rem; }
+.sd-access-action-label { font-weight: 700; }
+.sd-access-action-detail { color: var(--sd-access-muted); font-size: 0.95em; }
+.sd-access-forms { display: grid; gap: 1.25rem; }
+.sd-access-form { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--sd-access-border); border-radius: 0.8rem; background: var(--sd-access-input); }
+.sd-access-form-description { color: var(--sd-access-muted); max-width: 72ch; }
+.sd-access-fields { display: grid; gap: 1rem; }
+.sd-access-field { display: grid; gap: 0.4rem; min-width: 0; }
+.sd-access-field label { font-weight: 650; }
+.sd-access-root :is(input,textarea,select) { width: 100%; max-width: 100%; min-height: 3rem; padding: 0.65rem 0.8rem; border: 2px solid var(--sd-access-border); border-radius: 0.5rem; color: var(--sd-access-text); background: var(--sd-access-surface); color-scheme: dark; }
+.sd-access-root textarea { resize: vertical; }
+.sd-access-root :is(input,textarea,select):disabled { opacity: 0.7; }
+.sd-access-field-hint { color: var(--sd-access-muted); font-size: 0.9em; }
+.sd-access-root .sd-access-submit, .sd-access-root .sd-access-reveal { color: var(--sd-access-primary-text); background: var(--sd-access-primary); border-color: var(--sd-access-primary); font-weight: 700; justify-self: start; }
+.sd-access-progress { display: grid; gap: 0.5rem; }
+.sd-access-progress progress { width: 100%; height: 1.5rem; accent-color: #97c8ff; }
+.sd-access-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 0.5rem; border-top: 1px solid var(--sd-access-border); }
+.sd-access-pagination { color: var(--sd-access-muted); margin-inline: auto !important; }
+
+.sd-access-high-contrast {
+  --sd-access-surface: #000;
+  --sd-access-raised: #000;
+  --sd-access-input: #000;
+  --sd-access-text: #fff;
+  --sd-access-muted: #fff;
+  --sd-access-border: #fff;
+  --sd-access-primary: #ffea70;
+  --sd-access-primary-text: #000;
+}
+.sd-access-high-contrast :is(.sd-access-status,.sd-access-caption,.sd-access-error) { background: #000; color: #fff; }
+.sd-access-reduced-motion *, .sd-access-reduced-motion *::before, .sd-access-reduced-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-access-root *, .sd-access-root *::before, .sd-access-root *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 36rem) {
+  .sd-access-dialog { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); max-height: calc(100dvh - 1rem); border-radius: 0.6rem; }
+  .sd-access-header, .sd-access-panel { padding: 1rem; }
+  .sd-access-header { align-items: flex-start; gap: 0.75rem; }
+  .sd-access-nav { padding-inline: 1rem; }
+  .sd-access-form { padding: 0.85rem; }
+  .sd-access-root h2 { font-size: 1.25em; }
+  .sd-access-launcher { right: 0.75rem; bottom: 0.75rem; }
+}

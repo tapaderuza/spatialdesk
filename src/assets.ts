@@ -14,6 +14,11 @@ export default defineAssets({
     type: AssetType.UIKitML,
     name: 'Command Panel',
   },
+  'agent-panel': {
+    url: publicAssetUrl('ui/plan.uikitml'),
+    type: AssetType.UIKitML,
+    name: 'Companion and Plan',
+  },
   // The VR studio (procedural, one draw call each): src/scene-assets.
   'studio-desk': desk,
   'focus-plant': plant,

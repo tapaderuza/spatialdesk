@@ -5,6 +5,8 @@
  * While a focus block runs (any running timer but a break), the quiet focus ambience plays.
  */
 import { createSystem, type UIKit, type UIKitDocument } from '@iwsdk/core';
+import { onAccessPreferences } from '../accessibility/preferences.js';
+import { presentationText, timerPresentationLabel } from '../accessibility/presentation.js';
 import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
 import { idleBorder } from '../ui/settings.js';
@@ -67,7 +69,7 @@ class TimerView {
     if (!slots) return;
     const t = this.timer;
     const paused = t.state === 'paused';
-    slots.label.setProperties({ text: panelText(paused ? `${t.label} - paused` : t.label) });
+    slots.label.setProperties({ text: panelText(timerPresentationLabel(t)) });
     slots.toggle.setProperties({ text: t.state === 'running' ? 'Pause' : paused ? 'Resume' : 'Again' });
     slots.box.setProperties({
       backgroundColor: t.state === 'done' ? COLOR.done : COLOR.panel,
@@ -150,6 +152,9 @@ export class TimerSystem extends createSystem({}) {
 
   init(): void {
     this.cleanupFuncs.push(workspace.subscribe(({ state, previous }) => this.sync(state, previous)));
+    this.cleanupFuncs.push(onAccessPreferences(() => {
+      for (const view of this.views.values()) view.render();
+    }));
     this.sync(workspace.state, null);
     addEventListener('pointerdown', unlockAudio, { passive: true });
     addEventListener('keydown', unlockAudio);
@@ -192,7 +197,7 @@ export class TimerSystem extends createSystem({}) {
 
   private ring(view: TimerView, timer: Timer): void {
     view.flashUntil = Date.now() + FLASH_MS;
-    workspace.notify({ text: `Time is up: ${panelText(timer.label)}`, error: false });
+    workspace.notify({ text: `Time is up: ${panelText(presentationText(timer.label))}`, error: false });
     const w = window as unknown as { __timerAlerts?: number };
     w.__timerAlerts = (w.__timerAlerts ?? 0) + 1; // observed by the Playwright tests
     alarm(timer.pose);

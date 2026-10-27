@@ -12,6 +12,7 @@
  */
 import { Matrix4, Vector3, type Object3D, type UIKit } from '@iwsdk/core';
 import { play, unlockAudio } from './sounds.js';
+import { accessPreferences } from '../accessibility/preferences.js';
 
 type Element = UIKit.Text;
 
@@ -54,6 +55,8 @@ export class PanelHits<K extends string> {
   /** Each control's rectangle in the root's frame, [minX, maxX, minY, maxY] per control, for the gaze. */
   private readonly rects: Float32Array;
   private rectsAt = -Infinity;
+  private lastPressKey: K | null = null;
+  private lastPressAt = -Infinity;
 
   /**
    * @param controls most specific first (a card before its column): the first rectangle containing the point wins.
@@ -88,6 +91,14 @@ export class PanelHits<K extends string> {
 
   /** Presses a control as a tap would: the tap sound, then the panel's own action. */
   press(key: K): void {
+    if (!this.root.isVisible.value || !shown(this.root)) return;
+    let visible = false;
+    for (let i = 0; i < this.controls.length; i++) if (this.controls[i][0] === key) { visible = this.controls[i][1].isVisible.value; break; }
+    if (!visible) return;
+    const now = performance.now();
+    if (accessPreferences.tremorTolerance && this.lastPressKey === key && now - this.lastPressAt < accessPreferences.clickCooldownMs) return;
+    this.lastPressKey = key;
+    this.lastPressAt = now;
     unlockAudio();
     play('tap', this.positionOf(key));
     this.handlers.click(key);
