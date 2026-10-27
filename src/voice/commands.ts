@@ -31,6 +31,7 @@ export type VoiceCommand =
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'steady'; value?: boolean }
   | { kind: 'switch'; value?: boolean }
+  | { kind: 'reach' }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -46,6 +47,7 @@ const PHRASES: [RegExp, VoiceCommand][] = [
   [/^(?:remember (?:this|my) (?:setup|space)|save (?:this|my|the) (?:setup|space)|(?:recuerda|guarda) (?:este|mi|el) (?:ajuste|espacio))$/, { kind: 'save-setup' }],
   [/^(?:restore (?:my|the|saved) (?:setup|space)|(?:recupera|restaura) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'restore-setup' }],
   [/^(?:my setup|show (?:my|the|saved) (?:setup|space)|mi ajuste|muestra mi ajuste)$/, { kind: 'open-setup' }],
+  [/^(?:fit (?:it |everything )?to (?:my reach|me)|measure my reach|reach test|(?:ponlo|ponlo todo|ajustalo|ajustalo todo|pon el tablero) a mi alcance|mide mi alcance|hasta donde llego)$/, { kind: 'reach' }],
   [/^(?:forget (?:my|the|saved) (?:setup|space)|(?:olvida|borra) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'forget-setup' }],
   [/^(?:forget (?:our |the )?conversation|clear (?:our |the )?conversation|olvida (?:la |nuestra )?conversacion|borra (?:la |nuestra )?conversacion)$/, { kind: 'forget' }],
   [reply(YES), { kind: 'apply' }],

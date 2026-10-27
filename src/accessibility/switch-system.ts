@@ -25,6 +25,7 @@ import {
 } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from '../ui/panel-hits.js';
 import { accessPreferences, onAccessPreferences, setAccessPreference } from './preferences.js';
+import { reachState } from './reach.js';
 import { SwitchAccess } from './switch-access.js';
 
 const CHECK_EVERY_FRAMES = 15;
@@ -177,7 +178,7 @@ export class SwitchSystem extends createSystem({}) {
   }
 
   private readonly press = (): void => {
-    if (accessPreferences.switchEnabled) this.access.pressSwitch();
+    if (accessPreferences.switchEnabled && !reachState.measuring) this.access.pressSwitch(); // a reach pinch measures
   };
 
   private readonly release = (): void => this.access.releaseSwitch();

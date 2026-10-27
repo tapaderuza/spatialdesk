@@ -8,7 +8,7 @@ scripted access), so match the blocks to the fields as they appear; the texts ar
 - **Special awards** (judged across all entries, rules section "Special Awards"):
   - Best Accessibility Forward Experience: the space adapts to the body on request (reach, one side, a stiff neck,
     tired eyes, lying down), steady aim for hands that shake (measured: 59-81% of presses on target without it, 100%
-    with it), one switch runs every control, every control works by voice and by the eyes alone, patient listening in the user's
+    with it), one switch runs every control, the space fitted to the reach of her own hand with one pinch, every control works by voice and by the eyes alone, patient listening in the user's
     language, high contrast, read-aloud; for the mind, a companion that calls you back and a first step of five
     minutes.
   - Best Agentic Interaction: an agent that acts on the space (the user's work and the user's comfort), talks and
@@ -73,7 +73,8 @@ amazon-bedrock, amazon-nova, amazon-transcribe, web-audio, aws-cdk, aws-fargate,
    the timers and the console within a small turn, on your right. "Back to normal" (or Undo) restores the layout.
    **Other ways in:** open https://d2p3027seoreck.cloudfront.net/?fast&steady for **steady aim** (a shaking hand
    presses what it aimed at), or **?fast&switch** for **one switch** (controls light up in turn; the space bar, Enter,
-   or any pinch or trigger chooses the one lit).
+   or any pinch or trigger chooses the one lit). In VR, say **"fit to my reach"**, reach out to where a board would be
+   comfortable and pinch: the card proposes the distance, height and side your hand measured.
 3. The small light beside the board is your **focus companion**. During a focus block it works with you, the time left
    shown round its middle, and the world beyond arm's reach fades so the board stands out (the **focus bubble**). A
    break brings the world back. Say "dimming off" to turn the fading off.
@@ -182,7 +183,10 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
 - **Steady aim for hands that shake.** Tremor mode presses the control you have been aiming at for most of the last
   half second, not the one under the ray when the pinch jolts it; the highlight follows it, so it stops flickering.
 - **One switch runs everything.** In switch mode the controls light up in turn and one press chooses: the space bar
-  or Enter (what switch adapters send), or any pinch or trigger in XR, wherever it points.
+  or Enter (what switch adapters send), or any pinch or trigger in XR, wherever it points; a thick amber frame shows
+  the control lit.
+- **Fit to my reach.** One pinch where the hand is comfortable gives the space its distance, height and side,
+  measured by the hand instead of chosen from a menu; the card proposes them in words, and nothing moves until Apply.
 - **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
   link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;

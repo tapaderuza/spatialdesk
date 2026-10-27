@@ -15,6 +15,7 @@ import { TIMER_SCALE, workspace, type Notice } from './workspace/store.js';
 import { timerFinishedListeners } from './workspace/timers.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
 import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js';
+import { ReachSystem } from './accessibility/reach-system.js';
 import { parseCommand } from './voice/commands.js';
 import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
@@ -338,7 +339,11 @@ export class PanelSystem extends createSystem({}) {
         if (!agent?.acceptByVoice()) tell('There is no plan to apply right now.', true);
         return;
       case 'discard':
-        if (!agent?.dismiss()) tell('There is nothing open to close.', true);
+        if (this.world.getSystem(ReachSystem)?.cancel()) tell('Reach measurement cancelled.');
+        else if (!agent?.dismiss()) tell('There is nothing open to close.', true);
+        return;
+      case 'reach':
+        this.world.getSystem(ReachSystem)?.start();
         return;
       case 'undo':
         if (workspace.undo()) play('undo');

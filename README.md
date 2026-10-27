@@ -28,6 +28,7 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
 - **In another language:** voice follows the browser's language; add `?lang=es-ES` (or another) to choose it.
 - **With hands that shake:** add `?steady` (or say "tremor mode on").
 - **With one switch:** add `?switch` and use the space bar, Enter, or any pinch or trigger (or say "switch mode on").
+- **Fit to your reach:** in VR, say "fit to my reach", reach out to where it is comfortable and pinch.
 - **As on Meta VR Glasses:** add `?emulate&glasses`: the glasses' narrower view, eye tracking and hands. Look at a
   card and pinch (hold the left mouse button in IWER's *Gaze + Hands* mode) to pick it up.
 
@@ -47,7 +48,13 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
 - **One switch runs everything.** In switch mode (`?switch`, set up by whoever helps, or "switch mode on") the
   controls light up one after another, the agent's card alone while it is open, and one press chooses: the space bar
   or Enter (what USB and Bluetooth switch adapters send), or any pinch or trigger in XR, wherever it points. Whoever
-  can press one thing, or pinch but not aim, can use every control.
+  can press one thing, or pinch but not aim, can use every control. The control lit wears a thick amber frame, so the
+  scan can be followed at a glance wherever the eyes are.
+- **Fit to my reach, measured by her hand.** Say "fit to my reach" (or "ponlo a mi alcance") in VR, reach out to where
+  a board would be comfortable and pinch: that one point gives the distance, the height and the side, and the agent's
+  card proposes them in words ("Where your hand reached: 47 cm away", "27 degrees higher"). Lying back, the hand rises
+  and the space tilts up; with a short reach, it comes nearer. The measuring pinch presses nothing, and nothing moves
+  until Apply.
 - **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
   link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
@@ -206,7 +213,8 @@ production build:
 | Ready for Meta VR Glasses | In IWER's glasses profile: the measured view is 58 x 54 degrees, and every corner of the focus board, its timer and the agent's card lies inside it; a look and a pinch of either hand picks a card up and drops it; hands-free presses a control with the eyes while the head stays still. Engine tests: the Quest layout is exactly as designed, and a view too narrow for anything still gets a readable one. |
 | Holds up in rooms never tested | *Fit room* in all 13 rooms of Meta's Synthetic Environment Module (8 procedural, 5 scanned), the user seated at whatever surface each has: the board stands 3 cm above it at 0.62 m and never through a wall, timers stand on it or hover above the board on a small one, the plant stays inside its outline, boards hang clear of doors and windows. 11 rooms have a desk-height surface; in the other 2 nothing moves onto one. |
 | Steady aim | Synthetic tremor on the command panel's real button grid (a 4-6 Hz sweep, slow drift, sensor noise and the jolt of the pinch; 3,000 presses per strength): with a moderate 3.5 cm tremor, 81.2% of presses land on the intended button without tremor mode and 100% with it; with a strong 5 cm tremor, 59.0% and 100%; no wrong press with it. In the app, a shaky hover on Contrast whose press slips onto Sound turns Sound off without it and Contrast on with it. A model of selection, not a clinical measure. |
-| One switch | On a screen the space bar skips the guided start and chooses a control while a mouse tap presses nothing; in XR a trigger aimed elsewhere chooses the control lit; the agent's card takes over the scan while it is open. |
+| One switch | On a screen the space bar skips the guided start and chooses a control while a mouse tap presses nothing; in XR a trigger aimed elsewhere chooses the control lit; the agent's card takes over the scan while it is open; the amber frame sits on the control lit. |
+| Fit to my reach | The arithmetic is the inverse of the shared Layout's focus slot (its own spot changes nothing; a sofa reach gives 0.75 reach, 27 degrees up, right); in XR the measuring trigger leaves the button under its ray alone, the card proposes reach, tilt and side, and Apply sets exactly them; "cancel" ends it and the next pinch presses again. |
 | Adapts to the body | Engine tests for nine bodies (a stiff neck, one side only, close by, tired eyes, lying back, and a bad day that combines them) and three postures: nothing overlaps, every parked board stays in sight and in reach of a pinch ray from either shoulder, everything sits within the turn the neck allows, and the default is the layout exactly as designed. Agent tests: comfort plans use set_comfort only, out-of-range values become the safe nearest, plans about anything else may not change comfort, and the built-in planner reads English and Spanish. In the emulator: a spoken request gathers everything on the right with the console by the right hand, and one undo takes it back. |
 | The companion and the bubble | The companion stays beside the board wherever it goes, and its mood follows the work: idle, focus (the time left shrinking), thinking while the agent plans, speaking when a plan arrives, calm in a break. The bubble eases in during a focus block, never in a break, and stays off once turned off by voice; Focus 25 in the room never moves a board. |
 | The studio and its sound | The board's bar rests on the desk (within 1 cm) wherever the workspace goes; the focus ambience follows focus blocks and never plays in a break, a pause or with sounds off. |

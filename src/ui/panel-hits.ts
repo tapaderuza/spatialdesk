@@ -14,6 +14,7 @@ import { Matrix4, Vector3, type Object3D, type UIKit } from '@iwsdk/core';
 import { play, unlockAudio } from './sounds.js';
 import { accessPreferences } from '../accessibility/preferences.js';
 import { AimTrail, outside, SNAP_METRES } from './aim.js';
+import { reachState } from '../accessibility/reach.js';
 
 type Element = UIKit.Text;
 
@@ -99,8 +100,9 @@ export class PanelHits<K extends string> {
     this.tally = new Float64Array(controls.length);
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
-      // One-switch mode: the switch selects what is lit; a pinch must not also press what the ray points at.
-      if (accessPreferences.switchEnabled) return;
+      // One-switch mode: the switch selects what is lit; a pinch must not also press what the ray points at. Nor
+      // while a reach is measured (src/accessibility/reach.ts): that pinch is a measurement.
+      if (accessPreferences.switchEnabled || reachState.measuring) return;
       const key = accessPreferences.tremorTolerance ? this.steadyHit(event.pointerId ?? 0, event.point) : this.hit(event.point);
       if (key != null) this.press(key);
     };

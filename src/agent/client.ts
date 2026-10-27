@@ -101,6 +101,7 @@ export function sourceLabel(source: string | undefined): string {
   if (source === 'saved-work') return 'Local checkpoint';
   if (!source) return '';
   if (source === 'saved-setup') return 'Saved by you';
+  if (source === 'reach') return 'Measured by your hand';
   if (source === 'session-clock') return 'Session complete';
   if (source === 'built-in') return 'Built-in planner';
   if (source.includes('nova-2-lite')) return 'Amazon Nova 2 Lite';
