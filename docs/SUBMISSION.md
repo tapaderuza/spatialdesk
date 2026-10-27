@@ -395,7 +395,16 @@ period.
 - Shared team boards.
 - A Horizon Store listing as an installable web app.
 
-## How hand interactions are implemented (optional form field)
+## Meta VR capabilities used (form field)
+
+Hand tracking (poke and pinch on every control, one-hand and distance grab for boards, and the hand as a measuring
+tool: one pinch where it is comfortable sets the space's distance, height and side), eye and head gaze (hands-free
+dwell selection, look and pinch), passthrough with plane detection and persistent anchors (boards on the real desk and
+walls, back tomorrow), an immersive WebXR session built with the Meta Immersive Web SDK and its UIKit spatial panels, a
+layout that fits the view the headset reports (ready for Meta VR Glasses), spatial audio cues, and the microphone for
+voice (Amazon Transcribe). Designed, tested and recorded in Meta's IWER Quest 3 emulator.
+
+## How hand interactions are implemented (form field)
 
 Everything is built for hands first, with no controller needed at any point:
 
@@ -409,8 +418,18 @@ Everything is built for hands first, with no controller needed at any point:
   rate.
 - **Grab bars, not grabbable panels.** Boards move by a bar under them (one-hand grab or a distant pinch), so a pinch
   on a card is always a tap and never drags the board by accident.
+- **Steady aim for hands that shake.** The press goes to the control aimed at for most of the last half second, not
+  the one under the ray when the pinch jolts it: with a strong synthetic tremor, 59% of presses on target without it,
+  100% with it.
+- **One switch.** In switch mode a pinch or trigger anywhere chooses the control the scan has lit, framed in amber;
+  where the ray points does not matter, so a hand that can pinch but not aim can use every control.
+- **The hand measures the space.** "Fit to my reach": reach out to where a board would be comfortable and pinch; that
+  point gives the distance, the height and the side, proposed on the agent's card. The measuring pinch presses nothing.
 - **And when hands are not an option:** every control also works by voice and by gaze alone (hands-free).
 
-What excites us: hands, voice and gaze together make a headset usable by people a keyboard and mouse never served
-well, a quiet companion makes it easier to start and keep going, and an agent that acts on the space turns "talk to
-your desk" into something you can check and undo.
+## What makes you excited about the future of VR? (form field, 150 words or less)
+
+Hands, voice and gaze together make a headset usable by people a keyboard and mouse never served well. My mum works
+lying on the sofa on bad days; a space that comes to her body, measured by her own hand and set up in her own words,
+is the future I want: VR that adapts to people instead of asking people to adapt to it. And an agent that acts on the
+space, explains itself and can be undone turns "talk to your desk" into something you can trust.
