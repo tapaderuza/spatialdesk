@@ -29,6 +29,9 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
 - **With hands that shake:** add `?steady` (or say "tremor mode on").
 - **With one switch:** add `?switch` and use the space bar, Enter, or any pinch or trigger (or say "switch mode on").
 - **Fit to your reach:** in VR, say "fit to my reach", reach out to where it is comfortable and pinch.
+- **On the sofa or in bed:** in passthrough, say "I'm on the sofa" (or "estoy en la cama") before *Fit room*: a sofa seat or a
+  bed, from 30 cm up, then counts as the surface the board stands on. A comfort profile tilted back 10 degrees does the
+  same by itself; otherwise rooms are fitted as before.
 - **As on Meta VR Glasses:** add `?emulate&glasses`: the glasses' narrower view, eye tracking and hands. Look at a
   card and pinch (hold the left mouse button in IWER's *Gaze + Hands* mode) to pick it up.
 
