@@ -13,7 +13,9 @@ import { maybeInstallEmulator } from './emulator.js';
 import { workspace } from './workspace/store.js';
 import { bindColorScheme } from './ui/settings.js';
 import { bindHead } from './ui/sounds.js';
+import { installPanelUiCache } from './ui/panel-ui-cache.js';
 
+installPanelUiCache(); // before the world creates PanelUISystem: it stops walking the whole scene every frame
 await maybeInstallEmulator();
 await workspace.load(); // IndexedDB, a few ms: the systems start with the saved workspace
 

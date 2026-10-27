@@ -40,5 +40,19 @@ test('cpu profile (diagnostic, PERF_PROFILE=1)', async ({ page }) => {
   });
   const fmt = (m: Map<string, number>, n: number) =>
     [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => `${(v / 1000).toFixed(0).padStart(6)} ms  ${k}`).join('\n');
-  writeFileSync('test-results/cpu-top.txt', `self time\n${fmt(self, 40)}\n\ninclusive time\n${fmt(inclusive, 60)}\n`);
+  // Who spends it: for the costly leaf functions, the call chain above them (four frames), by time under each chain.
+  const chains = new Map<string, number>();
+  profile.samples!.forEach((id: number, i: number) => {
+    const n = byId.get(id);
+    if (!/^(traverse|updateWorldMatrix|getParameter|compose)@/.test(name(n))) return;
+    const up: string[] = [];
+    const k0 = name(n).replace(/@index-[^:]*/, '@');
+    for (let p = parent.get(n.id); p && up.length < 4; p = parent.get(p.id)) {
+      const frame = name(p).replace(/@index-[^:]*/, '@');
+      if (frame !== up[up.length - 1] && frame !== k0) up.push(frame); // a recursion counts once
+    }
+    const k = `${name(n).replace(/@index-[^:]*/, '@')}  <-  ${up.join('  <-  ')}`;
+    chains.set(k, (chains.get(k) ?? 0) + (dt[i] ?? 0));
+  });
+  writeFileSync('test-results/cpu-top.txt', `self time\n${fmt(self, 40)}\n\ninclusive time\n${fmt(inclusive, 60)}\n\ncallers\n${fmt(chains, 14)}\n`);
 });
