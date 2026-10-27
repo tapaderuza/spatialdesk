@@ -30,6 +30,7 @@ export type VoiceCommand =
   | { kind: 'return-note'; text: string }
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'steady'; value?: boolean }
+  | { kind: 'switch'; value?: boolean }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -117,6 +118,12 @@ export function parseCommand(said: string): VoiceCommand | null {
   if (steady) {
     const value = (steady[1] ?? steady[2])?.trim();
     return value ? { kind: 'steady', value: value === 'on' } : { kind: 'steady' };
+  }
+  // "switch mode on", "one button mode off": one-switch scanning (src/accessibility/switch-system.ts).
+  const oneSwitch = /^(?:turn |switch )?(on |off )?(?:switch mode|switch access|one button mode|single switch|modo pulsador)( on| off)?$/.exec(text);
+  if (oneSwitch) {
+    const value = (oneSwitch[1] ?? oneSwitch[2])?.trim();
+    return value ? { kind: 'switch', value: value === 'on' } : { kind: 'switch' };
   }
   // Said on its own; a longer sentence ("... and I can't turn my neck") goes to the agent, which adapts the space too.
   if (/^(?:my hands? (?:shake|shakes|tremble)|i have (?:a )?tremor|me tiemblan las manos|tengo temblor)$/.test(text)) return { kind: 'steady', value: true };

@@ -1,4 +1,5 @@
 import type { World } from '@iwsdk/core';
+import { SwitchSystem } from './accessibility/switch-system.js';
 import { AgentSystem } from './agent/agent-system.js';
 import { CoachSystem } from './onboarding/coach.js';
 import { PanelSystem } from './panel.js';
@@ -34,5 +35,6 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   PanelSystem,
   CoachSystem,
   GazeSystem,
+  SwitchSystem, // before HoverSystem, which fades the control it lights
   HoverSystem,
 ];

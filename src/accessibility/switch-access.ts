@@ -100,6 +100,17 @@ export class SwitchAccess {
     }
   }
 
+  /** A switch other than a key (an XR pinch or trigger): pressed as the space bar is, and released. */
+  pressSwitch(): void {
+    if (!this.running || this.disposed || this.heldKey !== null || this.controls.length === 0) return;
+    this.heldKey = 'select';
+    this.select();
+  }
+
+  releaseSwitch(): void {
+    if (this.heldKey === 'select') this.heldKey = null;
+  }
+
   /** Deliberate manual navigation; also used by the scan timer outside the render loop. */
   advance(): void {
     if (!this.running || this.disposed || this.controls.length === 0) return;

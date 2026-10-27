@@ -192,7 +192,7 @@ export class PanelSystem extends createSystem({}) {
           else hovered.delete(key);
           paintButton(key);
         },
-      }, this.cleanupFuncs);
+      }, this.cleanupFuncs, { name: 'command' });
       const paint = () => {
         for (const key of Object.keys(buttons)) paintButton(key);
       };
@@ -373,6 +373,12 @@ export class PanelSystem extends createSystem({}) {
         tell('Adapting your space to you.');
         void agent?.run('comfort', command.text);
         return;
+      case 'switch': {
+        const on = command.value ?? !accessPreferences.switchEnabled;
+        setAccessPreference('switchEnabled', on);
+        tell(on ? 'Switch mode on: controls light up in turn; press your switch, or pinch, to choose.' : 'Switch mode off.');
+        return;
+      }
       case 'steady': {
         const on = command.value ?? !accessPreferences.tremorTolerance;
         setAccessPreference('tremorTolerance', on);

@@ -999,7 +999,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
         control.setProperties({ borderColor: idleBorder(colour) });
         hoverFades.paint(control, colour, hovered); // src/ui/hover.ts
       },
-    }, this.cleanups);
+    }, this.cleanups, { name: 'agent', modal: true });
     return slots;
   }
 

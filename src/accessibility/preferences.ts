@@ -61,6 +61,8 @@ export function readAccessPreferences(storage?: StorageAccess): AccessPreference
   } catch { /* unavailable storage leaves the current defaults */ }
   // ?steady: a link that starts in tremor mode, for someone whose hands shake (and for judges to try it).
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('steady')) clean.tremorTolerance = true;
+  // ?switch: a link that starts in one-switch mode (src/accessibility/switch-system.ts), set up by whoever helps.
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('switch')) clean.switchEnabled = true;
   return clean;
 }
 

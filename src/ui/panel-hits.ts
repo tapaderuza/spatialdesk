@@ -38,7 +38,22 @@ export interface GazeTarget {
   gazeHit(point: Vector3, fresh: boolean): string | null;
   press(key: string): void;
   setGazeHover(key: string | null): void;
+  /** For one-switch scanning (src/accessibility/switch-system.ts): which panel, shown or not, its visible controls. */
+  readonly name: string;
+  readonly modal: boolean;
+  isShown(): boolean;
+  visibleKeys(out: string[]): string[];
+  setScanHover(key: string | null): void;
 }
+
+/** Which panel this is and whether it takes over while shown (the agent's card): for one-switch scanning. */
+export interface PanelOptions {
+  name?: string;
+  modal?: boolean;
+}
+
+/** The one switch's highlight among the pointers (gaze is -1). */
+const SWITCH_POINTER = -2;
 
 /** How long the gaze reuses a panel's control rectangles before measuring them again (layout may have moved). */
 const RECTS_MAX_AGE_MS = 250;
@@ -65,17 +80,25 @@ export class PanelHits<K extends string> {
   /**
    * @param controls most specific first (a card before its column): the first rectangle containing the point wins.
    */
+  readonly name: string;
+  readonly modal: boolean;
+
   constructor(
     private readonly root: Element,
     private readonly controls: readonly (readonly [K, Element])[],
     private readonly handlers: PanelHandlers<K>,
     cleanups: (() => void)[],
+    options: PanelOptions = {},
   ) {
+    this.name = options.name ?? '';
+    this.modal = options.modal ?? false;
     (root as Element & { intersectChildren?: boolean }).intersectChildren = false;
     this.rects = new Float32Array(controls.length * 4);
     this.tally = new Float64Array(controls.length);
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
+      // One-switch mode: the switch selects what is lit; a pinch must not also press what the ray points at.
+      if (accessPreferences.switchEnabled) return;
       const key = accessPreferences.tremorTolerance ? this.steadyHit(event.pointerId ?? 0, event.point) : this.hit(event.point);
       if (key != null) this.press(key);
     };
@@ -251,6 +274,23 @@ export class PanelHits<K extends string> {
   /** The gaze pointer's hover (null: the gaze left this panel), painted like a hand's. */
   setGazeHover(key: K | null): void {
     this.setHover(GAZE_POINTER, key);
+  }
+
+  /** The one switch's highlight, painted like a hover. */
+  setScanHover(key: K | null): void {
+    this.setHover(SWITCH_POINTER, key);
+  }
+
+  /** Shown now (a closed agent card is not). */
+  isShown(): boolean {
+    return this.root.isVisible.value && shown(this.root);
+  }
+
+  /** The visible controls' keys, in order, into [out] (cleared first). */
+  visibleKeys(out: string[]): string[] {
+    out.length = 0;
+    for (let i = 0; i < this.controls.length; i++) if (this.controls[i][1].isVisible.value) out.push(this.controls[i][0]);
+    return out;
   }
 
   private setHover(pointerId: number, key: K | null): void {

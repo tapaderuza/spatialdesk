@@ -190,6 +190,6 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
     };
     paint();
     this.cleanups.push(onSettings(() => paint()));
-    new PanelHits(get('coach-root'), [['skip', skip]] as const, { click: () => this.skip(), hover: (_, hovered) => paint(hovered) }, this.cleanups);
+    new PanelHits(get('coach-root'), [['skip', skip]] as const, { click: () => this.skip(), hover: (_, hovered) => paint(hovered) }, this.cleanups, { name: 'coach', modal: true });
   }
 }
