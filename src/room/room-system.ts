@@ -14,7 +14,7 @@ import { createSystem, SceneUnderstandingSystem, SessionMode, VisibilityState, X
 import type { Pose } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
 import { deskPose } from '../workspace/viewer.js';
-import { fitToRoom, invertRigid, matrixPose, multiply, poseMatrix, type RoomPlane, type Vec3 } from './fit.js';
+import { fitToRoom, invertRigid, isSeat, matrixPose, multiply, poseMatrix, type RoomPlane, type Vec3 } from './fit.js';
 
 const KEY = 'spatialdesk.room';
 const OUTLINE_MS = 2500;
@@ -77,6 +77,8 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private anchorMatrix: number[] | null = null;
   private uuid: string | null = null;
   private fitRequested = false;
+  /** Said by the user ("I'm on the sofa"); unset, the comfort profile's posture decides. */
+  private fitLow: boolean | undefined;
   private restorePending = false;
   private wasInRoom = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -112,13 +114,17 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     return this.state.saved;
   }
 
-  /** Fit to room, from the button or by voice. Runs in the next XR frame (anchors are created inside a frame). */
-  requestFit(): boolean {
+  /**
+   * Fit to room, from the button or by voice. Runs in the next XR frame (anchors are created inside a frame). [low]: the
+   * user said they are on the sofa or in bed, so a low surface counts (otherwise only a reclined comfort profile does).
+   */
+  requestFit(low?: boolean): boolean {
     if (!this.state.inRoom) {
       workspace.notify({ text: 'Fit to room works in passthrough: press "In my room" first.', error: true });
       return false;
     }
     this.fitRequested = true;
+    this.fitLow = low;
     return true;
   }
 
@@ -202,14 +208,16 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private fit(): void {
     // Where the user sits facing the desk: pressing Fit room on the console, they look at the console, not the desk.
     const viewer = deskPose(this.world);
-    const result = fitToRoom(workspace.state, viewer, this.planes(), workspace.panelScale);
+    const result = fitToRoom(workspace.state, viewer, this.planes(), workspace.panelScale, { low: this.fitLow });
+    this.fitLow = undefined;
     this.showOutlines();
     if (result.poses.length === 0) {
       this.state.lastFit = { desk: false, walls: 0, moved: 0 };
       workspace.notify({ text: "I can't see your desk or walls yet. Look around the room for a moment, then try again.", error: false });
       return;
     }
-    const parts = [result.desk ? 'the board stands on your desk' : '', result.walls ? `${result.walls} board${result.walls === 1 ? ' hangs' : 's hang'} on your walls` : ''].filter(Boolean);
+    const on = result.desk ? (isSeat(result.desk.label) ? `your ${result.desk.label === 'bed' ? 'bed' : 'sofa'}` : 'your desk') : '';
+    const parts = [result.desk ? `the board stands on ${on}` : '', result.walls ? `${result.walls} board${result.walls === 1 ? ' hangs' : 's hang'} on your walls` : ''].filter(Boolean);
     const applied = workspace.dispatch(
       result.poses.map(({ id, pose }) => ({ op: 'set_pose' as const, id, pose })),
       { label: 'fit to room', notice: `Fitted to your room: ${parts.join(', ')}. It will be here next time.` },

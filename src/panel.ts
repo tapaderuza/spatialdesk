@@ -365,7 +365,7 @@ export class PanelSystem extends createSystem({}) {
         void this.world.exitXR();
         return;
       case 'fit':
-        this.world.getSystem(RoomSystem)?.requestFit();
+        this.world.getSystem(RoomSystem)?.requestFit(command.low);
         return;
       case 'wrapup':
         tell('Wrapping up your day.');

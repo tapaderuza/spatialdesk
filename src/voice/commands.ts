@@ -21,7 +21,7 @@ export type VoiceCommand =
   | { kind: 'forget' }
   | { kind: 'save-setup' | 'restore-setup' | 'open-setup' | 'forget-setup' }
   | { kind: 'exit' }
-  | { kind: 'fit' }
+  | { kind: 'fit'; low?: boolean }
   | { kind: 'wrapup' }
   | { kind: 'start'; task?: string }
   | { kind: 'comfort'; text: string }
@@ -60,6 +60,8 @@ const PHRASES: [RegExp, VoiceCommand][] = [
   [new RegExp(String.raw`^(?:prioriti[sz]e|sort)(?: (?:my|the) (?:tasks|board|cards|day))?${PLEASE}$`), { kind: 'prioritise' }],
   [new RegExp(String.raw`^(?:exit|leave|quit)(?: (?:the )?(?:workspace|vr))?${PLEASE}$`), { kind: 'exit' }],
   [new RegExp(String.raw`^(?:fit(?: (?:it|everything|the boards))?(?: to)? (?:my |the )?room|put (?:the )?boards on (?:my |the )?walls)${PLEASE}$`), { kind: 'fit' }],
+  // Said from the sofa or the bed: Fit room then accepts a low surface (src/room/fit.ts).
+  [new RegExp(String.raw`^(?:i(?: m| am) (?:on|in|lying on|lying in) (?:the |my )?(?:sofa|couch|bed)|estoy (?:en|tumbad[oa] en|echad[oa] en) (?:el |mi |la )?(?:sofa|cama))${PLEASE}$`), { kind: 'fit', low: true }],
   [
     new RegExp(
       String.raw`^(?:wrap(?: it)? up(?: (?:my|the) day)?|(?:end|finish|close) (?:my|the) day|call it a day|(?:i am |i m |im )?done for (?:today|the day)|(?:termina|terminar|cierra|cerrar) (?:el|mi) dia)${PLEASE}$`,

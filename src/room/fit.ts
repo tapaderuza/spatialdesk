@@ -35,9 +35,21 @@ export interface RoomFit {
 }
 
 const DESK_LABELS = new Set(['table', 'desk']);
+/** What a body lying back works on instead: the headset's own labels for a sofa or a bed (WebXR plane detection). */
+const SEAT_LABELS = new Set(['couch', 'sofa', 'bed']);
+/** True for the label of a sofa or a bed: the board then stands on that and not on a desk. */
+export const isSeat = (label: string): boolean => SEAT_LABELS.has(label);
 /** A desk is a horizontal surface at desk height (seated or standing) in front of the user. */
 const DESK_HEIGHT = [0.55, 1.15] as const;
 const USUAL_DESK_HEIGHT = 0.74;
+/**
+ * Low mode (a reclined body, or "I'm on the sofa"): the surface may be as low as a sofa seat or a bed, 30 cm up.
+ * Rooms are fitted as before unless low mode is asked for: a low surface is as likely to be a chair or a shelf.
+ */
+const LOW_HEIGHT = [0.3, 1.15] as const;
+const USUAL_SEAT_HEIGHT = 0.45;
+/** The comfort profile's tilt from which the body counts as reclined (Comfort.tiltDeg, degrees up). */
+export const RECLINED_TILT_DEG = 10;
 /** The board's spot may be this close to the surface's edge and still count as over it. */
 const SPOT_MARGIN = 0.03;
 const BOARD_LIFT = 0.02; // the board's bottom edge, above the desk surface
@@ -81,17 +93,19 @@ function facing(from: Vec3, eye: Vec3): { yaw: number; pitch: number } {
  * stand (arm's length ahead), however large the surface and wherever its centre is; a desk or table before anything
  * else, then the one at the most usual desk height.
  */
-export function findDesk(planes: RoomPlane[], viewer: Pose): RoomPlane | null {
+export function findDesk(planes: RoomPlane[], viewer: Pose, low = false): RoomPlane | null {
   const forward: Vec3 = [-Math.sin(viewer.yaw), 0, -Math.cos(viewer.yaw)];
   let best: RoomPlane | null = null;
   let bestScore = Infinity;
   for (const plane of planes) {
     if (plane.orientation !== 'horizontal') continue;
     const height = plane.center[1];
-    if (height < DESK_HEIGHT[0] || height > DESK_HEIGHT[1]) continue;
+    const [lowest, highest] = low ? LOW_HEIGHT : DESK_HEIGHT;
+    if (height < lowest || height > highest) continue;
     const spot: Vec3 = [viewer.x + forward[0] * FOCUS_DISTANCE, height, viewer.z + forward[2] * FOCUS_DISTANCE];
     if (!inside(plane, spot, SPOT_MARGIN)) continue;
-    const score = (DESK_LABELS.has(plane.label) ? 0 : 1) + Math.abs(height - USUAL_DESK_HEIGHT);
+    const seat = low && SEAT_LABELS.has(plane.label);
+    const score = (DESK_LABELS.has(plane.label) || seat ? 0 : 1) + Math.abs(height - (seat ? USUAL_SEAT_HEIGHT : USUAL_DESK_HEIGHT));
     if (score < bestScore) {
       bestScore = score;
       best = plane;
@@ -115,8 +129,13 @@ function wallHit(walls: RoomPlane[], eye: Vec3, direction: Vec3): { point: Vec3;
   return best;
 }
 
+export interface FitOptions {
+  /** Accept a low surface (sofa, bed). Unset: when the comfort profile is tilted back for a reclined body. */
+  low?: boolean;
+}
+
 /** [panelScale]: the scale the panels are drawn at for the headset's view (Layout.kt), so they stand on the desk. */
-export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[], panelScale = 1): RoomFit {
+export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[], panelScale = 1, options: FitOptions = {}): RoomFit {
   const eye: Vec3 = [viewer.x, viewer.y, viewer.z];
   const forward: Vec3 = [-Math.sin(viewer.yaw), 0, -Math.cos(viewer.yaw)];
   const right: Vec3 = [Math.cos(viewer.yaw), 0, -Math.sin(viewer.yaw)];
@@ -125,7 +144,8 @@ export function fitToRoom(workspace: Workspace, viewer: Pose, planes: RoomPlane[
   const timer = { width: TIMER_SIZE.width * panelScale, height: TIMER_SIZE.height * panelScale };
   let plant: Pose | null = null;
 
-  const desk = findDesk(planes, viewer);
+  const low = options.low ?? (workspace.comfort?.tiltDeg ?? 0) >= RECLINED_TILT_DEG;
+  const desk = findDesk(planes, viewer, low);
   if (desk && workspace.focusBoardId) {
     const deskY = desk.center[1];
     const center: Vec3 = add([eye[0], deskY + BOARD_LIFT + panel.height / 2, eye[2]], scale(forward, FOCUS_DISTANCE));
