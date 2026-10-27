@@ -254,6 +254,51 @@ test('demo: her companion adapts the space, remembers her choice, supports her d
   await turnHead(page, 0, HEAD_PITCH_DEG, 14);
   await settle();
 
+  // 4c. Fit to my reach: lying back, her right hand reaches a little nearer and higher than the board sits now, and
+  // pinches. The card proposes what the hand measured (nearer, 12 degrees higher); Apply brings the space there.
+  await beat('reach');
+  const comfortBefore = await page.evaluate(() => ({ ...(window as Win).__workspace.state.comfort }));
+  await page.evaluate(() => (window as Win).__voice.say('ponlo a mi alcance'));
+  expect(await page.evaluate(() => (window as Win).__reach.view.measuring)).toBe(true);
+  await page.evaluate(async () => {
+    const w = (window as Win).__world;
+    const a = (window as Win).__workspace.state.anchor;
+    const c = (window as Win).__workspace.state.comfort;
+    const controller = (window as Win).__xrDevice.controllers.right;
+    const V = w.camera.position.constructor;
+    const Q = w.camera.quaternion.constructor;
+    // Where the board sits now (Layout's focus slot: 0.643 m at 15.3 degrees down, times reach, turned by tilt),
+    // 10% nearer and 12 degrees higher, 20 degrees to her right.
+    const distance = c.reach * Math.hypot(0.62, 0.17) * 0.9;
+    const up = ((-15.3 + c.tiltDeg + 12) * Math.PI) / 180;
+    const bearing = (20 * Math.PI) / 180;
+    const right = distance * Math.cos(up) * Math.sin(bearing);
+    const ahead = distance * Math.cos(up) * Math.cos(bearing);
+    const to = new V(a.x + right * Math.cos(a.yaw) - ahead * Math.sin(a.yaw), a.y + distance * Math.sin(up), a.z - right * Math.sin(a.yaw) - ahead * Math.cos(a.yaw));
+    const from = new V().copy(controller.position);
+    const aim = new V().copy(to).sub(w.camera.getWorldPosition(new V())).normalize();
+    const q = new Q().setFromUnitVectors(new V(0, 0, -1), aim);
+    for (let i = 1; i <= 24; i++) {
+      const t = i / 24;
+      const p = new V().lerpVectors(from, to, t * t * (3 - 2 * t)); // eased, as an arm moves
+      controller.position.set(p.x, p.y, p.z);
+      controller.quaternion.set(q.x, q.y, q.z, q.w);
+      await new Promise(requestAnimationFrame);
+    }
+  });
+  await pause(page, 0.6);
+  await page.evaluate(() => (window as Win).__xrDevice.controllers.right.updateButtonValue('trigger', 1));
+  await frames(page, 4);
+  await page.evaluate(() => (window as Win).__xrDevice.controllers.right.updateButtonValue('trigger', 0));
+  await page.waitForFunction(() => !(window as Win).__reach.view.measuring, null, { timeout: 3_000 });
+  await phase(page, 'preview');
+  expect(await page.evaluate(() => (window as Win).__agent.state.plan?.source)).toBe('reach');
+  await pause(page, 2.5);
+  await demoPress(page, 'agent:plan-apply');
+  await page.waitForFunction((before) => (window as Win).__workspace.state.comfort.tiltDeg > before.tiltDeg, comfortBefore, { timeout: 5_000 });
+  await pause(page, 1.5);
+  await settle();
+
   // 5. One session at her pace. Clear the earlier demo timer before choosing a new block.
   await page.evaluate(() => {
     for (const t of (window as Win).__workspace.state.timers) (window as Win).__workspace.dispatch({ op: 'dismiss_timer', timer: t.id });
