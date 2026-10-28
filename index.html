@@ -13,9 +13,27 @@
         if (new URLSearchParams(location.search).get('mode') === 'companion') location.replace('companion.html' + location.search);
       } catch (e) {}
     </script>
-    <title>spatialdesk</title>
+    <title>SpatialDesk</title>
+    <meta name="color-scheme" content="dark" />
+    <style>
+      /* The first frame is ours, not a white page: dark from the first byte, until the 3D world is ready. */
+      html, body { background: #0f1217; }
+      #splash { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, #1b2130 0%, #0f1217 70%); color: #eef1f5; font: 16px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; transition: opacity 500ms ease; }
+      #splash.gone { opacity: 0; pointer-events: none; }
+      #splash .mark { font-size: 34px; font-weight: 650; letter-spacing: 0.02em; }
+      #splash .line { color: #b9c2cf; font-size: 15px; }
+      #splash .bar { width: 160px; height: 3px; border-radius: 3px; background: #2a313b; overflow: hidden; margin-top: 10px; }
+      #splash .bar::after { content: ''; display: block; width: 40%; height: 100%; border-radius: 3px; background: #f2b84b; animation: sd-load 1.4s ease-in-out infinite; }
+      @keyframes sd-load { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+      @media (prefers-reduced-motion: reduce) { #splash .bar::after { animation: none; width: 100%; opacity: 0.6; } #splash { transition: none; } }
+    </style>
   </head>
   <body style="margin: 0">
+    <div id="splash" role="status" aria-live="polite">
+      <div class="mark">SpatialDesk</div>
+      <div class="line">A workspace that adapts to your body</div>
+      <div class="bar" aria-hidden="true"></div>
+    </div>
     <div id="scene-container"></div>
     <script type="module" src="/src/index.ts"></script>
   </body>

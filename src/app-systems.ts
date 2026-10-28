@@ -5,6 +5,7 @@ import { AnchorFeedbackSystem } from './ui/anchor-feedback.js';
 import { SwitchSystem } from './accessibility/switch-system.js';
 import { AgentSystem } from './agent/agent-system.js';
 import { CoachSystem } from './onboarding/coach.js';
+import { WelcomeSystem } from './onboarding/welcome.js';
 import { SetupSystem } from './onboarding/setup.js';
 import { PanelSystem } from './panel.js';
 import { RoomSystem } from './room/room-system.js';
@@ -14,6 +15,7 @@ import { StudioSystem } from './studio/studio-system.js';
 import { WanderSystem } from './studio/wander.js';
 import { GazeSystem } from './ui/gaze.js';
 import { GlideSystem } from './ui/glide.js';
+import { PanelShadowSystem } from './ui/panel-shadows.js';
 import { HoverSystem } from './ui/hover.js';
 import { BoardSystem } from './workspace/boards.js';
 import { PinnedSystem } from './workspace/pinned.js';
@@ -30,6 +32,7 @@ type SystemClass = Parameters<World['registerSystem']>[0];
 export const APP_SYSTEMS: readonly SystemClass[] = [
   PinnedSystem,
   GlideSystem, // right after: moves the panels that are sliding before anything reads where they are
+  PanelShadowSystem, // after the glide: each shadow follows its panel in the same frame
   BoardSystem,
   TimerSystem,
   AgentSystem,
@@ -40,6 +43,7 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   FocusBubbleSystem,
   PanelSystem,
   CoachSystem,
+  WelcomeSystem, // the first seconds for someone who has been here before: what to do, above the board
   GazeSystem,
   SwitchSystem, // before HoverSystem, which fades the control it lights
   ReachSystem,

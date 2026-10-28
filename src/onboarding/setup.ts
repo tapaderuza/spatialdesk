@@ -66,7 +66,8 @@ interface Page { step: string; title: string; hint: string; a: string; b: string
 const TEXT = {
   en: {
     skip: 'Skip',
-    where: { step: 'Step 1 of 3', title: 'Where are you sitting?', hint: 'Pick the closest one. You can change it any time.', a: 'Desk', b: 'Sofa/Bed' },
+    // The first words someone reads in the headset: a welcome, and why three questions.
+    where: { step: 'Step 1 of 3', title: 'Where are you sitting?', hint: 'Welcome. Three quick questions fit this space to your body. Skip any time.', a: 'Desk', b: 'Sofa/Bed' },
     reach: { step: 'Step 2 of 3', title: 'Reach out and pinch this orb', hint: 'Pinch where your hand is comfortable. It does not have to touch the orb.', a: 'Skip this step', b: '' },
     reachDone: 'Got it. Your space will fit where your hand reached when you press Start.',
     nearer: 'A little further out, then pinch.',
@@ -83,7 +84,7 @@ const TEXT = {
   },
   es: {
     skip: 'Saltar',
-    where: { step: 'Paso 1 de 3', title: '¿Dónde te sientas?', hint: 'Elige la opción más parecida. Puedes cambiarla cuando quieras.', a: 'Escritorio', b: 'Sofá/Cama' },
+    where: { step: 'Paso 1 de 3', title: '¿Dónde te sientas?', hint: 'Te damos la bienvenida. Tres preguntas rápidas ajustan este espacio a tu cuerpo.', a: 'Escritorio', b: 'Sofá/Cama' },
     reach: { step: 'Paso 2 de 3', title: 'Estira la mano y pellizca este orbe', hint: 'Pellizca donde tu mano esté cómoda. No hace falta tocar el orbe.', a: 'Saltar este paso', b: '' },
     reachDone: 'Hecho. Tu espacio se ajustará a donde llegó tu mano cuando pulses Empezar.',
     nearer: 'Un poco más lejos, y pellizca.',
@@ -377,7 +378,8 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
   private setShown(shown: boolean): void {
     const object = this.entity?.object3D as (Object3D & { pointerEvents?: string }) | undefined;
     if (!object) return;
-    object.visible = shown;
+    // Not drawn until its own words are in (bind): no frame of the layout file's default text.
+    object.visible = shown && this.elements !== null;
     object.pointerEvents = shown ? undefined : 'none'; // undefined: back to pointer-events' default (only listeners)
   }
 

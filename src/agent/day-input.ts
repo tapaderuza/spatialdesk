@@ -6,6 +6,7 @@
 import { VisibilityState, type World } from '@iwsdk/core';
 import { isListening, listen, stopListening } from '../voice/listen.js';
 import { requestInvite } from '../assist/helper-state.js';
+import { launchRoom, launchVR } from '../room/room-system.js';
 
 const KEY = 'spatialdesk.day';
 const MAX = 600;
@@ -33,8 +34,15 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
     'position:fixed;left:20px;bottom:20px;width:min(30vw,420px);min-width:260px;box-sizing:border-box;padding:14px;' +
     'background:#15181e;border:1px solid #2c333d;border-radius:14px;color:#eef1f5;font:14px/1.4 system-ui,sans-serif;z-index:10';
   box.innerHTML =
+    // The first thing a newcomer reads on a screen: what this is, and the one thing to do next.
+    '<div style="font-weight:700;font-size:17px">Welcome to SpatialDesk</div>' +
+    '<div id="day-welcome" style="color:#b9c2cf;font-size:13px;margin:2px 0 10px">A workspace that adapts to your body. Put on a headset and enter, or try it here with the mouse.</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+    '<button id="day-vr" type="button" hidden style="flex:1;min-height:44px;background:#f2b84b;color:#1a1203;border:0;border-radius:8px;font:inherit;font-weight:700;font-size:15px;cursor:pointer">Enter VR</button>' +
+    '<button id="day-room" type="button" hidden style="flex:1;min-height:44px;background:#2a313b;color:#eef1f5;border:1px solid #4a5666;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">In my room</button>' +
+    '</div>' +
     '<label for="day-text" style="display:block;font-weight:700;margin-bottom:6px">Describe your day</label>' +
-    '<textarea id="day-text" rows="3" maxlength="600" placeholder="Finish the report, review two pull requests, call the dentist, gym at 18:00"' +
+    '<textarea id="day-text" rows="2" maxlength="600" placeholder="Finish the report, review two pull requests, call the dentist, gym at 18:00"' +
     ' style="width:100%;box-sizing:border-box;resize:vertical;background:#1d222a;color:#eef1f5;border:1px solid #2c333d;border-radius:8px;padding:8px;font:inherit"></textarea>' +
     '<div style="display:flex;gap:8px;margin-top:8px">' +
     '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#2f5f9e;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
@@ -50,6 +58,25 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
   const status = box.querySelector<HTMLDivElement>('#day-status')!;
   text.value = dayText();
   text.addEventListener('input', () => saveDayText(text.value));
+  // Enter VR (and In my room, where passthrough exists), the same as the buttons on the command panel. A browser with no
+  // WebXR at all is told so, rather than shown a button that does nothing.
+  const vr = box.querySelector<HTMLButtonElement>('#day-vr')!;
+  const room = box.querySelector<HTMLButtonElement>('#day-room')!;
+  vr.addEventListener('click', () => launchVR(world));
+  room.addEventListener('click', () => launchRoom(world));
+  const noHeadset = () => {
+    box.querySelector('#day-welcome')!.textContent = 'A workspace that adapts to your body. No headset here: try it with the mouse, or open this page on a Meta Quest.';
+  };
+  const xr = navigator.xr;
+  if (!xr) {
+    noHeadset();
+  } else {
+    void xr.isSessionSupported('immersive-vr').then((ok) => {
+      vr.hidden = !ok;
+      if (!ok) noHeadset();
+    }).catch(noHeadset);
+    void xr.isSessionSupported('immersive-ar').then((ok) => (room.hidden = !ok)).catch(() => undefined);
+  }
   // A code for someone outside the headset to follow the Today board (src/assist); the panel that shows it is in the scene.
   box.querySelector<HTMLButtonElement>('#day-invite')!.addEventListener('click', () => {
     if (!requestInvite()) status.textContent = 'Inviting a helper is not available yet. Try again in a moment.';

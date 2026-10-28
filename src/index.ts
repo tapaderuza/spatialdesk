@@ -31,4 +31,17 @@ World.create(
   bindHead(world.camera); // cues sound from where they happen (src/ui/sounds.ts)
   for (const system of APP_SYSTEMS) world.registerSystem(system);
   if (new URLSearchParams(location.search).has('perf')) installPerfProbe(world, APP_SYSTEMS);
+  // The dark splash of index.html goes once the world has drawn: never a white page, never a jump to an empty one.
+  requestAnimationFrame(() => requestAnimationFrame(hideSplash));
+}).catch((error: unknown) => {
+  const line = document.querySelector('#splash .line');
+  if (line) line.textContent = 'SpatialDesk could not start in this browser. Reload the page, or try another browser.';
+  throw error;
 });
+
+function hideSplash(): void {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.classList.add('gone'); // takes no pointer from here on, and fades
+  setTimeout(() => splash.remove(), 600);
+}

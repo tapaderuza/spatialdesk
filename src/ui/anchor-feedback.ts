@@ -29,8 +29,16 @@ const HAPTIC_MS = 35;
 /** The frame: 5 mm outside the board's edge and 8 mm thick, in the same amber as the one-switch scan. */
 const GAP = 0.005;
 const THICKNESS = 0.008;
-/** Outer then inner corners (bottom-left, bottom-right, top-right, top-left); two triangles per side. */
-const FRAME_INDEX = [0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7];
+/** A soft glow fading out this far beyond the frame, so it reads as light on the board rather than a printed line. */
+const GLOW = 0.025;
+/**
+ * Outer then inner corners (bottom-left, bottom-right, top-right, top-left), two triangles per side; then the glow band:
+ * the frame's outer corners again (half alpha) out to the glow's edge (no alpha). One mesh, one draw call.
+ */
+const FRAME_INDEX = [
+  0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7,
+  12, 13, 9, 12, 9, 8, 13, 14, 10, 13, 10, 9, 14, 15, 11, 14, 11, 10, 15, 12, 8, 15, 8, 11,
+];
 
 type Pulsing = { gamepad?: { hapticActuators?: { pulse?: (intensity: number, ms: number) => unknown }[] } | null };
 
@@ -46,13 +54,21 @@ export class AnchorFeedbackSystem extends createSystem({}) {
     const iy = BOARD_SIZE.height / 2 + GAP;
     const ox = ix + THICKNESS;
     const oy = iy + THICKNESS;
+    const gx = ox + GLOW;
+    const gy = oy + GLOW;
     const corners = new BufferAttribute(
-      new Float32Array([-ox, -oy, 0, ox, -oy, 0, ox, oy, 0, -ox, oy, 0, -ix, -iy, 0, ix, -iy, 0, ix, iy, 0, -ix, iy, 0]),
+      new Float32Array([
+        -ox, -oy, 0, ox, -oy, 0, ox, oy, 0, -ox, oy, 0, -ix, -iy, 0, ix, -iy, 0, ix, iy, 0, -ix, iy, 0,
+        -ox, -oy, 0, ox, -oy, 0, ox, oy, 0, -ox, oy, 0, -gx, -gy, 0, gx, -gy, 0, gx, gy, 0, -gx, gy, 0,
+      ]),
       3,
     );
-    const geometry = new BufferGeometry().setAttribute('position', corners).setIndex(FRAME_INDEX);
+    // White times the material's amber; the alpha does the glow: full on the frame, half at its edge, none outside.
+    const alpha = [1, 1, 1, 1, 1, 1, 1, 1, 0.45, 0.45, 0.45, 0.45, 0, 0, 0, 0];
+    const colors = new BufferAttribute(new Float32Array(alpha.flatMap((a) => [1, 1, 1, a])), 4);
+    const geometry = new BufferGeometry().setAttribute('position', corners).setAttribute('color', colors).setIndex(FRAME_INDEX);
     // Transparent, like the panels (UIKit draws in the transparent pass): an opaque frame would be painted over.
-    this.material = new MeshBasicMaterial({ color: '#ffb020', side: DoubleSide, transparent: true, opacity: 0, depthTest: false, depthWrite: false, toneMapped: false });
+    this.material = new MeshBasicMaterial({ color: '#ffb020', side: DoubleSide, transparent: true, opacity: 0, depthTest: false, depthWrite: false, toneMapped: false, vertexColors: true });
     const mesh = new Mesh(geometry, this.material);
     mesh.name = 'anchor-flash';
     mesh.renderOrder = 998; // over the panels, under the scan frame and the gaze ring

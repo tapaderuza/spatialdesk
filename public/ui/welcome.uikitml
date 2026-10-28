@@ -1,0 +1,22 @@
+<!--
+  Welcome back: a quiet banner above the work board for the first seconds in the headset, for someone who has been here
+  before (src/onboarding/welcome.ts). Nothing to press: it only says what to do. Centimetres at real size (52 x 11), the
+  coach's look (dark, amber edge), text off-white on dark grey (>= 7:1).
+-->
+<style>
+  .root { flex-direction: row; align-items: center; gap: 1.6; width: 52; height: 11; padding-left: 1.8; padding-right: 1.8; background-color: #15181e; border-radius: 2; border-width: 0.4; border-color: #f2b84b; }
+  .dot { flex-shrink: 0; width: 1.8; height: 1.8; border-radius: 0.9; background-color: #f2b84b; }
+  .words { flex-direction: column; flex-grow: 1; flex-shrink: 1; gap: 0.4; }
+  .title { font-size: 2.8; font-weight: 700; color: #eef1f5; }
+  .line { font-size: 2.1; color: #c9d1db; }
+  .root:dark { background-color: #000000; }
+  .title:dark { color: #ffffff; }
+  .line:dark { color: #ffffff; }
+</style>
+<div id="welcome-root" class="root">
+  <div class="dot"></div>
+  <div class="words">
+    <div id="welcome-title" class="title">Welcome back</div>
+    <div id="welcome-line" class="line">Say "Plan my day", or pinch it on your panel.</div>
+  </div>
+</div>

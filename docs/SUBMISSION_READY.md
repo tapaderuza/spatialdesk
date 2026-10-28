@@ -52,6 +52,18 @@
 - **How a judge sees it:** two browser tabs are enough. Tab one: the app, "Enter VR" (or `?emulate` to try without a
   headset), say or type "invite a helper" (the button is on the start screen). Tab two: `/companion.html`, type the code.
 
+## The final polish (pushed after `685216d`, not deployed)
+
+- **First seconds:** a dark splash instead of about 4 s of white page; a start card that says what this is and offers
+  Enter VR only where VR exists; a welcome in the headset (the setup's first line for a newcomer, a 9 s banner for someone
+  back that leaves as soon as they act).
+- **Presence:** soft shadows behind boards and timers in passthrough (one draw call; none in VR, where they would not
+  show), a glow on the amber frame, cards that rise a little under the pointer.
+- **Fixes:** no one-frame flash of default text on the helper and setup panels; no false "Connected" on the carer's code
+  screen; 5.4:1 contrast on the help button in the light theme.
+- **README:** rewritten as a pitch by the judging criteria, with the verification table kept.
+- **To go live it needs a deploy** (front end only this time; the server is unchanged since `685216d`).
+
 ## Video
 
 - **Public link:** https://youtu.be/jtqAi3gl-os (155 s, "SpatialDesk: a workspace that adapts to your body and your mind

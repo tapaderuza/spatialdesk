@@ -29,6 +29,7 @@ import type { Pose } from './model.js';
 import { PinnedHandle, PinnedItem } from './components.js';
 import { workspace } from './store.js';
 import { placeSmoothly, stopGlide } from '../ui/glide.js';
+import { castShadow } from '../ui/panel-shadows.js';
 
 const HANDLE_HEIGHT = 0.06; // >= 6 cm target (ROADMAP heuristic A)
 const HANDLE_GAP = 0.025;
@@ -45,6 +46,8 @@ export class PinnedPanel {
   private readonly offset: Vector3;
   private readonly material: MeshStandardMaterial;
   private readyCallbacks: ((document: UIKitDocument) => void)[] = [];
+  /** Stops this panel's shadow (src/ui/panel-shadows.ts). */
+  private readonly unshadow: () => void;
 
   constructor(
     world: World,
@@ -55,6 +58,7 @@ export class PinnedPanel {
   ) {
     this.root = world.createTransformEntity(new Group());
     this.root.object3D!.rotation.order = 'YXZ';
+    this.unshadow = castShadow(this.root.object3D!, size); // a soft shadow behind it, so it sits in the space
 
     this.panel = world.createTransformEntity(undefined, { parent: this.root });
     this.panel.addComponent(PanelUI, { config });
@@ -150,6 +154,7 @@ export class PinnedPanel {
   dispose(): void {
     panels.delete(this.item);
     if (this.root.object3D) stopGlide(this.root.object3D); // a panel that slides away is not moved any more
+    this.unshadow();
     this.panel.destroy();
     this.root.destroy();
     this.handle.destroy();

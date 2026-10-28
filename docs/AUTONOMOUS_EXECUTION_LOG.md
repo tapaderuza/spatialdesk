@@ -346,3 +346,42 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
   (limit 29.4) in three attempts while our systems were at 1.8 to 2.3 ms (limit 3.0): the laptop was hot. After 7 minutes of
   rest, on AC: **25.8 ms p95, median 16.5 ms**, our systems 1.7 ms p95, 78 draw calls; it passed at the first attempt.
 - Production now runs the code of `685216d`. Open: a physical headset; real hands.
+
+## Block 22: a judge's audit of the first seconds, presence, and the README
+
+- **What a judge met, measured on production before this block:** about 4 s of a white page (screenshots at 0.9 s and
+  2.4 s are blank; the world was ready at 4.0 s); on a screen, Enter VR was a small button inside the small command panel;
+  in the emulated headset the guided setup appeared at 0.8 s (no black screen), but with no greeting.
+- **The first seconds now:** `index.html` paints a dark splash from the first byte (the name, one line, an amber loading
+  bar that stands still with reduced motion), removed once the world has drawn two frames, and replaced by a plain message
+  if the app cannot start; the tab is titled SpatialDesk. The start card on a screen greets ("Welcome to SpatialDesk"),
+  says what to do, and shows Enter VR (and In my room) only where the browser supports them, the same calls as the
+  command panel's buttons; with no headset it says so instead. In the headset, the setup's first line is a welcome
+  ("Welcome. Three quick questions fit this space to your body. Skip any time."), and someone coming back gets a quiet
+  banner above the work board (`src/onboarding/welcome.ts`, `public/ui/welcome.uikitml`): "Welcome back. Say 'Plan my
+  day', or pinch it on your panel." It fades in (UIKit opacity), stays 9 s, and leaves at once when the person changes
+  anything, or when the setup or the helper panel opens. Nothing on it can be pressed.
+- **Presence:** the amber frame got a soft glow (a band with per-vertex alpha in the same mesh, no extra draw call). A card
+  under the pointer rises 3.5 % with the same 300/400 ms fade as its colour; checked in screenshots, no overlap or
+  flicker. Shadows (`src/ui/panel-shadows.ts`): one instanced mesh for every board and timer, a rounded falloff in the
+  shader, data sent to the GPU only when a panel moved. The first version drew nothing visible: a solid red material showed
+  the quads were where they should be, a solid fragment showed the vertex shader was right, and the fault was mine, the
+  fade began inside the panel so almost nothing was left outside it. Rewritten to fade from the panel's real edge, it shows
+  as a soft shadow against a light wall placed behind the board. Measured in the VR studio it changes the dark sky by about
+  7 levels in 255, invisible, while costing two draw calls (one per eye), which put the performance scene at 80, the limit.
+  So it is drawn in passthrough only, where a real wall makes it visible, and VR is back to 78.
+- **Small flaws found and fixed:** the helper panel reuses the setup's layout and could show its default "Where are you
+  sitting?" for a frame when first opened (and the setup an English frame in Spanish): both stay hidden until their own
+  text is in. The companion page said "Connected" over the empty code form, before anything was connected: the pill now
+  shows only once a code is in. In the light theme, white on the help button's amber was 3.6:1, short of 4.5:1 for the
+  small line under it: darkened to 5.4:1. `companion.html` paints its background before its stylesheet arrives. Sounds
+  were reviewed and left as they are: cues at 0.05 to 0.09, the timer's alarm at 0.2 on purpose (no hardware listening).
+- **README:** rewritten as a pitch structured by the judging criteria (Innovation, User Experience, Technical Execution,
+  the future of VR), every number taken from a measurement, followed by the verification table, the architecture and how
+  to run it. The claims are scoped to what the code does (for example "scene understanding through WebXR plane
+  detection", "if the network drops, nothing breaks", not "works offline").
+- **Tests:** `tests/first-impression.spec.ts` (7): the splash, the start card with and without VR, Enter VR entering,
+  the welcome back appearing and leaving, the newcomer's welcome with no banner on top, shadows only in passthrough and
+  one per panel, and the card rising and settling back.
+- **Not verified:** a physical headset (the shadow on a real wall, the welcome's legibility at arm's length, the card's
+  rise under a real hand). Production still runs `685216d`: this block is pushed, not deployed.

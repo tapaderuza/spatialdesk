@@ -307,7 +307,8 @@ export class HelperSystem extends createSystem({ ready: { required: [HelperPanel
     helperState.open = shown;
     const object = this.entity?.object3D as (Object3D & { pointerEvents?: string }) | undefined;
     if (!object) return;
-    object.visible = shown;
+    // Not drawn until its own words are in (bind): no frame of the layout file's default text.
+    object.visible = shown && this.elements !== null;
     object.pointerEvents = shown ? undefined : 'none'; // undefined: back to pointer-events' default (only listeners)
   }
 

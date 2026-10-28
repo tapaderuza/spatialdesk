@@ -15,6 +15,8 @@ const OFF_MS = 400;
 const STEPS = 8;
 /** How far the hovered tone moves from the idle colour toward the accent: visible, never loud. */
 const LIFT = 0.2;
+/** A card that is aimed at also rises a little toward the hand (3.5 % larger), with the same fade: it feels pickable. */
+const RISE = 0.035;
 const ACCENT = '#9cc3ff';
 
 interface Fade {
@@ -24,6 +26,8 @@ interface Fade {
   target: 0 | 1;
   step: number;
   lastMs: number;
+  /** Cards rise as well as lighten (see [RISE]); buttons only lighten. */
+  rise: boolean;
 }
 
 const stepCache = new Map<string, readonly string[]>();
@@ -51,15 +55,16 @@ class HoverFades {
 
   /**
    * Paints [element]'s background for its idle colour and hover state, fading from where it is now. [toward] tints
-   * the hovered tone (a drop target lifts toward green).
+   * the hovered tone (a drop target lifts toward green); [rise] also scales it up a little (cards).
    */
-  paint(element: UIKit.Text, idle: string, hovered: boolean, toward: string = ACCENT): void {
+  paint(element: UIKit.Text, idle: string, hovered: boolean, toward: string = ACCENT, rise = false): void {
     let fade = this.fades.get(element);
     const steps = stepsFor(idle, toward);
     if (!fade) {
-      fade = { element, steps, level: 0, target: 0, step: -1, lastMs: performance.now() };
+      fade = { element, steps, level: 0, target: 0, step: -1, lastMs: performance.now(), rise };
       this.fades.set(element, fade);
     }
+    fade.rise = rise;
     const restyle = fade.steps !== steps;
     fade.steps = steps;
     fade.target = hovered ? 1 : 0;
@@ -90,7 +95,12 @@ class HoverFades {
     const step = Math.round(fade.level * STEPS);
     if (step === fade.step) return;
     fade.step = step;
-    fade.element.setProperties({ backgroundColor: fade.steps[step] });
+    if (fade.rise) {
+      const scale = 1 + (RISE * step) / STEPS;
+      fade.element.setProperties({ backgroundColor: fade.steps[step], transformScaleX: scale, transformScaleY: scale });
+    } else {
+      fade.element.setProperties({ backgroundColor: fade.steps[step] });
+    }
   }
 }
 

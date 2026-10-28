@@ -183,7 +183,7 @@ class BoardView {
       display: 'flex',
       borderColor: isHeld ? COLOR.heldBorder : this.coached(`card-${c}-${k}`) ? COACH_BORDER : idleBorder(COLOR.card),
     });
-    hoverFades.paint(box, isHeld ? COLOR.heldCard : COLOR.card, this.hovered.has(`card-${c}-${k}`));
+    hoverFades.paint(box, isHeld ? COLOR.heldCard : COLOR.card, this.hovered.has(`card-${c}-${k}`), undefined, true); // a card rises a little when aimed at
   }
 
   private coached(key: string): boolean {

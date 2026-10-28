@@ -23,3 +23,6 @@ export const SetupPanel = createComponent('SetupPanel', {});
 
 /** The helper panel: a code to invite a family member or carer, their request, and the state of the sharing (one per world). */
 export const HelperPanel = createComponent('HelperPanel', {});
+
+/** The welcome-back banner above the work board, for the first seconds in the headset (one per world). */
+export const WelcomePanel = createComponent('WelcomePanel', {});

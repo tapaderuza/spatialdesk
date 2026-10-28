@@ -188,6 +188,8 @@ function show(next: Stage): void {
   stage = next;
   Object.keys(ui).forEach((key) => delete (ui as Record<string, unknown>)[key]);
   root.replaceChildren(header(), screen());
+  // There is a connection to speak of only once a code has been typed: no "Connected" over an empty form.
+  if (ui.pill) ui.pill.hidden = stage === 'code' || stage === 'ended';
   paintPill();
   root.querySelector<HTMLElement>('h2, input')?.focus();
 }
