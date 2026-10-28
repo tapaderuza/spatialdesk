@@ -203,3 +203,94 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
   `spatialdesk.calibrated`, `spatialdesk.language`, `spatialdesk.seat` and `setup-orb`; `ui/setup.uikitml` answers 200.
 - Not done: no walk through the guided setup in the live app (the e2e tests do not cover it) and nothing on a real
   headset, as before.
+
+## Block 16: when the network or the AI fails (no endless "thinking")
+
+- One place for the rule (`src/backend/resilience.ts`): the AI and the voice get 7 s (`AI_PATIENCE_MS`); after that, or on
+  a network error, one calm line says "Network issue. Switched to manual mode." (Spanish: "Problema de red. Modo manual
+  activado."). Not red, no error sound, no error card.
+- The agent (`src/agent/client.ts`): the whole plan request, the wait for a session included, has one 7 s deadline (it was
+  20 s). A timeout, no session, a 5xx or a body that is not JSON come back as `network: true`; `AgentSystem.run` then closes
+  "thinking" at once (`close()`), hides the card and shows the line. A server that answers in its own words (a spent quota,
+  429) keeps its explanation on the card: that is not a network problem.
+- The voice (`src/voice/listen.ts`): the server's grant gets 7 s; Transcribe's socket must be open within the same 7 s
+  budget (counted from when the microphone is open, so the permission prompt is not charged); an exception, a socket error
+  and a stream closed under the speaker all end with the same line and `network: true`. "I didn't catch that" is kept for
+  real silence.
+- The server (`application.yml`, `AgentProperties`): the Nova call is cut at 6 s (was 8) so the built-in planner's answer
+  can still arrive inside the headset's 7 s. This only takes effect with the next deploy; until then, a stalled Nova means
+  the headset gives up at 7 s with the line, instead of receiving the built-in plan at 8 s or later.
+- Cards: nothing locks while the AI is out. `tests/resilience.spec.ts` (7 tests) hangs `/api/agent/plan` and
+  `/api/voice/session` for ever (gives up at 6.5 to 10.5 s), returns 502/503, drops Transcribe's socket and makes it
+  answer with an exception, and after each one picks a card up and drops it in Done with the same taps a pinch makes.
+  `accessibility.spec.ts` "hardening" now expects the calm line (not an error card) for a refused connection.
+
+## Block 17: panels glide (no jumps)
+
+- `src/ui/glide.ts`: a critically damped spring (smoothing 0.25 s) on x, y, z, yaw, pitch and scale. It starts and ends at
+  rest, never overshoots, carries speed over when retargeted mid-flight, and snaps exactly to the pose and stops. Per frame
+  it touches only the panels still moving, with no allocation. `PinnedPanel.place(pose, smooth)` (boards, timers) and the
+  console (`PanelSystem.placeCommandPanel`) use it; so do the studio desk and plant and the companion orb, which are placed
+  beside the board and would otherwise jump while the board glides.
+- What slides, what does not: a change the person or the AI made for them (`source` `user` or `undo`: "Put it within my
+  reach", the AI's comfort plan, the guided setup's Start, an undo) slides. Loading, the system's own bookkeeping (the
+  re-anchor when XR starts), the first placement of a panel, a jump of more than 3 m, a panel in someone's hand, a flat
+  screen and the `reducedMotion` preference place at once.
+- Measured in the emulated headset (`tests/glide.spec.ts`, 6 tests): a board 27.2 cm away from where it was, the largest
+  single frame 1.4 to 1.6 cm (5 to 6 % of the way), within 1 mm after 978 ms; the undo glides back to within 1 mm of the
+  start; at rest the last frames are identical (nothing keeps being updated).
+- The amber frame and the pulse now come when the boards have arrived (`whenSettled`), not when the state changes: they
+  mean "the space has settled".
+- A bug the measurement found, not the tests: while a panel glides across the air, a controller's tip that it passes
+  through pressed it. In a probe, 164 ms after pressing Apply with the ray, the console received a `touch` click from the
+  other controller. A gliding panel now takes no pointer (`pointerEvents = 'none'`, given back at rest);
+  `tests/glide.spec.ts` checks it, and `comfort.spec.ts` (the agent must be idle after an undo) would fail without it.
+- Two guards for a real headset: a board deleted while it slides (an undo, an AI plan) stops its glide first and its grab
+  bar no longer follows a destroyed object (tested: nothing is left gliding and no page error); and a glide that had not
+  come to rest after 3 s would be finished where it belongs, so no panel can stay unpressable.
+- Six existing tests read a position or the flash right after a change and now wait for it to settle (`settled(page)` in
+  `tests/helpers.ts`): anchor-feedback, comfort, demo-input, setup, studio.
+
+## Block 18: the carer outside the headset (the asymmetric view)
+
+- What it is: a family member or carer opens `/companion.html` (or `/?mode=companion`, which redirects before the XR app
+  starts) on any phone or computer, types the code the headset shows, and after the owner presses Allow sees the card
+  titles of the Today board, updated as the headset changes. One very large button, Help / Recalibrate, opens the guided
+  setup and its orb in the headset; the carer is told "sent", "their headset is showing it", then "finished" or "skipped".
+- Consent first, and the least that is enough: nothing is shown before Allow; only `{ id, title, column }` of up to 12
+  cards leaves (the Done column is dropped first when there are more); `allowConfiguration` is always false, so the carer
+  can look and call, never configure; the room lasts 15 minutes; Stop sharing or No revokes it at once; the owner can skip
+  any step of the setup the call opens. "Today board" is the board titled Today (or Hoy), else the one being worked on.
+- Server (`AssistApi.kt`, `AssistRegistry.kt`): two endpoints, `POST /api/assist/pairs/{id}/help` (an approved helper;
+  one open call at a time, 5 s cooldown, 12 per room) and `.../help/resolve` (the owner's headset says shown, done or
+  dismissed); `help` appears in the owner and helper views. Additive: nothing that existed changes. 5 new tests; the
+  whole server suite is 108 tests, 0 failures.
+- Headset (`src/assist/`): `api.ts` (one object of calls, shared by both sides), `today.ts`, `pairing.ts` (the life of an
+  invitation, a poll every 2 s), `helper-system.ts` (the panel; it reuses `setup.uikitml`, so it looks like the setup and
+  was already proven in the emulator). Ways in: say "invite a helper" (also "invite my carer", "invita a un cuidador"), or
+  the button on the flat start screen. The panel pops up by itself only when someone is asking to be allowed. A server
+  from before the help calls (no `help` in its answer) is tolerated: the board still shares.
+- The page (`companion.html`, `src/companion/`): a separate Vite entry, 17 KB (7 KB gzipped) and none of the XR app. DOM
+  built with `textContent` (a card titled `<img onerror=...>` is shown as text), large targets, dark and light, reduced
+  motion respected, Spanish with `?lang=es-ES`, a lost network shown as "Reconnecting..." with the board kept, a reload
+  of the tab resumes.
+- Tests: `helper-pairing.spec.ts` (7, the logic against a stand-in API, including every way it ends), `carer.spec.ts`
+  (5, two pages of one browser through a stand-in server), and `assist-real.spec.ts` (1): the same story with the headset
+  and the carer against the REAL server built from this code, running locally on port 18080 (invite, code, Allow, board,
+  a card added, Help opens the setup, it finishes, Stop ends it, the dead code is refused). It passed and the server log
+  had no errors; it is skipped unless `ASSIST_REAL` names a server.
+- A finding for the tests, not the product: with two pages open, the headset page must be brought to the front
+  (`page.bringToFront()`) before a pointer press, or the controller's trigger produces no click.
+
+## Block 19: honest limits of this block
+
+- Not deployed. The headset-side panel and the companion page work against the server that is in production for the
+  invitation, the consent and the board; the Help / Recalibrate call needs the new endpoints, so the server must be
+  deployed together with the front end (if the front end goes alone, Help answers "Network issue. It was not sent").
+- "Real time" is a poll every 2 s on each side: the carer sees a change in about 2 to 6 s (longer if their tab is in the
+  background), not instantly.
+- Not verified on a physical headset: the glide on real hands, a real person pressing Allow with a pinch, the panel's
+  legibility at 52 x 38 cm for the helper flow beyond what the guided setup (same layout) already showed.
+- The performance gate: with the machine hot after a long CI, the whole-frame p95 measured 31.7 to 34.8 ms (limit 29.4,
+  and 27.2 ms an hour earlier); with the glide and helper systems taken out it measured 32.2 to 34.2 ms, so it is the
+  laptop and not these changes. Our systems: p95 2.0 to 2.5 ms (limit 3.0), p50 0.5 ms.

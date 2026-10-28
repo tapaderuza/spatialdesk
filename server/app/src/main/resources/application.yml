@@ -28,7 +28,9 @@ spatialdesk:
     region: us-east-1
     per-session-per-hour: 20
     per-day: 300
-    timeout-seconds: 8
+    # The headset gives the whole request 7 s (src/backend/resilience.ts): a stalled Nova is cut at 6 s so the built-in
+    # planner's answer still arrives in time, instead of the headset giving up first.
+    timeout-seconds: 6
   # Voice commands: the headset streams its microphone straight to Amazon Transcribe over a URL this server presigns
   # (no audio passes through here). Each listen is a few seconds; the caps bound the Transcribe bill.
   voice:

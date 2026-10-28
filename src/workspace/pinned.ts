@@ -28,6 +28,7 @@ import {
 import type { Pose } from './model.js';
 import { PinnedHandle, PinnedItem } from './components.js';
 import { workspace } from './store.js';
+import { placeSmoothly, stopGlide } from '../ui/glide.js';
 
 const HANDLE_HEIGHT = 0.06; // >= 6 cm target (ROADMAP heuristic A)
 const HANDLE_GAP = 0.025;
@@ -96,15 +97,20 @@ export class PinnedPanel {
 
   /**
    * Puts the panel at the pose, at the scale the workspace's view asks for (1 on a Quest), and snaps the bar back
-   * under it (unless someone is holding the bar).
+   * under it (unless someone is holding the bar). With [smooth] it slides there (src/ui/glide.ts) and the bar follows
+   * it all the way; a panel in someone's hand is never slid.
    */
-  place(pose: Pose): void {
+  place(pose: Pose, smooth = false): void {
     const root = this.root.object3D!;
-    root.position.set(pose.x, pose.y, pose.z);
-    root.rotation.set(pose.pitch, pose.yaw, 0);
-    root.scale.setScalar(workspace.panelScale);
-    this.handle.object3D!.scale.setScalar(workspace.panelScale);
-    if (!this.handle.hasComponent(Grabbed)) this.snapHandle();
+    placeSmoothly(root, pose, workspace.panelScale, smooth, {
+      hold: () => this.handle.hasComponent(Grabbed),
+      moved: () => {
+        const bar = this.handle.object3D;
+        if (!bar) return; // the panel was disposed while it slid
+        bar.scale.setScalar(root.scale.x);
+        if (!this.handle.hasComponent(Grabbed)) this.snapHandle();
+      },
+    });
   }
 
   /** While held: the panel hangs above the bar and turns to face the eyes. */
@@ -143,6 +149,7 @@ export class PinnedPanel {
 
   dispose(): void {
     panels.delete(this.item);
+    if (this.root.object3D) stopGlide(this.root.object3D); // a panel that slides away is not moved any more
     this.panel.destroy();
     this.root.destroy();
     this.handle.destroy();

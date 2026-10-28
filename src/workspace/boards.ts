@@ -13,7 +13,8 @@ import { idleBorder, onSettings } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
 import { BOARD_SIZE, panelText, type Board, type Card, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
-import { workspace } from './store.js';
+import { glidesFor } from '../ui/glide.js';
+import { workspace, type ChangeSource } from './store.js';
 
 const COLUMNS = 4; // slots in public/ui/board.uikitml
 const CARDS = 4;
@@ -322,12 +323,12 @@ export class BoardSystem extends createSystem({}) {
   private readonly views = new Map<string, BoardView>();
 
   init(): void {
-    this.cleanupFuncs.push(workspace.subscribe(({ state }) => this.sync(state)));
+    this.cleanupFuncs.push(workspace.subscribe(({ state, source }) => this.sync(state, source)));
     this.cleanupFuncs.push(onSettings(() => this.renderAll())); // high contrast changes the outlines
     this.cleanupFuncs.push(onAccessPreferences(() => this.renderAll()));
     repaintBoards = () => this.renderAll();
     this.cleanupFuncs.push(() => (repaintBoards = null));
-    this.sync(workspace.state);
+    this.sync(workspace.state, 'load');
     this.cleanupFuncs.push(() => {
       for (const view of this.views.values()) view.dispose();
       this.views.clear();
@@ -355,7 +356,8 @@ export class BoardSystem extends createSystem({}) {
     for (const view of this.views.values()) view.render();
   }
 
-  private sync(state: Workspace): void {
+  /** [source] decides whether a moved board slides (what the person or the AI asked for) or is placed at once. */
+  private sync(state: Workspace, source: ChangeSource): void {
     const ids = new Set(state.boards.map((b) => b.id));
     for (const [id, view] of this.views) {
       if (!ids.has(id)) {
@@ -370,7 +372,7 @@ export class BoardSystem extends createSystem({}) {
         view = new BoardView(this, board.id);
         this.views.set(board.id, view);
       }
-      view.pinned.place(board.pose);
+      view.pinned.place(board.pose, glidesFor(source));
       // A 6 cm bar 1.45 m away is too small for a shaky ray: parked boards are brought within reach, then moved.
       view.pinned.setHandleVisible(board.id === state.focusBoardId);
       view.render();

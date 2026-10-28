@@ -11,6 +11,7 @@
 import { BufferAttribute, BufferGeometry, createSystem, DoubleSide, Mesh, MeshBasicMaterial, type Entity } from '@iwsdk/core';
 import { BOARD_SIZE } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
+import { whenSettled } from './glide.js';
 
 export type AnchorKind = 'reach' | 'surface';
 
@@ -88,7 +89,12 @@ export class AnchorFeedbackSystem extends createSystem({}) {
     this.material.opacity = PEAK_OPACITY * (1 - t) * (1 - t); // fast, then a long fade
   }
 
+  /** The space "settles" when the boards have finished sliding to their place (src/ui/glide.ts), not when the state changes. */
   private trigger(kind: AnchorKind): void {
+    whenSettled(() => this.flash(kind));
+  }
+
+  private flash(kind: AnchorKind): void {
     const focus = workspace.state.boards.find((board) => board.id === workspace.state.focusBoardId);
     if (!focus) return;
     const mesh = this.frame.object3D!;

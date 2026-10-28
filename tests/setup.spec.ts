@@ -8,7 +8,7 @@
  * the My setup card. The first-run coach waits for it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, openWorkspace, pressXR, tap, type Win } from './helpers.js';
+import { enterXR, frames, openWorkspace, pressXR, settled, tap, type Win } from './helpers.js';
 
 // A visitor who has never been through it: no "calibrated" flag (playwright.config.ts seeds one for every other test).
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -114,6 +114,7 @@ test('a new visitor in XR: where they sit, an orb to pinch, steady aim; the spac
   await stageIs(page, null);
   expect(await view(page)).toMatchObject({ finished: true, skipped: false });
   expect(await page.evaluate(() => (window as Win).__workspace.state.comfort)).toMatchObject({ reach: measured.reach, tiltDeg: measured.tiltDeg, side: measured.side });
+  await settled(page); // the amber frame and the pulse come when the boards have finished sliding
   expect(await page.evaluate(() => (window as Win).__anchor.view.flashes)).toBeGreaterThan(0);
   await page.evaluate(() => (window as Win).__voice.say('undo'));
   expect((await page.evaluate(() => (window as Win).__workspace.state.comfort)).reach).toBe(1);

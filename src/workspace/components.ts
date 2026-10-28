@@ -20,3 +20,6 @@ export const CoachPanel = createComponent('CoachPanel', {});
 
 /** The guided setup panel: where you sit, reach out and pinch the orb, steady aim (one per world). */
 export const SetupPanel = createComponent('SetupPanel', {});
+
+/** The helper panel: a code to invite a family member or carer, their request, and the state of the sharing (one per world). */
+export const HelperPanel = createComponent('HelperPanel', {});

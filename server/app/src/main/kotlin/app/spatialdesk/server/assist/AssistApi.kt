@@ -15,8 +15,12 @@ import org.springframework.web.bind.annotation.*
 @Serializable data class JoinResult(val ok: Boolean = true, val requestId: String, val pairId: String, val state: String = "pending", val expiresAt: Long)
 @Serializable data class AccessRequestView(val requestId: String, val state: String, val requestedAt: Long, val allowConfiguration: Boolean, val taskIds: List<String>)
 @Serializable data class ProposalView(val proposalId: String, val requestId: String, val comfort: ComfortChange, val state: String, val createdAt: Long)
-@Serializable data class OwnerView(val ok: Boolean = true, val pairId: String, val expiresAt: Long, val inviteExpiresAt: Long, val requests: List<AccessRequestView>, val proposals: List<ProposalView>)
-@Serializable data class HelperView(val ok: Boolean = true, val pairId: String, val requestId: String, val approved: Boolean, val state: String, val expiresAt: Long, val allowConfiguration: Boolean = false, val tasks: List<SharedTask>? = null, val proposals: List<ProposalView>? = null)
+/** A helper's call for help ("Help / Recalibrate"): pending until the headset shows the guided setup, then shown, then done or dismissed. */
+@Serializable data class HelpView(val helpId: String, val requestId: String, val state: String, val createdAt: Long)
+@Serializable data class HelpResult(val ok: Boolean = true, val helpId: String, val state: String = "pending")
+@Serializable data class HelpResolved(val ok: Boolean = true, val helpId: String, val state: String)
+@Serializable data class OwnerView(val ok: Boolean = true, val pairId: String, val expiresAt: Long, val inviteExpiresAt: Long, val requests: List<AccessRequestView>, val proposals: List<ProposalView>, val help: List<HelpView> = emptyList())
+@Serializable data class HelperView(val ok: Boolean = true, val pairId: String, val requestId: String, val approved: Boolean, val state: String, val expiresAt: Long, val allowConfiguration: Boolean = false, val tasks: List<SharedTask>? = null, val proposals: List<ProposalView>? = null, val help: HelpView? = null)
 @Serializable data class ApprovalResult(val ok: Boolean = true, val pairId: String, val requestId: String, val state: String = "approved")
 @Serializable data class ProposalResult(val ok: Boolean = true, val proposalId: String, val state: String = "pending")
 @Serializable data class ResolveResult(val ok: Boolean = true, val proposalId: String, val outcome: String)
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.*
 @Serializable private data class ApproveRequest(val requestId: String, val allowConfiguration: Boolean, val tasks: List<SharedTask>)
 @Serializable private data class ProposalRequest(val comfort: ComfortChange)
 @Serializable private data class ResolveRequest(val proposalId: String, val outcome: String)
+@Serializable private data class HelpResolveRequest(val helpId: String, val state: String)
 
 /** Strict JSON at this boundary prevents a whole workspace or arbitrary metadata from being shared accidentally. */
 @OptIn(ExperimentalSerializationApi::class)
@@ -81,6 +86,20 @@ class AssistController(private val registry: AssistRegistry) {
     fun resolve(@RequestHeader("X-Session", required = false) session: String?, @PathVariable id: String, @RequestBody body: String): ResponseEntity<String> = respond(session) {
         val request = decode<ResolveRequest>(body)
         assistJson.encodeToString(registry.resolve(session, id, request.proposalId, request.outcome))
+    }
+
+    /** An approved helper asks for help recalibrating: no data travels, only the call. The headset decides what to show. */
+    @PostMapping("/pairs/{id}/help")
+    fun help(@RequestHeader("X-Session", required = false) session: String?, @PathVariable id: String, @RequestBody(required = false) body: String?): ResponseEntity<String> = respond(session) {
+        if (!body.isNullOrBlank() && objectBody(body).isNotEmpty()) throw AssistFault(400, "unexpected_fields", "Ask for help without sending any data.")
+        assistJson.encodeToString(registry.requestHelp(session, id))
+    }
+
+    /** The owner's headset says what became of a call for help: shown (the guided setup opened), done or dismissed. */
+    @PostMapping("/pairs/{id}/help/resolve", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun resolveHelp(@RequestHeader("X-Session", required = false) session: String?, @PathVariable id: String, @RequestBody body: String): ResponseEntity<String> = respond(session) {
+        val request = decode<HelpResolveRequest>(body)
+        assistJson.encodeToString(registry.resolveHelp(session, id, request.helpId, request.state))
     }
 
     @DeleteMapping("/pairs/{id}")

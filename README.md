@@ -31,6 +31,15 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
 - **The guided setup:** the first time you enter VR, three big questions: where you sit (desk or sofa/bed), pinch an orb
   50 cm away (your hand's own reach becomes the space), and whether you want steady aim. Skip any time; say "recalibrate"
   (or press *Recalibrate* on the *My setup* card) to do it again.
+- **A family member or carer, from a phone:** say "invite a helper" (or press *Invite a family member or carer* on the start
+  screen). The headset shows a code; on any phone or computer open `/companion.html` (or `/?mode=companion`) and type it.
+  Nothing is shown until you press *Allow*; then they follow the card titles of your Today board and have one very large
+  button, *Help / Recalibrate*, that opens the guided setup (and its orb) in your headset, where you can skip any step.
+  No hands needed on their side, and no headset. Sharing lasts up to 15 minutes and *Stop sharing* ends it at once.
+- **Panels glide, they do not jump:** when the AI or the setup moves the space onto your comfort zone, every panel slides
+  there in under a second (and the amber frame and the pulse come when it has arrived). *Reduced motion* turns it off.
+- **When the network fails:** the AI and the voice get 7 seconds; after that "thinking" ends, one line says *Network
+  issue. Switched to manual mode.* and the cards keep working by hand.
 - **With hands that shake:** add `?steady` (or say "tremor mode on").
 - **With one switch:** add `?switch` and use the space bar, Enter, or any pinch or trigger (or say "switch mode on").
 - **Fit to your reach:** in VR, say "fit to my reach", reach out to where it is comfortable and pinch.
@@ -215,7 +224,9 @@ production build:
 | Comfortable seated | Layout invariants for seated, standing and turned users: focus board at 0.55-0.65 m, no overlapping near panels, parked boards ≥ 1.3 m away. Looking at a side panel to tap it never moves the desk. |
 | The agent is useful and safe | Planner tests on the server (normaliser, guardrails, retry, fallback). End-to-end against production: a plan applied in under 4 s (typically 1.5-2 s). |
 | First five minutes | The guided start, done with real pointer events, finishes well under a minute (measured: 2 s of input). |
-| Fails gracefully | A spent quota and an unreachable server are explained on the agent card; the workspace is untouched. |
+| Fails gracefully | A spent quota is explained on the agent card; an AI or a voice that is slower than 7 s, a gateway error or no network ends "thinking" and "listening" with one calm line (*Network issue. Switched to manual mode.*), and a card is still moved by hand afterwards. |
+| Panels glide | A comfort change moves a board 27 cm with no frame carrying more than ~6 % of the way, arrives within 1 mm in under a second, the undo glides back, the amber frame comes when it has settled, a sliding panel takes no pointer (a fingertip it runs into presses nothing), and a flat screen or reduced motion places at once. |
+| A carer outside the headset | Two pages of one browser: the owner invites, the carer types the code, nothing is shown before *Allow*, only card titles travel, the board follows the headset, *Help / Recalibrate* opens the setup and the carer learns how it ended, a lost network is shown and recovered, titles are text and never markup, and the companion page is about 17 KB (7 KB gzipped) and loads none of the XR app. Server: the help calls have a cooldown, a ceiling and need an approved helper. |
 | Hands-free works and does not misfire | With the head as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
 | Voice works | The command grammar, the event stream framing (CRC-32 check value), the browser capture path against a stand-in Transcribe, and the real Transcribe hearing a Piper-spoken "plan my day" (`tests/e2e-voice.spec.ts`). |
 | A reason to come back | Streaks that survive the morning, the seven-day strip, and the agent's start-of-day plan from yesterday's open work; the evening wrap-up (server guardrails: no timers, no new boards) and the next morning starting from it; a focus block grows the plant a leaf, a break does not. |

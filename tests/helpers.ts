@@ -63,6 +63,16 @@ export async function frames(page: Page, n: number): Promise<void> {
 }
 
 /**
+ * Waits until no panel is still gliding to a new place (src/ui/glide.ts), then two frames more: a change the person or the
+ * AI asked for slides in under a second, and a test that reads where a board is, or taps it, waits for it to arrive.
+ */
+export async function settled(page: Page, timeout = 8_000): Promise<void> {
+  await frames(page, 3); // the console starts to slide a frame after the boards do
+  await page.waitForFunction(() => (window as Win).__glide?.active() === 0, null, { timeout });
+  await frames(page, 2);
+}
+
+/**
  * Turns the emulated headset to [yawDeg] (positive = left) and [pitchDeg] (positive = up), over [steps] frames so it
  * reads as a head movement on video.
  */

@@ -13,7 +13,8 @@ import { idleBorder } from '../ui/settings.js';
 import { alarm, setAmbience, unlockAudio } from '../ui/sounds.js';
 import { panelText, TIMER_SIZE, type Timer, type Workspace } from './model.js';
 import { PinnedPanel } from './pinned.js';
-import { TIMER_SCALE, workspace } from './store.js';
+import { glidesFor } from '../ui/glide.js';
+import { TIMER_SCALE, workspace, type ChangeSource } from './store.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/timer.uikitml`;
 const HANDLE_WIDTH = 0.14;
@@ -151,11 +152,11 @@ export class TimerSystem extends createSystem({}) {
   private readonly views = new Map<string, TimerView>();
 
   init(): void {
-    this.cleanupFuncs.push(workspace.subscribe(({ state, previous }) => this.sync(state, previous)));
+    this.cleanupFuncs.push(workspace.subscribe(({ state, previous, source }) => this.sync(state, previous, source)));
     this.cleanupFuncs.push(onAccessPreferences(() => {
       for (const view of this.views.values()) view.render();
     }));
-    this.sync(workspace.state, null);
+    this.sync(workspace.state, null, 'load');
     addEventListener('pointerdown', unlockAudio, { passive: true });
     addEventListener('keydown', unlockAudio);
     this.cleanupFuncs.push(() => {
@@ -172,7 +173,7 @@ export class TimerSystem extends createSystem({}) {
     for (const view of this.views.values()) view.tick(now);
   }
 
-  private sync(state: Workspace, previous: Workspace | null): void {
+  private sync(state: Workspace, previous: Workspace | null, source: ChangeSource): void {
     const ids = new Set(state.timers.map((t) => t.id));
     for (const [id, view] of this.views) {
       if (!ids.has(id)) {
@@ -188,7 +189,7 @@ export class TimerSystem extends createSystem({}) {
       } else {
         view.update(timer);
       }
-      view.pinned.place(timer.pose);
+      view.pinned.place(timer.pose, glidesFor(source));
       const before = previous?.timers.find((t) => t.id === timer.id);
       if (before?.state === 'running' && timer.state === 'done') this.ring(view, timer);
     }

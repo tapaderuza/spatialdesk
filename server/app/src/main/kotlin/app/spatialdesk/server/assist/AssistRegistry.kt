@@ -20,8 +20,11 @@ data class AssistLimits(
     val joinGlobalPerMinute: Int = 120,
     val invitationSeconds: Long = 120,
     val roomSeconds: Long = 900,
+    val maxHelpPerRoom: Int = 12,
+    val helpCooldownSeconds: Long = 5,
 ) {
     init {
+        require(maxHelpPerRoom in 1..64 && helpCooldownSeconds in 0..60)
         require(maxRooms in 1..512 && maxRoomsPerOwner in 1..8)
         require(maxRequestsPerRoom in 1..16 && maxGrantsPerRoom in 1..maxRequestsPerRoom)
         require(maxProposalsPerRoom in 1..64 && maxPendingPerHelper in 1..maxProposalsPerRoom)
@@ -57,9 +60,11 @@ class AssistRegistry(private val sessions: SessionRegistry, private val clock: C
         var approved: Boolean = false, var allowConfiguration: Boolean = false, var tasks: List<SharedTask> = emptyList(),
     )
     private data class Proposal(val id: String, val requestId: String, val comfort: ComfortChange, val createdAt: Long, var state: String = "pending")
+    private data class Help(val id: String, val requestId: String, val createdAt: Long, var state: String = "pending")
     private data class Room(
         val id: String, val owner: String, val code: String, val inviteExpiresAt: Long, val expiresAt: Long,
         val requests: LinkedHashMap<String, Request> = linkedMapOf(), val proposals: LinkedHashMap<String, Proposal> = linkedMapOf(),
+        val help: LinkedHashMap<String, Help> = linkedMapOf(),
     )
 
     fun requireSession(session: String?): String = session?.takeIf { sessions.isValid(it) }
@@ -99,7 +104,7 @@ class AssistRegistry(private val sessions: SessionRegistry, private val clock: C
         val room = ownedRoom(pairId, owner)
         return OwnerView(pairId = room.id, expiresAt = room.expiresAt, inviteExpiresAt = room.inviteExpiresAt,
             requests = room.requests.values.map { AccessRequestView(it.id, if (it.approved) "approved" else "pending", it.requestedAt, it.approved && it.allowConfiguration, if (it.approved) it.tasks.map(SharedTask::id) else emptyList()) },
-            proposals = room.proposals.values.map(::proposalView))
+            proposals = room.proposals.values.map(::proposalView), help = room.help.values.map(::helpView))
     }
 
     @Synchronized fun approve(session: String?, pairId: String, requestId: String, allowConfiguration: Boolean, tasks: List<SharedTask>): ApprovalResult {
@@ -120,7 +125,40 @@ class AssistRegistry(private val sessions: SessionRegistry, private val clock: C
         return HelperView(pairId = room.id, requestId = request.id, approved = request.approved, state = if (request.approved) "approved" else "pending", expiresAt = room.expiresAt,
             allowConfiguration = request.approved && request.allowConfiguration,
             tasks = if (request.approved) request.tasks.map { it.copy() } else null,
-            proposals = if (request.approved) room.proposals.values.filter { it.requestId == request.id }.map(::proposalView) else null)
+            proposals = if (request.approved) room.proposals.values.filter { it.requestId == request.id }.map(::proposalView) else null,
+            help = if (request.approved) room.help.values.lastOrNull { it.requestId == request.id }?.let(::helpView) else null)
+    }
+
+    /**
+     * An approved helper calls for help recalibrating. Nothing travels but the call: the owner's headset opens its own
+     * guided setup, which the owner can skip. One open call per helper at a time, a short cooldown between calls and a
+     * ceiling per room keep it from being used to pester.
+     */
+    @Synchronized fun requestHelp(session: String?, pairId: String): HelpResult {
+        val helper = requireSession(session)
+        val room = room(pairId)
+        val request = helperRequest(room, helper)
+        if (!request.approved) throw AssistFault(403, "not_approved", "The owner has not approved this helper yet.")
+        room.help.values.firstOrNull { it.requestId == request.id && it.state == "pending" }?.let { return HelpResult(helpId = it.id, state = it.state) }
+        val now = clock.millis()
+        val last = room.help.values.lastOrNull { it.requestId == request.id }
+        if (last != null && now - last.createdAt < limits.helpCooldownSeconds * 1000) throw AssistFault(429, "help_cooldown", "Wait a few seconds before asking again.")
+        if (room.help.size >= limits.maxHelpPerRoom) throw AssistFault(429, "help_limit", "This session has had all the calls for help it allows.")
+        val help = Help(identifier(), request.id, now)
+        room.help[help.id] = help
+        return HelpResult(helpId = help.id)
+    }
+
+    /** The owner's headset reports what became of a call: pending -> shown -> done or dismissed (or straight to either). */
+    @Synchronized fun resolveHelp(session: String?, pairId: String, helpId: String, state: String): HelpResolved {
+        val owner = requireSession(session)
+        val room = ownedRoom(pairId, owner)
+        if (state !in HELP_STATES) throw AssistFault(400, "invalid_state", "Choose shown, done or dismissed.")
+        val help = room.help[helpId] ?: throw AssistFault(404, "help_unavailable", "That call for help is no longer available.")
+        val next = when (help.state) { "pending" -> HELP_STATES; "shown" -> setOf("done", "dismissed"); else -> emptySet() }
+        if (state !in next) throw AssistFault(409, "help_resolved", "That call for help was already answered.")
+        help.state = state
+        return HelpResolved(helpId = help.id, state = state)
     }
 
     @Synchronized fun propose(session: String?, pairId: String, comfort: ComfortChange): ProposalResult {
@@ -183,7 +221,8 @@ class AssistRegistry(private val sessions: SessionRegistry, private val clock: C
     }
 
     private fun validText(value: String, max: Int) = value.isNotBlank() && value.length <= max && value == value.trim() && value.none { it.code < 32 || it.code == 127 }
-    private fun proposalView(proposal: Proposal) = ProposalView(proposal.id, proposal.requestId, proposal.comfort.copy(), proposal.state, proposal.createdAt)
+    private fun helpView(help: Help) = HelpView(help.id, help.requestId, help.state, help.createdAt)
+    private fun proposalView(proposal: Proposal) =ProposalView(proposal.id, proposal.requestId, proposal.comfort.copy(), proposal.state, proposal.createdAt)
     private fun identifier(): String = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(16).also(random::nextBytes))
     private fun unavailableCode(): Nothing = throw AssistFault(404, "invitation_unavailable", "El código no está disponible. Compruébalo o pide una nueva invitación.")
 
@@ -203,5 +242,8 @@ class AssistRegistry(private val sessions: SessionRegistry, private val clock: C
         window.count++; globalJoinWindow.count++
     }
 
-    companion object { private const val CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" }
+    companion object {
+        private const val CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        private val HELP_STATES = setOf("shown", "done", "dismissed")
+    }
 }

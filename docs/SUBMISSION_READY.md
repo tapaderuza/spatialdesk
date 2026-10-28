@@ -26,6 +26,21 @@
 - **Not checked on production:** the guided setup and English-first were not walked through in the live app (the
   end-to-end tests cover the link and the plan, not the setup); they were tested on the preview build, in the emulator.
 
+## Pushed after that, not in production yet (waiting for the user's go-ahead)
+
+- **The carer outside the headset:** `/companion.html` (also `/?mode=companion`), 17 KB, no XR app. The owner says "invite a
+  helper", the carer types the code, nothing is shown until Allow, then the Today board's card titles follow the headset
+  and one very large Help / Recalibrate button opens the guided setup and its orb in the headset. Tested in two pages of
+  one browser, and against the real server built from this code (running locally): the story passes.
+- **Panels glide** to the comfort zone in under a second instead of jumping (27 cm: largest frame 5 % of the way, within
+  1 mm in 978 ms); a gliding panel takes no pointer; reduced motion and a flat screen place at once.
+- **No endless "thinking":** the AI and the voice get 7 s, then "Network issue. Switched to manual mode." and the cards
+  still work by hand.
+- **To deploy both together:** the Help button and the 6 s Nova limit need the server (new endpoints and timeout). The
+  front end alone still shares the board; its Help button would say the call was not sent.
+- **Not verified:** a physical headset; real hands on the glide; and the performance gate on this hot laptop (whole frame
+  p95 31.7 to 34.8 ms against 29.4, the same with and without these changes; our systems 2.0 to 2.5 ms against 3.0).
+
 ## Video
 
 - **Public link:** https://youtu.be/jtqAi3gl-os (155 s, "SpatialDesk: a workspace that adapts to your body and your mind

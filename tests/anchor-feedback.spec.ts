@@ -5,7 +5,7 @@
  * is hidden (nothing drawn, nothing updated).
  */
 import { expect, test } from '@playwright/test';
-import { enterXR, frames, type Win } from './helpers.js';
+import { enterXR, frames, settled, type Win } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1')); // no guided start in the way
@@ -24,7 +24,7 @@ test('the space settling flashes the work board in amber and pulses the controll
   // A change of reach: the frame appears on the work board, with a pulse for every controller that can vibrate.
   const motors = await page.evaluate(() => [...(window as Win).__world.session.inputSources].filter((s: any) => s.gamepad?.hapticActuators?.[0]?.pulse).length);
   await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'set_comfort', reach: 0.8 }));
-  await frames(page, 2);
+  await settled(page); // the flash comes when the board has finished sliding there (src/ui/glide.ts)
   expect(await view()).toMatchObject({ flashes: 1, last: 'reach', visible: true, pulses: motors });
   const shown = await frame();
   expect(shown.visible).toBe(true);

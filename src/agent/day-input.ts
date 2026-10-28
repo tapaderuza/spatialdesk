@@ -5,6 +5,7 @@
  */
 import { VisibilityState, type World } from '@iwsdk/core';
 import { isListening, listen, stopListening } from '../voice/listen.js';
+import { requestInvite } from '../assist/helper-state.js';
 
 const KEY = 'spatialdesk.day';
 const MAX = 600;
@@ -39,6 +40,7 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
     '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#2f5f9e;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
     '<button id="day-speak" type="button" hidden style="min-height:40px;padding:0 14px;background:#2a313b;color:#eef1f5;border:0;border-radius:8px;font:inherit;cursor:pointer">Speak</button>' +
     '</div>' +
+    '<button id="day-invite" type="button" style="margin-top:8px;width:100%;min-height:40px;background:transparent;color:#eef1f5;border:1px solid #4a5666;border-radius:8px;font:inherit;cursor:pointer">Invite a family member or carer to follow along</button>' +
     '<div id="day-status" role="status" style="margin-top:6px;color:#b9c2cf;font-size:12px">In VR, the Plan my day chip uses these words, and Talk takes voice commands.</div>';
   document.body.appendChild(box);
 
@@ -48,6 +50,10 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
   const status = box.querySelector<HTMLDivElement>('#day-status')!;
   text.value = dayText();
   text.addEventListener('input', () => saveDayText(text.value));
+  // A code for someone outside the headset to follow the Today board (src/assist); the panel that shows it is in the scene.
+  box.querySelector<HTMLButtonElement>('#day-invite')!.addEventListener('click', () => {
+    if (!requestInvite()) status.textContent = 'Inviting a helper is not available yet. Try again in a moment.';
+  });
   plan.addEventListener('click', () => {
     saveDayText(text.value);
     onPlan();

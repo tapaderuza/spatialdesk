@@ -40,6 +40,7 @@ import { forgetResumeNote, nextStepText, readResumeNote, resumeContext, returnTa
 import { progress } from '../workspace/progress.js';
 import { isListening, stopListening } from '../voice/listen.js';
 import { language as appLanguage } from '../i18n/language.js';
+import { manualModeNotice } from '../backend/resilience.js';
 import { requestSetup } from '../onboarding/setup-state.js';
 import { dayEndNudge, dayStartNudge, findNudge, timerContext, wrapUpContext, type Nudge } from './watcher.js';
 
@@ -445,6 +446,13 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     const requestedWorkspace = workspace.state;
     const plan = await requestPlan(intent, text, requestedWorkspace, deskPose(this.world), options.context, this.quiet ? [] : this.conversation.snapshot(), options.sessionChoice);
     if (requestId !== this.requestId || this.mode !== 'thinking') return; // cancelled or superseded
+    if (plan.network) {
+      // The network or the AI is out of reach (or slower than AI_PATIENCE_MS): "thinking" ends now, the card goes away
+      // and one calm line says so. The boards were never locked; the hands carry on.
+      this.close();
+      workspace.notify({ text: manualModeNotice(), error: false });
+      return;
+    }
     this.timings.previewed = performance.now();
     if (this.quiet && (!plan.ok || plan.steps.length === 0)) {
       this.mode = 'idle';

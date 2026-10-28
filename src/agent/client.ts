@@ -3,6 +3,7 @@
  * validates it with the shared engine. Nothing changes here until the user applies the plan.
  */
 import { activeSession, forgetActiveSession } from '../backend/link.js';
+import { AI_PATIENCE_MS } from '../backend/resilience.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
 import type { ConversationTurn } from './conversation.js';
 import type { SessionChoice } from './session-input.js';
@@ -38,41 +39,51 @@ export interface AgentPlan {
   attempts?: number;
   note?: string;
   error?: string;
+  /** Set by this client, never by the server: the network or the server did not answer in time (or at all). */
+  network?: true;
 }
 
 const OFFLINE: AgentPlan = {
   ok: false,
   steps: [],
   error: 'The AI needs the command server, which is offline. Your workspace still works by hand.',
+  network: true,
 };
 
-/** [context] says what just happened (a timer ended, a card is running over), for the agent's own suggestions. */
+/**
+ * [context] says what just happened (a timer ended, a card is running over), for the agent's own suggestions.
+ * The whole call, session wait included, gets AI_PATIENCE_MS: then it is a network failure (`network: true`).
+ */
 export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string, conversation: ConversationTurn[] = [], sessionChoice?: SessionChoice): Promise<AgentPlan> {
-  const session = await waitForSession(4000);
+  const deadline = performance.now() + AI_PATIENCE_MS;
+  const left = () => Math.max(1, deadline - performance.now());
+  const session = await waitForSession(Math.min(4000, left()));
   if (!session) return OFFLINE;
   const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context, conversation, sessionChoice });
   try {
-    let res = await post(session, body);
+    let res = await post(session, body, left());
     if (res.status === 401) {
       // The server restarted and forgot us: the link reconnects with a fresh session, then we ask once more.
       forgetActiveSession();
-      const fresh = await waitForSession(6000, session);
+      const fresh = await waitForSession(Math.min(6000, left()), session);
       if (!fresh) return OFFLINE;
-      res = await post(fresh, body);
+      res = await post(fresh, body, left());
     }
+    // A gateway error page (502, 503, 504) is the network's answer, not the planner's.
+    if (res.status >= 500) return { ok: false, steps: [], error: 'The command server did not answer. Try again in a moment.', network: true };
     const plan = (await res.json()) as AgentPlan;
     return { ...plan, steps: plan.steps ?? [] };
   } catch {
-    return { ok: false, steps: [], error: 'The command server did not answer. Try again in a moment.' };
+    return { ok: false, steps: [], error: 'The command server did not answer. Try again in a moment.', network: true };
   }
 }
 
-function post(session: string, body: string): Promise<Response> {
+function post(session: string, body: string, timeoutMs: number): Promise<Response> {
   return fetch('/api/agent/plan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Session': session },
     body,
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 

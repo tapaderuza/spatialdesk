@@ -101,8 +101,9 @@ test('hardening: a spent quota and an unreachable server are explained, never br
   await page.unroute('**/api/agent/plan');
   await page.route('**/api/agent/plan', (route) => route.abort('connectionrefused'));
   await tap(page, 'command:prioritise-button');
-  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'error', null, { timeout: 10_000 });
-  expect(await page.evaluate(() => (window as Win).__agent.state.plan.error)).toContain('did not answer');
+  // The network failing is not an error card in the user's face: "thinking" ends and one calm line says so (resilience.spec.ts).
+  await page.waitForFunction(() => (window as Win).__notice?.text === 'Network issue. Switched to manual mode.', null, { timeout: 10_000 });
+  expect(await page.evaluate(() => (window as Win).__agent.state.phase)).toBe('idle');
   expect(await page.evaluate(() => (window as Win).__workspace.state.boards.length)).toBe(2); // nothing changed
   expect(errors).toEqual([]);
 });

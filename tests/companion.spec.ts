@@ -5,7 +5,7 @@
  * the agent has something for you, calm in a break.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, turnHead, type Win } from './helpers.js';
+import { enterXR, frames, settled, turnHead, type Win } from './helpers.js';
 
 const view = (page: Page) => page.evaluate(() => ({ ...(window as Win).__companion.view }) as { mood: string; progress: number; visible: boolean });
 
@@ -65,6 +65,7 @@ test('companion: beside the board wherever it goes, and its mood follows the wor
 
   // Wherever the board goes, it goes too.
   await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: { x: 0.8, y: 1.3, z: 0.5, yaw: 1.2, pitch: 0 } }));
+  await settled(page); // the board and the companion beside it slide there (src/ui/glide.ts)
   const moved = await besideBoard(page);
   expect(moved.right).toBeCloseTo(at.right, 2);
   expect(errors).toEqual([]);

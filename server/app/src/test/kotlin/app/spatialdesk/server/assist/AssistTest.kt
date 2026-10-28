@@ -247,3 +247,85 @@ class AssistHttpTest {
         assertTrue(f.registry.owner(f.owner, pair.pairId).proposals.isEmpty())
     }
 }
+
+class AssistHelpTest {
+    @Test fun `an approved helper calls for help and the owner follows the call to its end`() {
+        val f = Fixture(); val (pair, joined) = f.grant(configuration = false)
+        val call = f.registry.requestHelp(f.helper, pair.pairId)
+        assertEquals("pending", call.state)
+        // Asking again while a call is open is the same call: it cannot be used to pile up requests.
+        assertEquals(call.helpId, f.registry.requestHelp(f.helper, pair.pairId).helpId)
+        val owner = f.registry.owner(f.owner, pair.pairId)
+        assertEquals(listOf(call.helpId), owner.help.map { it.helpId })
+        assertEquals(joined.requestId, owner.help.single().requestId)
+        assertEquals("pending", f.registry.helper(f.helper, pair.pairId).help?.state)
+        failure(403, "owner_required") { f.registry.resolveHelp(f.helper, pair.pairId, call.helpId, "shown") }
+        failure(400, "invalid_state") { f.registry.resolveHelp(f.owner, pair.pairId, call.helpId, "pending") }
+        assertEquals("shown", f.registry.resolveHelp(f.owner, pair.pairId, call.helpId, "shown").state)
+        assertEquals("shown", f.registry.helper(f.helper, pair.pairId).help?.state)
+        assertEquals("done", f.registry.resolveHelp(f.owner, pair.pairId, call.helpId, "done").state)
+        assertEquals("done", f.registry.helper(f.helper, pair.pairId).help?.state)
+        failure(409, "help_resolved") { f.registry.resolveHelp(f.owner, pair.pairId, call.helpId, "dismissed") }
+        failure(404, "help_unavailable") { f.registry.resolveHelp(f.owner, pair.pairId, "no-such-call", "done") }
+    }
+
+    @Test fun `a helper who is not approved, or who never joined, cannot call for help`() {
+        val f = Fixture(); val pair = f.pair(); f.registry.join(f.helper, pair.code)
+        failure(403, "not_approved") { f.registry.requestHelp(f.helper, pair.pairId) }
+        failure(403, "helper_not_joined") { f.registry.requestHelp(f.other, pair.pairId) }
+        failure(401, "session_expired") { f.registry.requestHelp(null, pair.pairId) }
+        assertTrue(f.registry.owner(f.owner, pair.pairId).help.isEmpty())
+        assertNull(f.registry.helper(f.helper, pair.pairId).help)
+    }
+
+    @Test fun `calls for help have a cooldown between them and a ceiling per room`() {
+        val f = Fixture(AssistLimits(maxHelpPerRoom = 2, helpCooldownSeconds = 5)); val (pair, _) = f.grant()
+        val first = f.registry.requestHelp(f.helper, pair.pairId)
+        f.registry.resolveHelp(f.owner, pair.pairId, first.helpId, "dismissed")
+        failure(429, "help_cooldown") { f.registry.requestHelp(f.helper, pair.pairId) }
+        f.clock.now += 5_000
+        val second = f.registry.requestHelp(f.helper, pair.pairId)
+        assertNotEquals(first.helpId, second.helpId)
+        f.registry.resolveHelp(f.owner, pair.pairId, second.helpId, "done")
+        f.clock.now += 5_000
+        failure(429, "help_limit") { f.registry.requestHelp(f.helper, pair.pairId) }
+    }
+
+    @Test fun `revoking the room ends the calls and a stranger sees none`() {
+        val f = Fixture(); val (pair, _) = f.grant()
+        f.registry.requestHelp(f.helper, pair.pairId)
+        failure(403, "owner_required") { f.registry.owner(f.other, pair.pairId) }
+        f.registry.revoke(f.owner, pair.pairId)
+        failure(404, "pair_unavailable") { f.registry.requestHelp(f.helper, pair.pairId) }
+    }
+}
+
+class AssistHelpHttpTest {
+    private val f = Fixture()
+    private val mvc = MockMvcBuilders.standaloneSetup(AssistController(f.registry)).build()
+    private fun call(method: HttpMethod, path: String, session: String? = f.owner, body: String? = null): MockHttpServletResponse {
+        val request = request(method, "/api/assist$path")
+        if (session != null) request.header("X-Session", session)
+        if (body != null) request.contentType(MediaType.APPLICATION_JSON).content(body)
+        return mvc.perform(request).andReturn().response
+    }
+
+    @Test fun `HTTP help flow reaches the owner and carries no data`() {
+        val (pair, _) = f.grant()
+        val path = "/pairs/${pair.pairId}"
+        assertEquals(401, call(HttpMethod.POST, "$path/help", null).status)
+        assertEquals(400, call(HttpMethod.POST, "$path/help", f.helper, """{"workspace":{"cards":[]}}""").status)
+        val asked = call(HttpMethod.POST, "$path/help", f.helper)
+        assertEquals(200, asked.status)
+        assertEquals("no-store", asked.getHeader("Cache-Control"))
+        val helpId = Json.parseToJsonElement(asked.contentAsString).jsonObject["helpId"]!!.jsonPrimitive.content
+        val owner = Json.parseToJsonElement(call(HttpMethod.GET, "$path/owner").contentAsString).jsonObject
+        assertEquals(helpId, owner["help"]!!.jsonArray.single().jsonObject["helpId"]!!.jsonPrimitive.content)
+        assertEquals(403, call(HttpMethod.POST, "$path/help/resolve", f.helper, """{"helpId":"$helpId","state":"shown"}""").status)
+        assertEquals(400, call(HttpMethod.POST, "$path/help/resolve", body = """{"helpId":"$helpId","state":"shown","extra":1}""").status)
+        assertEquals(200, call(HttpMethod.POST, "$path/help/resolve", body = """{"helpId":"$helpId","state":"shown"}""").status)
+        val helper = Json.parseToJsonElement(call(HttpMethod.GET, "$path/helper", f.helper).contentAsString).jsonObject
+        assertEquals("shown", helper["help"]!!.jsonObject["state"]!!.jsonPrimitive.content)
+        for (token in listOf(f.owner, f.helper, f.other)) assertFalse(call(HttpMethod.GET, "$path/helper", f.helper).contentAsString.contains(token))
+    }
+}

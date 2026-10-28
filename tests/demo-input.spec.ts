@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterXR, frames, pressXR, turnHead, type Win } from './helpers.js';
+import { enterXR, frames, pressXR, settled, turnHead, type Win } from './helpers.js';
 
 test('demo: Plan my day remains selectable after the full comfort adaptation', async ({ page }) => {
   const requests: string[] = [];
@@ -14,7 +14,7 @@ test('demo: Plan my day remains selectable after the full comfort adaptation', a
     { op: 'set_comfort', reach: 0.8 }, { op: 'set_comfort', side: 'right' },
     { op: 'set_comfort', scale: 1.5 }, { op: 'set_comfort', turnDeg: 25 },
   ]));
-  await frames(page, 20);
+  await settled(page); // the console slides to its new place before the head turns
   await turnHead(page, -26, -6, 14);
   await page.evaluate(() => {
     (window as Win).__demoEvents = [];

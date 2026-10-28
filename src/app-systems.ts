@@ -1,5 +1,6 @@
 import type { World } from '@iwsdk/core';
 import { ReachSystem } from './accessibility/reach-system.js';
+import { HelperSystem } from './assist/helper-system.js';
 import { AnchorFeedbackSystem } from './ui/anchor-feedback.js';
 import { SwitchSystem } from './accessibility/switch-system.js';
 import { AgentSystem } from './agent/agent-system.js';
@@ -12,6 +13,7 @@ import { FocusBubbleSystem } from './studio/focus-bubble.js';
 import { StudioSystem } from './studio/studio-system.js';
 import { WanderSystem } from './studio/wander.js';
 import { GazeSystem } from './ui/gaze.js';
+import { GlideSystem } from './ui/glide.js';
 import { HoverSystem } from './ui/hover.js';
 import { BoardSystem } from './workspace/boards.js';
 import { PinnedSystem } from './workspace/pinned.js';
@@ -27,6 +29,7 @@ type SystemClass = Parameters<World['registerSystem']>[0];
 
 export const APP_SYSTEMS: readonly SystemClass[] = [
   PinnedSystem,
+  GlideSystem, // right after: moves the panels that are sliding before anything reads where they are
   BoardSystem,
   TimerSystem,
   AgentSystem,
@@ -41,6 +44,7 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   SwitchSystem, // before HoverSystem, which fades the control it lights
   ReachSystem,
   SetupSystem, // after ReachSystem, whose measurement its second question takes
+  HelperSystem, // a family member or carer follows along from a phone; their Help call opens the setup above
   AnchorFeedbackSystem, // the amber flash and the faint pulse when the space settles on the body or a surface
   HoverSystem,
 ];

@@ -29,7 +29,7 @@ data class AgentProperties(
     /** A hard ceiling on Bedrock calls per day for the whole competition deployment: the bill stays bounded. */
     val perDay: Int = 300,
     val maxBodyBytes: Int = 65_536,
-    val timeoutSeconds: Long = 8,
+    val timeoutSeconds: Long = 6,
 )
 
 /** Plans per session per hour and per day (see SessionQuota), with the words the headset shows when one is spent. */

@@ -38,7 +38,7 @@ import { SetupPanel } from '../workspace/components.js';
 import { panelText, type Op } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
 import { deskPose } from '../workspace/viewer.js';
-import { calibrated, markCalibrated, onSetupRequested, setSeat, setupState, type Seat } from './setup-state.js';
+import { calibrated, markCalibrated, notifySetupClosed, onSetupRequested, setSeat, setupState, type Seat } from './setup-state.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/setup.uikitml`;
 const SIZE = { width: 0.52, height: 0.38 } as const; // public/ui/setup.uikitml
@@ -302,6 +302,7 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     const measured = this.view.reach;
     if (!skipped && measured) this.commit(measured); // Skip leaves the space as it was
     workspace.notify({ text: skipped ? this.text().skipped : this.text().finished, error: false });
+    notifySetupClosed(skipped);
   }
 
   private text(): (typeof TEXT)['en'] | (typeof TEXT)['es'] {

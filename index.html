@@ -7,6 +7,12 @@
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
     <link rel="icon" href="data:," />
+    <script>
+      // /?mode=companion is the 2D page for a family member or carer: straight to companion.html, before the XR app starts.
+      try {
+        if (new URLSearchParams(location.search).get('mode') === 'companion') location.replace('companion.html' + location.search);
+      } catch (e) {}
+    </script>
     <title>spatialdesk</title>
   </head>
   <body style="margin: 0">

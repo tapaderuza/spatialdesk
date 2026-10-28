@@ -8,7 +8,7 @@
  * The agent's answers are mocked here; the server's planner tests check the real ones (server/app AgentTest).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, pressXR, type Win } from './helpers.js';
+import { enterXR, frames, pressXR, settled, type Win } from './helpers.js';
 
 const session = (page: Page) => page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
 
@@ -52,7 +52,7 @@ test('comfort: said in plain words, everything gathers within reach on the right
   expect(asked[0].intent).toBe('comfort');
   expect(asked[0].text).toContain('neck');
   await pressXR(page, 'agent:plan-apply');
-  await frames(page, 5);
+  await settled(page); // the boards and the console slide to the comfort zone
 
   expect(await page.evaluate(() => (window as Win).__workspace.state.comfort)).toEqual({ reach: 1, scale: 1, side: 'right', turnDeg: 25, tiltDeg: 0 });
   const after = await yaws(page);
@@ -64,7 +64,7 @@ test('comfort: said in plain words, everything gathers within reach on the right
 
   // One undo takes the whole adaptation back.
   await page.evaluate(() => (window as Win).__workspace.undo());
-  await frames(page, 5);
+  await settled(page);
   const back = await yaws(page);
   expect(back.console).toBeCloseTo(before.console, 3);
   expect(await page.evaluate(() => (window as Win).__agent.state.phase)).toBe('idle'); // the applied check-in is obsolete after Undo

@@ -59,3 +59,17 @@ export function requestSetup(): boolean {
   for (const listener of requests) listener();
   return requests.size > 0;
 }
+
+const closedListeners = new Set<(skipped: boolean) => void>();
+
+/** Told when the setup ends, finished or skipped: a helper's call for help that opened it learns how it went. */
+export function onSetupClosed(listener: (skipped: boolean) => void): () => void {
+  closedListeners.add(listener);
+  return () => {
+    closedListeners.delete(listener);
+  };
+}
+
+export function notifySetupClosed(skipped: boolean): void {
+  for (const listener of closedListeners) listener(skipped);
+}

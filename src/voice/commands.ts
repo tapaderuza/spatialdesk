@@ -36,6 +36,8 @@ export type VoiceCommand =
   | { kind: 'language'; tag: string }
   /** "Recalibrate": the guided setup of src/onboarding/setup.ts. */
   | { kind: 'calibrate' }
+  /** "Invite a helper": a code a family member or carer types on their phone to follow the Today board (src/assist). */
+  | { kind: 'invite' }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -65,6 +67,13 @@ const PHRASES: [RegExp, VoiceCommand][] = [
       String.raw`^(?:re ?calibrate|calibrate(?: (?:my )?(?:space|setup|reach))?|(?:start |open |run )?(?:the )?(?:guided )?(?:set ?up|calibration)|set me up|re ?calibrar|calibrar|calibracion(?: guiada)?|configuracion guiada)${PLEASE}$`,
     ),
     { kind: 'calibrate' },
+  ],
+  // "Invite a helper", "invite my carer", "let my family follow along", "invita a un cuidador": the code for the companion page.
+  [
+    new RegExp(
+      String.raw`^(?:invite(?: (?:a|an|my|some))? ?(?:helper|carer|caregiver|care giver|family member|family|relative|companion|someone|somebody)(?: to help(?: me)?)?|(?:let|have) (?:my |a )?(?:helper|carer|caregiver|care giver|family member|family|relative|companion) (?:help|see|follow)(?: me| along)?|invit(?:a|ar)(?: a)?(?: un| una| mi)? ?(?:ayudante|cuidador|cuidadora|familiar|acompanante)(?: para que me ayude)?)${PLEASE}$`,
+    ),
+    { kind: 'invite' },
   ],
   [/^(?:forget (?:my|the|saved) (?:setup|space)|(?:olvida|borra) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'forget-setup' }],
   [/^(?:forget (?:our |the )?conversation|clear (?:our |the )?conversation|olvida (?:la |nuestra )?conversacion|borra (?:la |nuestra )?conversacion)$/, { kind: 'forget' }],

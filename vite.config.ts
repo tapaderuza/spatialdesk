@@ -82,7 +82,8 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV !== 'production',
     target: 'esnext',
     rollupOptions: {
-      input: './index.html',
+      // Two pages: the app, and the light 2D companion for a family member or carer (it never loads the XR world).
+      input: { main: './index.html', companion: './companion.html' },
       // The emulator chunks are only fetched with ?emulate (and ?room for the synthetic room); naming them lets the
       // perf gate attribute their cost and the size gate leave them out.
       output: {

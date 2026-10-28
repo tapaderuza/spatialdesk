@@ -15,6 +15,7 @@
  */
 import { Color, createSystem, Object3D, Vector3, type Mesh, type ShaderMaterial } from '@iwsdk/core';
 import { AgentSystem } from '../agent/agent-system.js';
+import { glidesFor, placeSmoothly } from '../ui/glide.js';
 import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 import { createCompanionMaterial } from '../scene-assets/focus-companion.scene-asset.js';
 import { play } from '../ui/sounds.js';
@@ -107,7 +108,7 @@ export class CompanionSystem extends createSystem({}) {
     timerFinishedListeners.add(onTimer);
     this.cleanupFuncs.push(
       () => timerFinishedListeners.delete(onTimer),
-      workspace.subscribe(() => this.place()),
+      workspace.subscribe((change) => this.place(glidesFor(change.source))), // it slides with the board (src/ui/glide.ts)
       this.world.visibilityState.subscribe(() => this.place()),
       onAccessPreferences(() => this.applyMotionPreference()),
     );
@@ -185,7 +186,7 @@ export class CompanionSystem extends createSystem({}) {
   }
 
   /** Beside the focus board, wherever it stands (its slot, the real desk, a spot the user chose), facing the user. */
-  private place(): void {
+  private place(smooth = false): void {
     const mesh = this.mesh;
     if (!mesh) return;
     const ws = workspace.state;
@@ -200,8 +201,10 @@ export class CompanionSystem extends createSystem({}) {
     this.placedFor = key;
     this.helper.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
     this.offset.copy(BESIDE_BOARD).multiplyScalar(s).applyEuler(this.helper.rotation);
-    mesh.position.set(p.x + this.offset.x, p.y + this.offset.y, p.z + this.offset.z);
+    const x = p.x + this.offset.x;
+    const y = p.y + this.offset.y;
+    const z = p.z + this.offset.z;
     this.world.camera.getWorldPosition(this.eye);
-    mesh.rotation.set(0, Math.atan2(this.eye.x - mesh.position.x, this.eye.z - mesh.position.z), 0);
+    placeSmoothly(mesh, { x, y, z, yaw: Math.atan2(this.eye.x - x, this.eye.z - z), pitch: 0 }, mesh.scale.x, smooth);
   }
 }

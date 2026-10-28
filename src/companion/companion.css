@@ -1,0 +1,68 @@
+/* The companion page: a calm 2D view for a family member or carer. Large type, large targets, both colour schemes. */
+:root {
+  --bg: #12151b;
+  --panel: #1b2029;
+  --line: #2c333d;
+  --text: #f1f4f8;
+  --dim: #b4bfce;
+  --accent: #5b9bff;
+  --accent-text: #08111f;
+  --help: #ffb020;
+  --help-text: #1a1203;
+  --good: #52d18c;
+  --bad: #ff8a80;
+  color-scheme: dark light;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f6fa;
+    --panel: #ffffff;
+    --line: #cfd6e2;
+    --text: #141a24;
+    --dim: #475368;
+    --accent: #1f5fd1;
+    --accent-text: #ffffff;
+    --help: #b86e00;
+    --help-text: #ffffff;
+    --good: #0b7a45;
+    --bad: #b3261e;
+  }
+}
+* { box-sizing: border-box; }
+html { font-size: 112.5%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; line-height: 1.45; }
+.app { max-width: 46rem; margin: 0 auto; padding: 1rem 1rem 3rem; display: flex; flex-direction: column; gap: 1rem; }
+.stack { display: flex; flex-direction: column; gap: 1rem; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+h1 { font-size: 1.25rem; margin: 0; }
+h2 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+p { margin: 0; }
+.dim { color: var(--dim); }
+.pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.8rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.9rem; background: var(--panel); }
+.dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--dim); }
+.pill[data-online='true'] .dot { background: var(--good); }
+.pill[data-online='false'] .dot { background: var(--help); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 1.1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+label { font-weight: 700; }
+input[type='text'] { width: 100%; font: inherit; font-size: 2rem; letter-spacing: 0.25em; text-transform: uppercase; text-align: center; padding: 0.7rem; border-radius: 0.8rem; border: 2px solid var(--line); background: var(--bg); color: var(--text); }
+input[type='text']:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button { font: inherit; font-weight: 700; min-height: 3.4rem; padding: 0.7rem 1.2rem; border-radius: 0.9rem; border: 2px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+.help { min-height: 9rem; width: 100%; font-size: 2rem; border-radius: 1.4rem; background: var(--help); border-color: var(--help); color: var(--help-text); }
+.help small { display: block; font-size: 1rem; font-weight: 600; margin-top: 0.3rem; }
+.status { min-height: 1.5rem; font-weight: 600; }
+.status[data-tone='good'] { color: var(--good); }
+.status[data-tone='warn'] { color: var(--help); }
+.error { color: var(--bad); font-weight: 600; }
+.board { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.column { background: var(--bg); border: 1px solid var(--line); border-radius: 0.9rem; padding: 0.8rem; }
+.column h3 { margin: 0 0 0.5rem; font-size: 1rem; display: flex; justify-content: space-between; gap: 0.5rem; }
+.column ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.column li { padding: 0.6rem 0.7rem; border-radius: 0.6rem; background: var(--panel); border: 1px solid var(--line); overflow-wrap: anywhere; }
+.column li[data-done='true'] { color: var(--dim); text-decoration: line-through; }
+.row { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) {
+  .column li, .help { transition: transform 120ms ease, background-color 200ms ease; }
+  .help:active:not(:disabled) { transform: scale(0.99); }
+}

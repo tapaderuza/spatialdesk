@@ -11,6 +11,7 @@ import { createSystem, VisibilityState, type BufferGeometry, type Mesh, type Obj
 import { Workspaces } from 'spatialdesk-shared';
 import { inRoom, RoomSystem } from '../room/room-system.js';
 import { createPlantGeometry, writePlant } from '../scene-assets/focus-plant.scene-asset.js';
+import { glidesFor, placeSmoothly, stopGlide } from '../ui/glide.js';
 import { play } from '../ui/sounds.js';
 import type { Pose, Timer } from '../workspace/model.js';
 import { progress } from '../workspace/progress.js';
@@ -64,13 +65,13 @@ export class StudioSystem extends createSystem({}) {
     timerFinishedListeners.add(onTimer);
     this.cleanupFuncs.push(
       () => timerFinishedListeners.delete(onTimer),
-      workspace.subscribe(({ state }) => {
+      workspace.subscribe(({ state, source }) => {
         // Only the anchor and the view move the desk; card and timer changes leave it where it is.
         const { anchor: a, view: v } = state;
         const key = [a.x, a.y, a.z, a.yaw, v?.halfWidthDeg, v?.upDeg, v?.downDeg].join();
         if (key === this.placedFor) return;
         this.placedFor = key;
-        if (!this.room) this.place();
+        if (!this.room) this.place(glidesFor(source)); // the desk and plant slide with the board (src/ui/glide.ts)
       }),
       this.world.visibilityState.subscribe(() => this.place()),
     );
@@ -103,7 +104,7 @@ export class StudioSystem extends createSystem({}) {
   }
 
   /** The studio desk under the focus board's slot and the plant on it; in the room, the plant on the real desk. */
-  private place(): void {
+  private place(smooth = false): void {
     this.room = this.world.visibilityState.peek() !== VisibilityState.NonImmersive && inRoom(this.world);
     this.roomPlant = this.room ? (this.world.getSystem(RoomSystem)?.plantPose ?? null) : null;
     this.state.inRoom = this.room;
@@ -111,6 +112,8 @@ export class StudioSystem extends createSystem({}) {
     if (this.desk) this.desk.visible = !this.room;
     const plant = this.plant;
     if (this.room) {
+      if (this.desk) stopGlide(this.desk);
+      if (plant) stopGlide(plant);
       if (plant && this.roomPlant) {
         plant.position.set(this.roomPlant.x, this.roomPlant.y, this.roomPlant.z);
         plant.rotation.set(0, this.roomPlant.yaw, 0);
@@ -124,14 +127,12 @@ export class StudioSystem extends createSystem({}) {
     const top = slot.y - BOARD_TO_BAR_BOTTOM * workspace.panelScale * Math.cos(slot.pitch) - 0.002;
     const yaw = slot.yaw;
     const [cx, cz] = [slot.x - Math.sin(yaw) * DESK_BEYOND_BOARD, slot.z - Math.cos(yaw) * DESK_BEYOND_BOARD];
-    this.desk?.position.set(cx, top, cz);
-    this.desk?.rotation.set(0, yaw, 0);
+    if (this.desk) placeSmoothly(this.desk, { x: cx, y: top, z: cz, yaw, pitch: 0 }, this.desk.scale.x, smooth);
     if (plant) {
       // The desk's frame turned by its yaw: local (x, z) -> (x cos + z sin, -x sin + z cos).
       const px = PLANT_ON_DESK.x * workspace.panelScale + PLANT_ON_DESK.gap;
       const pz = PLANT_ON_DESK.z;
-      plant.position.set(cx + px * Math.cos(yaw) + pz * Math.sin(yaw), top, cz - px * Math.sin(yaw) + pz * Math.cos(yaw));
-      plant.rotation.set(0, yaw + 0.35, 0);
+      placeSmoothly(plant, { x: cx + px * Math.cos(yaw) + pz * Math.sin(yaw), y: top, z: cz - px * Math.sin(yaw) + pz * Math.cos(yaw), yaw: yaw + 0.35, pitch: 0 }, plant.scale.x, smooth);
       plant.visible = true;
     }
     this.state.plantVisible = plant?.visible ?? false;

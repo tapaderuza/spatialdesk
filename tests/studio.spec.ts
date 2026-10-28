@@ -3,7 +3,7 @@
  * workspace goes, and every finished focus block grows the focus plant a leaf, kept between sessions.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, type Win } from './helpers.js';
+import { enterXR, settled, type Win } from './helpers.js';
 
 /** The top of the studio desk and the bottom of the focus board's bar, in world metres. */
 const deskAndBar = (page: Page) =>
@@ -40,6 +40,7 @@ test('studio: the board stands on the desk wherever it goes, and a focus block g
 
   // "Bring to me" from elsewhere: the desk comes along under the board.
   await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: { x: 0.8, y: 1.25, z: 0.4, yaw: 1.1, pitch: 0 } }));
+  await settled(page); // the board, its desk and the plant slide to the new place
   const moved = await deskAndBar(page);
   expect(moved.barBottom - moved.deskTop).toBeGreaterThanOrEqual(0);
   expect(moved.barBottom - moved.deskTop).toBeLessThan(0.01);

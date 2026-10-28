@@ -8,6 +8,8 @@ import { PanelHits } from './ui/panel-hits.js';
 import { measureView, sameView } from './ui/view-fit.js';
 import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
 import { play } from './ui/sounds.js';
+import { glidesFor, placeSmoothly } from './ui/glide.js';
+import { requestInvite } from './assist/helper-state.js';
 import { heldCard, releaseHeld } from './workspace/boards.js';
 import { panelText, type Pose, type Timer } from './workspace/model.js';
 import { Progress, progress } from './workspace/progress.js';
@@ -70,6 +72,8 @@ export class PanelSystem extends createSystem({}) {
   private talkLabel: UIKit.Text | null = null;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
   private placeFrames = 0;
+  /** The pending placement answers a change the person asked for (the console slides there) and not a re-anchor. */
+  private placeSmooth = false;
   private anchorCheckFrames = 0;
 
   init(): void {
@@ -135,9 +139,15 @@ export class PanelSystem extends createSystem({}) {
         }
         const before = change.previous?.anchor;
         const after = change.state.anchor;
-        if (before && (before.x !== after.x || before.z !== after.z || before.yaw !== after.yaw)) this.placeFrames = 1;
+        if (before && (before.x !== after.x || before.z !== after.z || before.yaw !== after.yaw)) {
+          this.placeFrames = 1;
+          this.placeSmooth = glidesFor(change.source);
+        }
         // The body's comfort moves the console too (nearer, larger, to one side): on a change, not per frame.
-        if (change.previous && JSON.stringify(change.previous.comfort) !== JSON.stringify(change.state.comfort)) this.placeFrames = 1;
+        if (change.previous && JSON.stringify(change.previous.comfort) !== JSON.stringify(change.state.comfort)) {
+          this.placeFrames = 1;
+          this.placeSmooth = glidesFor(change.source);
+        }
       }),
     );
 
@@ -235,7 +245,8 @@ export class PanelSystem extends createSystem({}) {
   update(): void {
     if (this.placeFrames > 0) {
       this.placeFrames--;
-      this.placeCommandPanel();
+      this.placeCommandPanel(this.placeSmooth);
+      if (this.placeFrames === 0) this.placeSmooth = false;
     }
     if (this.anchorCheckFrames > 0 && --this.anchorCheckFrames === 0) this.reanchorIfFar();
   }
@@ -274,7 +285,7 @@ export class PanelSystem extends createSystem({}) {
       agent?.finishReturnDictation(result.ok && command?.kind !== 'discard' ? command?.kind === 'return-note' ? command.text : result.text : undefined);
     }
     else if (result.ok) this.runVoice(result.text);
-    else this.showNotice({ text: result.error, error: result.error !== 'Stopped.' }, this.notice);
+    else this.showNotice({ text: result.error, error: !result.network && result.error !== 'Stopped.' }, this.notice); // a network issue is told calmly
   }
 
   /** Does what the words ask (src/voice/commands.ts); requests the buttons cannot express go to the agent. */
@@ -351,6 +362,9 @@ export class PanelSystem extends createSystem({}) {
         return;
       case 'calibrate':
         if (!requestSetup()) tell('The guided setup is not available right now.', true);
+        return;
+      case 'invite':
+        if (!requestInvite()) tell('Inviting a helper is not available right now.', true);
         return;
       case 'language':
         if (!setLanguage(command.tag)) tell('That language is not available.', true);
@@ -483,16 +497,15 @@ export class PanelSystem extends createSystem({}) {
     this.placeFrames = 1;
   }
 
-  private placeCommandPanel(): void {
+  private placeCommandPanel(smooth = false): void {
     const object = this.world.getSceneObject('command-panel');
     if (!object || this.world.visibilityState.value === VisibilityState.NonImmersive) return;
     let pose = JSON.parse(engine.commandPose(JSON.stringify(workspace.state))) as Pose;
     // In the room the board stands on the real desk: the console turns a little further out, clear of the desk.
     if (inRoom(this.world)) pose = turnAbout(pose, workspace.state.anchor, ROOM_CONSOLE_TURN);
-    object.position.set(pose.x, pose.y, pose.z);
     object.rotation.order = 'YXZ';
-    object.rotation.set(pose.pitch, pose.yaw, 0);
-    object.scale.setScalar(workspace.panelScale); // as every panel: smaller in a narrower view (Layout.kt)
+    // As every panel: smaller in a narrower view (Layout.kt), and sliding to a new comfort zone (src/ui/glide.ts).
+    placeSmoothly(object, pose, workspace.panelScale, smooth);
   }
 
   /** [fade]: back to the idle hint after a while; false while something is still going on (listening). */
