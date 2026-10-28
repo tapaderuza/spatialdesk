@@ -24,6 +24,12 @@ const SURFACE_OFFSET = 0.004; // in front of the panel, never inside it
 /** Ray tests every third frame: about 40 ms at 72 Hz, nothing next to a one-second dwell. */
 const TEST_EVERY_FRAMES = 3;
 
+/**
+ * What the last ray test found (the panel and control under the gaze, and when), for src/ui/attention.ts: while
+ * hands-free runs, the agent's "this" reads it instead of casting the same ray again.
+ */
+export const gazeFinding = { panel: null as GazeTarget | null, key: null as string | null, at: -Infinity };
+
 /** Controls that are also read (cards, columns, the notice line) wait longer than buttons. */
 function dwellFor(key: string): number {
   return key === 'notice' || key === 'board' || key.startsWith('card-') || key.startsWith('col-') ? accessPreferences.readDwellMs : accessPreferences.dwellMs;
@@ -157,10 +163,14 @@ export class GazeSystem extends createSystem({}) {
       }
     }
     const now = performance.now();
+    gazeFinding.at = now;
+    gazeFinding.panel = best;
+    gazeFinding.key = null;
     if (!best) return this.holdTarget(now);
     this.distance = distance;
     this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
     const key = best.gazeHit(this.point, best !== this.panel);
+    gazeFinding.key = key;
     if (best === this.panel && key == null && this.holdTarget(now)) return true;
     if (best !== this.panel || key !== this.key) {
       if (this.panel !== best) this.panel?.setGazeHover(null);

@@ -430,6 +430,16 @@ positional sound for the glide and for clicks. No physical headset: everything b
   up; the click sounded from the pushed button (within 2 mm, measured before the press re-anchors the space), and the
   whoosh following its board as it moves and heard from the side after a quarter turn of the head. Server: a planner
   test for the mark and the rule (only for an id that exists).
+- **Performance:** the pre-push CI of `28f5da6` passed (189 passed, 6 skipped, 0 failed) with our systems at 2.3 ms p95
+  and the whole frame at 27.9 ms p95, up from 1.4 and 24.7 in the previous push. Alone, the gate then measured 3.1 / 34.5
+  and, on its retry, 2.3 / 26.6, so the laptop was hot. An alternating A/B without and with the three new systems (two
+  rounds each, no retries) gave 2.1 and 2.5 against 2.9 and 2.6 ms p95 for our systems, with the whole frame over the
+  reference in both (30 to 33 ms): heat, plus a small real cost. Timed one by one in the performance scene (3x CPU
+  throttle, 2,000 calls each): the poke 25 µs per frame, the attention 3 µs on average, the existing hands-free gaze
+  88 µs. Two cuts all the same: while hands-free runs, the attention reuses the gaze's own ray test instead of casting
+  the same ray again, and otherwise tests the panels where they were last drawn (no matrix refresh up the parent
+  chain); the poke rejects a panel by distance before checking that it is shown. The attention's p99 went from 0.8 to
+  0.3 ms. Gate run after: our systems 1.8 ms p95, the whole frame 27.8 ms p95, 78 draw calls.
 - **One test fixed, not the code:** the first sound test asked for the click 0.1 s after it had finished, and then
   compared it with where the button was after Focus 25 had re-anchored the space by 2.4 cm. The click is now read from
   where each kind of cue last sounded, against where the button was when pushed.

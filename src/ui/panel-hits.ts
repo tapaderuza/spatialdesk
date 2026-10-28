@@ -39,14 +39,14 @@ const GAZE_POINTER = -1;
 
 /** What the gaze pointer needs from a panel; it only ever presses a key that gazeHit() gave it. */
 export interface GazeTarget {
-  rayDistance(origin: Vector3, direction: Vector3): number;
+  rayDistance(origin: Vector3, direction: Vector3, current?: boolean): number;
   gazeHit(point: Vector3, fresh: boolean): string | null;
   press(key: string): void;
   setGazeHover(key: string | null): void;
   /** What the control stands for, if it can be "this" for the agent; null for the command panel and the like. */
   refer(key: string | null): Referent | null;
   /** Direct touch (src/ui/poke.ts): how far a fingertip is in front, the control under it, its highlight. */
-  touchDistance(tip: Vector3, margin: number): number;
+  touchDistance(tip: Vector3, margin: number, front?: number, behind?: number): number;
   touchFace(point: Vector3, normal: Vector3): void;
   pokeHit(fresh: boolean): string | null;
   setPokeHover(hand: 0 | 1, key: string | null): void;
@@ -240,11 +240,12 @@ export class PanelHits<K extends string> {
 
   /**
    * How far along a world-space ray (origin + t * direction) its front face is, or -1 when the ray misses it, comes
-   * from behind, or the panel is not shown. Panels face +Z, so a ray toward one travels to -Z in its frame.
+   * from behind, or the panel is not shown. Panels face +Z, so a ray toward one travels to -Z in its frame. With
+   * [current] false the panel is taken where it was last drawn (enough for a slow observer, and cheaper).
    */
-  rayDistance(origin: Vector3, direction: Vector3): number {
+  rayDistance(origin: Vector3, direction: Vector3, current = true): number {
     if (!this.root.isVisible.value || !shown(this.root)) return -1;
-    this.root.updateWorldMatrix(true, false);
+    if (current) this.root.updateWorldMatrix(true, false);
     this.rootInverse.copy(this.root.matrixWorld).invert();
     const near = this.local.copy(origin).applyMatrix4(this.rootInverse);
     const far = this.far.copy(origin).add(direction).applyMatrix4(this.rootInverse);
@@ -299,10 +300,11 @@ export class PanelHits<K extends string> {
 
   /**
    * How far [tip] is in front of the panel's face, in metres (negative: behind it), when it is over the panel (within
-   * [margin] metres of its edges) and the panel is shown and taking pointers (not gliding); NaN otherwise. Reads the
-   * matrix as last drawn, with no inverse: three dot products. Remembers where the tip is, for pokeHit().
+   * [margin] metres of its edges), no more than [front] in front of it or [behind] behind it, and the panel is shown and
+   * taking pointers (not gliding); NaN otherwise. Reads the matrix as last drawn, with no inverse: a few dot products.
+   * Remembers where the tip is, for pokeHit().
    */
-  touchDistance(tip: Vector3, margin: number): number {
+  touchDistance(tip: Vector3, margin: number, front = Infinity, behind = Infinity): number {
     const e = this.root.matrixWorld.elements;
     const dx = tip.x - e[12];
     const dy = tip.y - e[13];
@@ -313,12 +315,13 @@ export class PanelHits<K extends string> {
     const u = (dx * e[0] + dy * e[1] + dz * e[2]) / xx;
     const v = (dx * e[4] + dy * e[5] + dz * e[6]) / yy;
     if (Math.abs(u) > 0.5 + margin / Math.sqrt(xx) || Math.abs(v) > 0.5 + margin / Math.sqrt(yy)) return NaN;
-    if (!this.root.isVisible.value || !touchable(this.root)) return NaN;
-    this.touchU = u;
-    this.touchV = v;
     // The face looks along x cross y (+Z in the panel's frame).
     const n = this.touchNormal.set(e[1] * e[6] - e[2] * e[5], e[2] * e[4] - e[0] * e[6], e[0] * e[5] - e[1] * e[4]).normalize();
-    return dx * n.x + dy * n.y + dz * n.z;
+    const d = dx * n.x + dy * n.y + dz * n.z;
+    if (d > front || d < -behind || !this.root.isVisible.value || !touchable(this.root)) return NaN;
+    this.touchU = u;
+    this.touchV = v;
+    return d;
   }
 
   /** Where the fingertip touchDistance() just measured meets the face (straight in), and the face's normal. */

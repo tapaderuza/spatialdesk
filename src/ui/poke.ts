@@ -111,8 +111,8 @@ export class PokeSystem extends createSystem({}) {
       let best: GazeTarget | null = null;
       let distance = NaN;
       for (let i = 0; i < livePanels.length; i++) {
-        const d = livePanels[i].touchDistance(this.tip, MARGIN);
-        if (!(d <= NEAR && d >= -BEHIND)) continue; // NaN: not over this panel
+        const d = livePanels[i].touchDistance(this.tip, MARGIN, NEAR, BEHIND);
+        if (Number.isNaN(d)) continue; // not over this panel, or not near it
         if (best === null || Math.abs(d) < Math.abs(distance)) {
           best = livePanels[i];
           distance = d;
@@ -122,7 +122,7 @@ export class PokeSystem extends createSystem({}) {
         this.leave(finger, h);
         continue;
       }
-      best.touchDistance(this.tip, MARGIN); // [best] remembers this tip, whichever panel was measured last
+      best.touchDistance(this.tip, MARGIN, NEAR, BEHIND); // [best] remembers this tip, whichever panel was measured last
       const fresh = best !== finger.panel;
       if (fresh) {
         finger.panel?.setPokeHover(h as 0 | 1, null);

@@ -2,8 +2,9 @@
  * What the user is looking at, for the agent: "move this to Done", said while the eyes rest on a card, means that card.
  *
  * A ray from the centre of the view (the eyes where the headset tracks them, else the head, as src/ui/gaze.ts does) is
- * tested against the panels five times a second, never per frame. An item the gaze rests on for a second becomes the
- * focus, and stays it for ten seconds after the eyes move on: people glance at the agent's card while they speak.
+ * tested against the panels five times a second, never per frame, where they were last drawn; while hands-free runs,
+ * its own test of the same ray is reused instead. An item the gaze rests on for a second becomes the focus, and stays
+ * it for ten seconds after the eyes move on: people glance at the agent's card while they speak.
  * Only what a panel says it stands for can be "this" (a card, a column, a board, a timer: PanelHandlers.refer); the
  * command panel and the agent's card neither set the focus nor clear it.
  *
@@ -12,6 +13,7 @@
  * and no text from the headset reaches the model's rules. Runs in XR only.
  */
 import { createSystem, Vector3, VisibilityState } from '@iwsdk/core';
+import { gazeFinding } from './gaze.js';
 import { livePanels, type GazeTarget } from './panel-hits.js';
 import type { Workspace } from '../workspace/model.js';
 
@@ -113,30 +115,21 @@ export class AttentionSystem extends createSystem({}) {
     this.lastTestMs = now;
     this.state.tests++;
 
-    const player = this.world.player;
-    if (player.gazeOrigin === 'tracked') {
-      player.eyeSpace.getWorldPosition(this.origin);
-      player.eyeSpace.getWorldDirection(this.direction).negate();
+    let best: GazeTarget | null;
+    let key: string | null;
+    if (now - gazeFinding.at < TEST_EVERY_MS) {
+      // Hands-free is casting this very ray every few frames: its finding is ours.
+      best = gazeFinding.panel;
+      key = gazeFinding.key;
     } else {
-      this.world.camera.getWorldPosition(this.origin);
-      this.world.camera.getWorldDirection(this.direction);
-    }
-    let best: GazeTarget | null = null;
-    let distance = Infinity;
-    for (let i = 0; i < livePanels.length; i++) {
-      const t = livePanels[i].rayDistance(this.origin, this.direction);
-      if (t > 0 && t < distance) {
-        distance = t;
-        best = livePanels[i];
-      }
+      best = this.test();
+      key = best ? best.gazeHit(this.point, best !== this.panel) : null;
     }
     if (!best) {
       this.panel = null;
       this.state.key = null;
       return;
     }
-    this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
-    const key = best.gazeHit(this.point, best !== this.panel);
     if (best !== this.panel || key !== this.key) {
       this.panel = best;
       this.key = key;
@@ -155,5 +148,28 @@ export class AttentionSystem extends createSystem({}) {
       this.state.focus = referent;
       this.state.seenAt = now;
     }
+  }
+
+  /** The nearest panel on the ray from the eyes (else the head), with [point] where it meets it; panels where last drawn. */
+  private test(): GazeTarget | null {
+    const player = this.world.player;
+    if (player.gazeOrigin === 'tracked') {
+      player.eyeSpace.getWorldPosition(this.origin);
+      player.eyeSpace.getWorldDirection(this.direction).negate();
+    } else {
+      this.world.camera.getWorldPosition(this.origin);
+      this.world.camera.getWorldDirection(this.direction);
+    }
+    let best: GazeTarget | null = null;
+    let distance = Infinity;
+    for (let i = 0; i < livePanels.length; i++) {
+      const t = livePanels[i].rayDistance(this.origin, this.direction, false);
+      if (t > 0 && t < distance) {
+        distance = t;
+        best = livePanels[i];
+      }
+    }
+    if (best) this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
+    return best;
   }
 }
