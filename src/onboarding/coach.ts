@@ -25,6 +25,7 @@ import { heldCard, setCoachTarget } from '../workspace/boards.js';
 import { CoachPanel } from '../workspace/components.js';
 import { BOARD_SIZE } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
+import { setupState } from './setup-state.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/coach.uikitml`;
 const SIZE = { width: 0.44, height: 0.1 } as const; // public/ui/coach.uikitml
@@ -78,6 +79,8 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
   private timersAtStart = 0;
   private startedAt = 0;
   private nextCheck = 0;
+  /** The guided setup (setup.ts) is on screen: the coach waits, hidden, and goes on when it is done. */
+  private held = false;
   private readonly cleanups: (() => void)[] = [];
   private readonly up = new Vector3();
   private readonly helper = new Object3D();
@@ -99,12 +102,15 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
       this.bind(document);
       this.startedAt = performance.now();
       this.go(0);
+      if (setupState.active) this.hold(true);
     });
     this.cleanupFuncs.push(() => this.cleanups.forEach((cleanup) => cleanup()));
   }
 
   update(): void {
     if (this.step < 0 || !this.text) return;
+    if (setupState.active !== this.held) this.hold(setupState.active);
+    if (this.held) return;
     const now = performance.now();
     if (now < this.nextCheck) return;
     this.nextCheck = now + CHECK_EVERY_MS;
@@ -120,6 +126,16 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
       play('apply');
       this.go(this.step + 1);
     }
+  }
+
+  private hold(on: boolean): void {
+    this.held = on;
+    const object = this.entity?.object3D as (Object3D & { pointerEvents?: string }) | undefined;
+    if (!object) return;
+    object.visible = !on;
+    object.pointerEvents = on ? 'none' : undefined;
+    if (on) setCoachTarget(null);
+    else if (this.step >= 0) STEPS[this.step].target(workspace.state.focusBoardId ?? '');
   }
 
   skip(): void {

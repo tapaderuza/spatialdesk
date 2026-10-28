@@ -10,6 +10,7 @@
 import { activeSession } from '../backend/link.js';
 import { audioEvent, decodeMessage, type EventMessage } from './eventstream.js';
 import { accessPreferences } from '../accessibility/preferences.js';
+import { language } from '../i18n/language.js';
 
 export type ListenResult = { ok: true; text: string } | { ok: false; error: string };
 
@@ -19,8 +20,6 @@ export interface ListenHandlers {
 }
 
 const SAMPLE_RATE = 16_000;
-/** The language Transcribe listens for: ?lang=es-ES on the link when it is not the browser's, else the browser's. */
-const LANGUAGE = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('lang')) || navigator.language;
 /** With nothing heard at all, give up after this long. */
 const NOTHING_MS = 6_000;
 /** After the end of the audio, how long Transcribe gets to send its last words. */
@@ -92,7 +91,7 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
     const grant = await fetch('/api/voice/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session': session },
-      body: JSON.stringify({ language: LANGUAGE }),
+      body: JSON.stringify({ language: language() }), // English unless the link or the person chose another
       signal: AbortSignal.timeout(8_000),
     })
       .then((res) => res.json() as Promise<{ ok: boolean; url?: string; error?: string }>)

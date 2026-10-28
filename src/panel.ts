@@ -16,6 +16,8 @@ import { timerFinishedListeners } from './workspace/timers.js';
 import { deskPose, viewerPose } from './workspace/viewer.js';
 import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js';
 import { ReachSystem } from './accessibility/reach-system.js';
+import { setLanguage } from './i18n/language.js';
+import { requestSetup } from './onboarding/setup-state.js';
 import { parseCommand } from './voice/commands.js';
 import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
@@ -40,6 +42,8 @@ export function setCommandHighlight(key: string | null): void {
   commandHighlight = key;
   repaintCommand?.();
 }
+/** What the notice calls the languages "speak ..." can switch to (the app's own panels are English or Spanish). */
+const LANGUAGE_NAMES: Record<string, string> = { 'fr-FR': 'French', 'de-DE': 'German', 'it-IT': 'Italian', 'pt-BR': 'Portuguese' };
 const IDLE_NOTICE = 'Tap a card to pick it up, then tap where it goes.';
 const NOTICE_MS = 8000;
 /** How much further to the left the console stands in the room (radians). */
@@ -344,6 +348,15 @@ export class PanelSystem extends createSystem({}) {
         return;
       case 'reach':
         this.world.getSystem(ReachSystem)?.start();
+        return;
+      case 'calibrate':
+        if (!requestSetup()) tell('The guided setup is not available right now.', true);
+        return;
+      case 'language':
+        if (!setLanguage(command.tag)) tell('That language is not available.', true);
+        else if (command.tag.startsWith('es')) tell('Ahora te escucho y te respondo en español.');
+        else if (command.tag.startsWith('en')) tell('Now I listen for English and answer in English.');
+        else tell(`Now I listen for ${LANGUAGE_NAMES[command.tag] ?? command.tag}. The panels stay in English.`);
         return;
       case 'undo':
         if (workspace.undo()) play('undo');

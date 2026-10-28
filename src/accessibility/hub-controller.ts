@@ -13,6 +13,7 @@ import type { Op } from '../workspace/model.js';
 import { accessPreferences, onAccessPreferences, setAccessPreference, type AccessPreferences } from './preferences.js';
 import { beginCalibration, calibrationField, calibrationOps, nextCalibration, previousCalibration, restoreCalibration, setCalibrationValue, type Calibration } from './calibration.js';
 import { capabilities } from './capabilities.js';
+import { language } from '../i18n/language.js';
 import type { HubAction, HubField, HubForm, HubPage, HubPresenter, HubView } from './hub-view.js';
 
 const PAGE_LABELS: Record<HubPage, string> = {
@@ -90,7 +91,7 @@ export class AssistiveHub implements HubPresenter {
     this.caption = text;
     if (typeof speechSynthesis !== 'undefined') {
       speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text);
-      u.lang = new URLSearchParams(location.search).get('lang') || navigator.language;
+      u.lang = language();
       u.volume = accessPreferences.voiceVolume; u.rate = accessPreferences.speechRate; speechSynthesis.speak(u);
     }
     this.changed();

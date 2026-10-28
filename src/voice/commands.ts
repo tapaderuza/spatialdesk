@@ -32,6 +32,10 @@ export type VoiceCommand =
   | { kind: 'steady'; value?: boolean }
   | { kind: 'switch'; value?: boolean }
   | { kind: 'reach' }
+  /** "Speak Spanish", "habla inglés": the app answers, listens and reads aloud in that language (src/i18n/language.ts). */
+  | { kind: 'language'; tag: string }
+  /** "Recalibrate": the guided setup of src/onboarding/setup.ts. */
+  | { kind: 'calibrate' }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -48,6 +52,20 @@ const PHRASES: [RegExp, VoiceCommand][] = [
   [/^(?:restore (?:my|the|saved) (?:setup|space)|(?:recupera|restaura) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'restore-setup' }],
   [/^(?:my setup|show (?:my|the|saved) (?:setup|space)|mi ajuste|muestra mi ajuste)$/, { kind: 'open-setup' }],
   [/^(?:fit (?:it |everything )?to (?:my reach|me)|measure my reach|reach test|(?:ponlo|ponlo todo|ajustalo|ajustalo todo|pon el tablero) a mi alcance|mide mi alcance|hasta donde llego)$/, { kind: 'reach' }],
+  // "Put it within my reach", "bring everything within reach", "within my reach": the same measurement, said the way a person says it.
+  [
+    new RegExp(
+      String.raw`^(?:(?:put|place|bring|move|set|keep)(?: (?:it|everything|them|this|that|the boards?|my boards?|all of it))?(?: all)? (?:within|in|inside|at|to|into) (?:my |your |the )?(?:arm s |hand s )?reach|within (?:my )?reach|fit (?:it )?within (?:my )?reach)${PLEASE}$`,
+    ),
+    { kind: 'reach' },
+  ],
+  // "Recalibrate", "guided setup", "calibrar": the three-question setup (where I sit, how far I reach, steady aim).
+  [
+    new RegExp(
+      String.raw`^(?:re ?calibrate|calibrate(?: (?:my )?(?:space|setup|reach))?|(?:start |open |run )?(?:the )?(?:guided )?(?:set ?up|calibration)|set me up|re ?calibrar|calibrar|calibracion(?: guiada)?|configuracion guiada)${PLEASE}$`,
+    ),
+    { kind: 'calibrate' },
+  ],
   [/^(?:forget (?:my|the|saved) (?:setup|space)|(?:olvida|borra) (?:mi|el) (?:ajuste|espacio)(?: guardado)?)$/, { kind: 'forget-setup' }],
   [/^(?:forget (?:our |the )?conversation|clear (?:our |the )?conversation|olvida (?:la |nuestra )?conversacion|borra (?:la |nuestra )?conversacion)$/, { kind: 'forget' }],
   [reply(YES), { kind: 'apply' }],
@@ -84,6 +102,14 @@ const START = new RegExp(
 /** Something about the body, eyes or reach ("I can't turn my neck"): the agent adapts the space instead of planning work. */
 const COMFORT =
   /\b(?:neck|cuello|my (?:left|right) (?:hand|side|arm)|only (?:use )?(?:my )?(?:left|right)|(?:mano|lado|brazo) (?:izquierd|derech)\w*|can ?t (?:turn|reach|see|move)|no (?:puedo|alcanzo) (?:girar|ver|mover|alcanzar)|eyes? (?:are |is )?(?:tired|hurt|strained)|tired eyes|ojos cansados|(?:me )?duelen? (?:los )?ojos|vista cansada|fatiga visual|low vision|baja vision|bigger|larger|mas grandes?|closer|mas cerca|further away|farther away|mas lejos|lying (?:down|in bed)|tumbad\w*|en la cama|wheelchair|silla de ruedas|tremor|temblor|back to normal|reset (?:the )?(?:space|layout|comfort))\b/;
+/** "Speak Spanish", "in English", "habla ingles": the language of the answers, of listening and of reading aloud. */
+const LANGUAGE_WORDS: Record<string, string> = {
+  spanish: 'es-ES', espanol: 'es-ES', english: 'en-US', ingles: 'en-US', french: 'fr-FR', frances: 'fr-FR',
+  german: 'de-DE', aleman: 'de-DE', italian: 'it-IT', italiano: 'it-IT', portuguese: 'pt-BR', portugues: 'pt-BR',
+};
+const LANGUAGE = new RegExp(
+  String.raw`^(?:(?:speak|talk|answer|reply|respond|switch|change)(?: to| in)?|use|in|habla|hablame|responde|contesta|cambia a|pon|ponlo|en)(?: en)? (${Object.keys(LANGUAGE_WORDS).join('|')})${PLEASE}$`,
+);
 /** "Plan my day:" and the like, in the words as heard (the rest keeps its commas for the planner). */
 const PLAN = /^\s*(?:plan|planifica|organiza)(?:\s+(?:my|mi)\s+(?:day|d[ií]a))?(?=$|[\s:,.-])\s*[:,.-]?\s*/i;
 
@@ -106,6 +132,8 @@ export function parseCommand(said: string): VoiceCommand | null {
   const start = START.exec(text);
   if (start) return start[1] ? { kind: 'start', task: start[1] } : { kind: 'start' };
   for (const [pattern, command] of PHRASES) if (pattern.test(text)) return command;
+  const spoken = LANGUAGE.exec(text);
+  if (spoken) return { kind: 'language', tag: LANGUAGE_WORDS[spoken[1]] };
 
   // "turn high contrast on", "hands free off", "switch off sounds", "read aloud"
   const toggle = /^(?:turn |switch )?(on |off )?(.+?)( on| off)?$/.exec(text);

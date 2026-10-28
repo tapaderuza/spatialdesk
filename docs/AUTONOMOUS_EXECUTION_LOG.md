@@ -101,3 +101,93 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
 ## Block 9: review
 
 - Full suite: 141 passed (8.6 min), the performance gate at p50 16.6 ms and p95 27.5 ms in that run.
+
+# Third delegated phase (2026-10-28)
+
+## Block 10: production deploy
+
+- Authorized by the user in chat ("Tienes mi autorización explícita para desplegar a producción el último código de la
+  rama main"). Deployed `main = c1ad445` with `node scripts/deploy.mjs`.
+- First attempt stopped at the backend step: this shell had no `JAVA_HOME` (`ERROR: JAVA_HOME is not set`). Nothing had
+  been deployed. Second attempt with `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle`
+  (the values in the project notes): typecheck, production build, server tests and jar, CDK deploy (45.7 s) and the
+  end-to-end tests against production, 2 of 2 (plan from the request to an applied plan in 2.1 s, Nova 2 Lite).
+- Checked that production is exactly that commit: its main bundle is `assets/index-BOwyVc7t.js`, the hash of the clean
+  build, and it holds the amber frame, the reach dots and the switch frame and none of this phase's code.
+- Sources edited during the deploy: none before the build had finished; the edits of this phase began after the
+  frontend bundle was built.
+
+## Block 11: the intermittent `comfort.spec.ts` "start small"
+
+- The one failure (a push whose hook ran the whole suite): after pressing Apply, no "First step" timer appeared. Not seen
+  again. This phase tried to make it fail, and could not:
+  - the real test 24 times, and a probe that also pressed Apply 16 times, with 11 of the 12 cores busy and the CPU 4x
+    slower (Chrome DevTools throttling): 0 failures; the Apply button's world position when the card opens against 32
+    frames later: identical in 8 of 8 (0 cm), so no layout settling moves the target;
+  - the whole suite once, under the same load: 140 passed, `start small` among them (the 5 failures: 3 were this
+    phase's new tests missing the fake microphone flags, 2 were timing tests, gaze dwell and "wrap up", that pass
+    without the load);
+  - window frames against XR frames, counted for 6 s under load: 204 against 204, and never fewer than 4 XR frames per 4
+    window frames, so a 4-frame trigger press cannot fall between two XR frames;
+  - finished timers stay in the state (`done`), so a 5-second `?fast` timer cannot vanish before the test looks.
+- Read and ruled out by reading: the panel cache (`src/ui/panel-ui-cache.ts`) ticks the same documents as the
+  framework's own walk and resets its countdown when a panel is configured; the wandering-mind companion has no object
+  a ray can hit.
+- Then a lost press showed up in a new test of this phase (`tests/setup.spec.ts`, the sofa test: 1 failure in the first
+  full run without load), and this time it could be made to happen: the same steps 25 times in isolation lost the press
+  on "No" **8 times in 25**, with no load. Not the sound: 0 failed cues and 0 non-finite positions in all 25 (the
+  hypothesis that a throwing tap sound drops the press was tried and reverted). The cause is the test helper:
+  `pressXR` (`tests/helpers.ts`) took the control's position once, before moving the controller, and a panel that has
+  just changed what it shows (a button shown, a card opened) lays its buttons out a frame or two later, so the ray went to
+  where the button had been. The earlier probe did not see it because it waited a frame more. `pressXR` now follows the
+  control every frame while it approaches and while it hovers: the same 25 steps, **25 of 25**.
+- Not proven: that this is also what failed once in `start small` (same pattern: a press right after a card opened).
+  That test now says, if it ever times out again, the agent's phase, its error and the timers; it presses once, with
+  no retry, so a different cause would not be hidden.
+
+## Block 12: English first
+
+- `src/i18n/language.ts`: one place that says which language the app speaks, reads aloud and listens for. It is English
+  (en-US) whatever the browser's language is; Spanish, French, German, Italian or Portuguese come from the link
+  (`?lang=es-ES`, never stored) or from the person ("speak Spanish", "habla español": remembered in that browser). It
+  replaced four copies of `navigator.language` (the agent, the reach system, listening, and the dead hub controller).
+- Listening asks Amazon Transcribe for `language()` at every listen; the server's allow-list is unchanged.
+- English phrases the grammar did not know: "Put it within my reach" (and "put everything in my reach", "bring it within
+  reach", "within my reach"). "I'm on the sofa" and "Undo" were already understood. Also new: "recalibrate" and
+  "speak Spanish". Tests: `tests/english-first.spec.ts` (6): the language module, the grammar, a browser set to Spanish
+  that still gets en-US and then es-ES after "speak Spanish" (and keeps it after a reload), the link, an unknown language,
+  and the three phrases in XR.
+- Not done: Transcribe's own language identification (it would let the app notice Spanish without being told). It
+  needs a server change and a real-audio check, and a wrong guess would break the voice of the judges, the one path
+  that must not break. The agent already answers in the language of what the person said.
+
+## Block 13: the guided setup
+
+- Three questions, one at a time, in front of the eyes (`src/onboarding/setup.ts`, `public/ui/setup.uikitml`, 52 x 38
+  cm): "Where are you sitting?" [Desk] / [Sofa/Bed]; "Reach out and pinch this orb" (an orb 50 cm from the eyes, 18
+  degrees under them); "Do you need pointer stabilization?" [Yes] / [No]. Opens by itself the first time someone is in
+  XR, Skip at any step, "recalibrate" by voice or the Recalibrate button on the My setup card brings it back.
+- Step 2 reuses the reach measurement (`ReachSystem.start({ capture })`): the pinch's own distance, height and side
+  become the comfort profile; the pinch presses nothing under its ray; "Skip this step", "cancel" by voice and the 30 s
+  timeout all move on. Step 3 turns steady aim (tremor mode) on or off. Step 1 is remembered (`spatialdesk.seat`): from
+  the sofa or the bed, Fit room then accepts a low surface by itself.
+- Decision found by the test: the measured reach is applied when Start is pressed, not at the pinch. Applied at the pinch,
+  the boards came to the hand's distance (about 45 cm), in front of the panel (55 cm), and covered it and took the ray
+  meant for Yes. Applied at Start, the panel stays in front while it is answered and the space settles with the amber
+  frame and the pulse, in one Undo. Skip leaves the space as it was.
+- Looked at in the emulated headset: the first version split "Sofa / Bed" over two lines, put the orb over "Skip this
+  step" and left 3 cm buttons under a two-line title; now 38 cm tall, titles with two lines reserved, buttons 9 cm.
+- First-run coach waits while the setup is open (`setupState.active`). `playwright.config.ts` seeds
+  `spatialdesk.calibrated=1` for localhost, so the other tests do not meet it; `tests/setup.spec.ts` (6) starts from an
+  empty storage: the whole flow with the coach after it, sofa and the orb's skip, Skip, "recalibrate", the flat screen,
+  and Spanish.
+- Not verified: with real hands. In the emulator a controller trigger stands for the pinch.
+
+## Block 14: review
+
+- Full CI after all of this: typecheck, 153 tests passed and 5 skipped (9.3 min), size check. The first full run
+  without load had 152 passed and 1 failed (the lost press of block 11, in the sofa test); the cause was fixed and the
+  run repeated.
+- The performance gate in that run: whole frame p50 16.4 ms and p95 27.1 ms (limit 29.4), our systems p95 1.5 ms
+  (limit 3), 78 draw calls (limit 80), 67 bytes per frame. The p95 below 25 ms asked for earlier is still not reached.
+- Production runs `c1ad445`. This push is not deployed: the authorization covered that commit.

@@ -15,6 +15,7 @@ import type { Pose } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
 import { deskPose } from '../workspace/viewer.js';
 import { announceAnchored } from '../ui/anchor-feedback.js';
+import { seat } from '../onboarding/setup-state.js';
 import { fitToRoom, invertRigid, isSeat, matrixPose, multiply, poseMatrix, type RoomPlane, type Vec3 } from './fit.js';
 
 const KEY = 'spatialdesk.room';
@@ -125,7 +126,8 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
       return false;
     }
     this.fitRequested = true;
-    this.fitLow = low;
+    // Said just now wins; else the seat chosen in the guided setup (a sofa or bed); else the comfort profile decides.
+    this.fitLow = low ?? (seat() === 'sofa' ? true : undefined);
     return true;
   }
 

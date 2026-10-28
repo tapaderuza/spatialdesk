@@ -39,6 +39,8 @@ import { claimPanel, onPanelClaim } from '../accessibility/panel-focus.js';
 import { forgetResumeNote, nextStepText, readResumeNote, resumeContext, returnTasks, saveResumeNote, type ResumeNote } from './resume-note.js';
 import { progress } from '../workspace/progress.js';
 import { isListening, stopListening } from '../voice/listen.js';
+import { language as appLanguage } from '../i18n/language.js';
+import { requestSetup } from '../onboarding/setup-state.js';
 import { dayEndNudge, dayStartNudge, findNudge, timerContext, wrapUpContext, type Nudge } from './watcher.js';
 
 const engine = Workspaces.getInstance();
@@ -681,8 +683,9 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     speechSynthesis.speak(utterance);
   }
 
+  /** English unless the link or the person chose another (src/i18n/language.ts). */
   private language(): string {
-    return new URLSearchParams(location.search).get('lang') || navigator.language;
+    return appLanguage();
   }
 
   private setNudge(nudge: Nudge | null): void {
@@ -772,7 +775,9 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       slots.conversation.setProperties({ display: 'flex' });
       slots.said.setProperties({ text: '' });
       slots.memory.setProperties({ text: es ? 'Solo cinco ajustes. No guarda conversaciones ni notas de salud.' : 'Five settings only. No conversations or health notes.' });
-      slots.forget.setProperties({ display: 'none' });
+      // There is no conversation to forget here: the button runs the guided setup again (src/onboarding/setup.ts).
+      slots.forget.setProperties({ display: 'flex' });
+      slots.forgetLabel.setProperties({ text: panelText(es ? 'Calibración guiada' : 'Recalibrate') });
       slots.profileControls.setProperties({ display: saved ? 'flex' : 'none' });
       slots.restoreLabel.setProperties({ text: es ? 'Recuperar' : 'Restore' });
       slots.forgetSetupLabel.setProperties({ text: es ? 'Olvidar ajuste' : 'Forget saved' });
@@ -983,7 +988,10 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
         else if (key === 'return-task') this.nextReturnTask();
         else if (key === 'return-note') { this.returnDictating = true; this.replyHandler?.(); }
         else if (key === 'return-forget') this.forgetReturn();
-        else if (key === 'forget') this.forgetConversation();
+        else if (key === 'forget') {
+          if (this.mode === 'memory') { this.close(); requestSetup(); } // "Recalibrate" on the My setup card
+          else this.forgetConversation();
+        }
         else if (key === 'restore-setup') this.restoreComfort();
         else if (key === 'forget-setup') this.forgetComfort();
         else if (key.startsWith('session-')) { this.sessionChoice.minutes = Number(key.slice(8)); this.render(); }

@@ -7,6 +7,7 @@
 import { createSystem, Mesh, MeshBasicMaterial, SphereGeometry, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
 import { AgentSystem } from '../agent/agent-system.js';
 import type { AgentPlan } from '../agent/client.js';
+import { isSpanish } from '../i18n/language.js';
 import { play } from '../ui/sounds.js';
 import { workspace } from '../workspace/store.js';
 import { comfortFromReach, reachState, type Reach } from './reach.js';
@@ -15,12 +16,22 @@ import { comfortFromReach, reachState, type Reach } from './reach.js';
 const TIMEOUT_MS = 30_000;
 const DOT_RADIUS = 0.015;
 
-const spanish = () => (new URLSearchParams(location.search).get('lang') || navigator.language).startsWith('es');
+const spanish = isSpanish; // English unless the link or the person chose Spanish (src/i18n/language.ts)
+
+/** Who takes the measurement when it is not the agent's card: the guided setup (src/onboarding/setup.ts). */
+export interface ReachCapture {
+  measured(reach: Reach): void;
+  /** A pinch too near the eyes, or behind them, to be a reach: the measurement goes on. */
+  refused?(): void;
+  /** The measurement ended without a usable pinch: cancelled by voice, timed out, or the headset came off. */
+  cancelled?(): void;
+}
 
 export class ReachSystem extends createSystem({}) {
   private dots!: [Entity, Entity];
   private session: XRSession | null = null;
   private timeout: ReturnType<typeof setTimeout> | null = null;
+  private capture: ReachCapture | null = null;
   private readonly hand = new Vector3();
   /** Read by the Playwright tests: the last measurement, or why there was none. */
   readonly view = { measuring: false, last: null as Reach | null, refused: '' };
@@ -47,21 +58,28 @@ export class ReachSystem extends createSystem({}) {
     this.follow(1, this.player.gripSpaces.right);
   }
 
-  /** Starts measuring; only in XR, where there are hands to measure. */
-  start(): void {
+  /**
+   * Starts measuring; only in XR, where there are hands to measure. False when it cannot. With a [capture] the pinch goes
+   * to it instead of becoming a proposal on the agent's card, and the notices are the capture's to give.
+   */
+  start(capture?: ReachCapture): boolean {
     const es = spanish();
     if (!this.session) {
       this.view.refused = 'not-immersive';
-      workspace.notify({ text: es ? 'Entra en VR para medir tu alcance con la mano.' : 'Enter VR to measure your reach with your hand.', error: true });
-      return;
+      if (!capture) workspace.notify({ text: es ? 'Entra en VR para medir tu alcance con la mano.' : 'Enter VR to measure your reach with your hand.', error: true });
+      return false;
     }
     this.world.getSystem(AgentSystem)?.dismiss();
+    this.capture = capture ?? null;
     this.setMeasuring(true);
     this.view.refused = '';
     play('listen');
-    workspace.notify({ text: es
-      ? 'Estira la mano hasta donde te resulte cómodo y pellizca. Ahí irá tu tablero.'
-      : 'Reach out to where your hand is comfortable, and pinch. Your board will go there.', error: false });
+    if (!capture) {
+      workspace.notify({ text: es
+        ? 'Estira la mano hasta donde te resulte cómodo y pellizca. Ahí irá tu tablero.'
+        : 'Reach out to where your hand is comfortable, and pinch. Your board will go there.', error: false });
+    }
+    return true;
   }
 
   /** True when a measurement was waiting (so "cancel" had something to cancel). */
@@ -76,7 +94,13 @@ export class ReachSystem extends createSystem({}) {
     this.view.measuring = on;
     if (this.timeout) clearTimeout(this.timeout);
     this.timeout = on ? setTimeout(() => this.cancel(), TIMEOUT_MS) : null;
-    if (!on) for (const dot of this.dots) dot.object3D!.visible = false;
+    if (!on) {
+      for (const dot of this.dots) dot.object3D!.visible = false;
+      // A capture still waiting when the measurement ends never got its pinch.
+      const waiting = this.capture;
+      this.capture = null;
+      waiting?.cancelled?.();
+    }
   }
 
   private follow(i: 0 | 1, grip: { getWorldPosition(v: Vector3): Vector3 } | undefined): void {
@@ -108,12 +132,16 @@ export class ReachSystem extends createSystem({}) {
     const es = spanish();
     if (!reach) {
       play('error');
-      workspace.notify({ text: es ? 'Estira la mano un poco más lejos y pellizca.' : 'Reach a little further out, then pinch.', error: true });
+      if (this.capture?.refused) this.capture.refused();
+      else workspace.notify({ text: es ? 'Estira la mano un poco más lejos y pellizca.' : 'Reach a little further out, then pinch.', error: true });
       return;
     }
     this.view.last = reach;
     play('pick');
-    this.world.getSystem(AgentSystem)?.previewLocalPlan(this.proposal(reach, es));
+    const capture = this.capture;
+    this.capture = null; // taken: the end of the measurement below is not a cancellation
+    if (capture) capture.measured(reach);
+    else this.world.getSystem(AgentSystem)?.previewLocalPlan(this.proposal(reach, es));
     // Measuring ends a moment after this pinch is over: the panels see its release a frame or two later, and it must
     // not press the card that just opened under the ray.
     this.session?.addEventListener('selectend', () => setTimeout(() => this.setMeasuring(false), 300), { once: true });

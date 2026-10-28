@@ -1,0 +1,35 @@
+<!--
+  Guided setup: three questions, one at a time (where do you sit, reach out and pinch the orb, steady aim), 52 x 38 cm
+  in front of the eyes. Centimetres at real size. The two big choices are 23 x 9 cm (primary-size targets), text is
+  white on blue or off-white on dark grey (>= 7:1). The app paints hover (src/onboarding/setup.ts), as for the other panels.
+-->
+<style>
+  .root { flex-direction: column; width: 52; height: 38; padding-top: 2; padding-bottom: 2.4; padding-left: 2.4; padding-right: 2.4; gap: 1.4; background-color: #15181e; border-radius: 2.4; border-width: 0.4; border-color: #f2b84b; }
+  .top { flex-direction: row; align-items: center; justify-content: space-between; height: 6.4; }
+  .step { font-size: 1.9; font-weight: 700; color: #f2b84b; }
+  .skip { flex-shrink: 0; width: 11; height: 6.4; align-items: center; justify-content: center; border-radius: 1.2; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
+  .skip-label { font-size: 1.7; font-weight: 700; color: #eef1f5; }
+  .title { height: 8.4; font-size: 3.2; font-weight: 700; color: #eef1f5; }
+  .hint { height: 5.4; font-size: 1.9; color: #c9d1db; }
+  .choices { flex-direction: row; flex-grow: 1; gap: 2; }
+  .choice { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 2; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .choice-label { font-size: 3; font-weight: 700; color: #ffffff; }
+  .root:dark { background-color: #000000; }
+  .step:dark { color: #ffd479; }
+  .title:dark { color: #ffffff; }
+  .hint:dark { color: #ffffff; }
+  .skip-label:dark { color: #ffffff; }
+  .choice-label:dark { color: #ffffff; }
+</style>
+<div id="setup-root" class="root">
+  <div class="top">
+    <div id="setup-step" class="step">Step 1 of 3</div>
+    <div id="setup-skip" class="skip"><div id="setup-skip-label" class="skip-label">Skip</div></div>
+  </div>
+  <div id="setup-title" class="title">Where are you sitting?</div>
+  <div id="setup-hint" class="hint">Pick the closest one. You can change it any time.</div>
+  <div class="choices">
+    <div id="setup-a" class="choice"><div id="setup-a-label" class="choice-label">Desk</div></div>
+    <div id="setup-b" class="choice"><div id="setup-b-label" class="choice-label">Sofa / Bed</div></div>
+  </div>
+</div>

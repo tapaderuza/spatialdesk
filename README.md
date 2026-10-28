@@ -25,7 +25,12 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
 - **For a short session:** add `?fast` (or `?emulate&fast`) and timers run in seconds instead of minutes, so you can
   see what the agent does when a focus block ends.
 - **Without hands:** add `?handsfree` to start in hands-free mode, and press *Talk* (by gaze) for voice.
-- **In another language:** voice follows the browser's language; add `?lang=es-ES` (or another) to choose it.
+- **In another language:** the app is in English, whatever the browser's language is. Add `?lang=es-ES` (or `fr-FR`,
+  `de-DE`, `it-IT`, `pt-BR`) to choose another, or say "speak Spanish" / "habla español" ("speak English" goes back): Amazon
+  Transcribe then listens in that language and the agent answers in it. The choice is remembered in that browser.
+- **The guided setup:** the first time you enter VR, three big questions: where you sit (desk or sofa/bed), pinch an orb
+  50 cm away (your hand's own reach becomes the space), and whether you want steady aim. Skip any time; say "recalibrate"
+  (or press *Recalibrate* on the *My setup* card) to do it again.
 - **With hands that shake:** add `?steady` (or say "tremor mode on").
 - **With one switch:** add `?switch` and use the space bar, Enter, or any pinch or trigger (or say "switch mode on").
 - **Fit to your reach:** in VR, say "fit to my reach", reach out to where it is comfortable and pinch.
@@ -58,8 +63,9 @@ No install, no account. Each visitor gets an anonymous session, and the workspac
   card proposes them in words ("Where your hand reached: 47 cm away", "27 degrees higher"). Lying back, the hand rises
   and the space tilts up; with a short reach, it comes nearer. The measuring pinch presses nothing, and nothing moves
   until Apply.
-- **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
-  link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
+- **It listens patiently, in your language.** Speech streams to Amazon Transcribe in US English, or in the language the
+  link (`?lang=`) or the person ("speak Spanish") chose; a pause to breathe does not cut you off, and one request can
+  last 20 seconds.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
   when they end, the agent knows you have started and offers to keep going, not a break.
 - **Describe your day, get a workspace.** "Finish the quarterly report, review two pull requests, call the dentist,

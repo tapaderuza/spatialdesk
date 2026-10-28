@@ -95,7 +95,13 @@ test('start small: five minutes on the first bit, and when they end the agent he
   await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
   expect(asked[0].intent).toBe('first_step');
   await pressXR(page, 'agent:plan-apply');
-  await page.waitForFunction(() => (window as Win).__workspace.state.timers.some((t: any) => t.label.startsWith('First step')));
+  // One failure of this step was seen in a full-suite push. A lost press on a panel that had just changed its buttons was
+  // reproduced since (8 in 25, tests/helpers.ts pressXR aimed at where the button was, not where it is) and fixed; if this
+  // wait ever times out again, the message says what the agent was doing instead of a bare timeout.
+  await page.waitForFunction(() => (window as Win).__workspace.state.timers.some((t: any) => t.label.startsWith('First step')), null, { timeout: 15_000 }).catch(async (error) => {
+    const state = await page.evaluate(() => ({ phase: (window as Win).__agent.state.phase, error: (window as Win).__agent.state.plan?.error ?? null, timers: (window as Win).__workspace.state.timers.map((t: any) => t.label) }));
+    throw new Error(`Apply did not start the First step timer: ${JSON.stringify(state)}\n${error.message}`);
+  });
 
   await expect.poll(() => asked.length, { timeout: 20_000 }).toBe(2);
   expect(asked[1].intent).toBe('next_block');

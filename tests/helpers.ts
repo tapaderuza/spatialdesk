@@ -121,10 +121,16 @@ export async function pressXR(page: Page, name: string, hand: 'left' | 'right' =
         if (o.name === name) element = o;
       });
       if (!element) throw new Error(`no element ${name}`);
-      element.updateWorldMatrix(true, false);
       const V = w.camera.position.constructor;
       const Q = w.camera.quaternion.constructor;
-      const targetPoint = new V(0, 0, 0).applyMatrix4(element.matrixWorld);
+      // Where the control is NOW, every time it is asked: a panel that has just changed what it shows (a button shown, a
+      // card opened) lays its buttons out a frame or two later, so a point taken once at the start can be where the button
+      // was. That lost 8 presses in 25 on "No" right after the setup's reach step; a hand follows what it points at.
+      const targetPoint = new V();
+      const aimAt = () => {
+        element.updateWorldMatrix(true, false);
+        return targetPoint.set(0, 0, 0).applyMatrix4(element.matrixWorld);
+      };
       const controller = device.controllers[hand];
       const from = new V(hand === 'right' ? 0.18 : -0.18, 1.3, originZ);
       const frames = (n: number) =>
@@ -136,13 +142,18 @@ export async function pressXR(page: Page, name: string, hand: 'left' | 'right' =
       const start = new V().copy(controller.position);
       for (let i = 1; i <= 12; i++) {
         const p = new V().lerpVectors(start, from, i / 12);
-        const dir = new V().copy(targetPoint).sub(p).normalize();
+        const dir = new V().copy(aimAt()).sub(p).normalize();
         const q = new Q().setFromUnitVectors(new V(0, 0, -1), dir);
         controller.position.set(p.x, p.y, p.z);
         controller.quaternion.set(q.x, q.y, q.z, q.w);
         await frames(1);
       }
-      await frames(10);
+      for (let i = 0; i < 10; i++) {
+        const dir = new V().copy(aimAt()).sub(controller.position).normalize();
+        const q = new Q().setFromUnitVectors(new V(0, 0, -1), dir);
+        controller.quaternion.set(q.x, q.y, q.z, q.w);
+        await frames(1);
+      }
       controller.updateButtonValue('trigger', 1);
       await frames(4);
       controller.updateButtonValue('trigger', 0);

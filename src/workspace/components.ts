@@ -17,3 +17,6 @@ export const AgentPanel = createComponent('AgentPanel', {});
 
 /** The first-run coach banner (one per world). */
 export const CoachPanel = createComponent('CoachPanel', {});
+
+/** The guided setup panel: where you sit, reach out and pinch the orb, steady aim (one per world). */
+export const SetupPanel = createComponent('SetupPanel', {});

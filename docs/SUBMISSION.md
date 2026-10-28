@@ -189,8 +189,12 @@ board, and starting is made small. SpatialDesk is a productivity tool, not a med
   the control lit.
 - **Fit to my reach.** One pinch where the hand is comfortable gives the space its distance, height and side,
   measured by the hand instead of chosen from a menu; the card proposes them in words, and nothing moves until Apply.
-- **It listens patiently, in your language.** Speech streams to Amazon Transcribe in the browser's language (or the
-  link's `?lang=`); a pause to breathe does not cut you off, and one request can last 20 seconds.
+- **It listens patiently, in your language.** Speech streams to Amazon Transcribe in US English, or in the language the
+  link (`?lang=`) or the person ("speak Spanish") chose; a pause to breathe does not cut you off, and one request can
+  last 20 seconds. The app itself is in English by default, whatever the browser's language.
+- **A guided setup for someone new to all this.** The first time in VR: where do you sit (desk, or sofa/bed), pinch an orb
+  50 cm away (the hand's own reach, height and side become the space), and do you want steady aim. Three big
+  questions, skippable, and "recalibrate" brings it back.
 - **Starting is made small.** *Start small* (or "help me start") turns the task into a first step of five minutes;
   when they end, the agent knows you have started and offers to keep going, not a break.
 

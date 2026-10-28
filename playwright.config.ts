@@ -9,6 +9,9 @@ export default defineConfig({
   reporter: [['list'], ['json', { outputFile: 'test-results/results.json' }]],
   use: {
     baseURL: 'http://localhost:4173',
+    // A visitor who has been through the guided setup (src/onboarding/setup-state.ts): the first-run setup would otherwise
+    // open in front of every test that enters XR. tests/setup.spec.ts starts from an empty storage to see it.
+    storageState: { cookies: [], origins: [{ origin: 'http://localhost:4173', localStorage: [{ name: 'spatialdesk.calibrated', value: '1' }] }] },
     channel: process.env.PW_CHANNEL ?? 'msedge',
     headless: process.env.PW_HEADED !== '1',
     viewport: { width: 1280, height: 960 },
