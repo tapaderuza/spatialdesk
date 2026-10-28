@@ -14,8 +14,9 @@
 
 ## Production
 
-- **In production now: the code of `685216d`, server and front deployed together,** with the user's explicit authorization
-  for that commit (the earlier one, for `9f5497a`, was a separate go-ahead). `node scripts/deploy.mjs` needs
+- **In production now: `f61b7fa`** (see "Production now runs `f61b7fa`" below). Earlier: the code of `685216d`, server
+  and front deployed together, with the user's explicit authorization for that commit (the earlier one, for `9f5497a`,
+  was a separate go-ahead). `node scripts/deploy.mjs` needs
   `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the CDK stack took 487 s. The
   end-to-end tests the script runs against production passed 2 of 2 (the link syncs its clock, 198 ms; plan in 3.0 s,
   Nova 2 Lite, three steps).

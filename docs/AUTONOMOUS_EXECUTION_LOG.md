@@ -509,3 +509,36 @@ commit `b01c8e2` a producción."
 - **Honest limits:** the webcam is a stand-in for passthrough, not passthrough: no depth, no parallax, and only the part
   of the room the webcam sees. The contest accepts footage "via XR Simulator or another equivalent emulator", and the
   video's description should say the room is the laptop's webcam. Not verified on a physical headset.
+
+## Block 25: `f61b7fa` in production, and the machine cleaned up
+
+Authorization, verbatim: "Tienes mi autorización explícita para desplegar el servidor y el front-end del commit
+`f61b7fa` a producción." And: "Localiza y mata el proceso 16840 que está ocupando el puerto 8080".
+
+- **Port 8080 freed:** PID 16840 was still the same process (`java.exe`, started 2026-10-26 20:03, running
+  `server/app/build/libs/app.jar --server.address=127.0.0.1` from an earlier local test, listening on 127.0.0.1:8080).
+  Checked again right before stopping it; afterwards the process is gone, nothing listens on 8080 and a request to it is
+  refused. A background check of mine still waiting on that port was stopped too. Port 8090 (another `java.exe`, PID
+  5552, started 2026-10-23, not from this work) was left alone.
+- **Deployed** with `node scripts/deploy.mjs` from a clean tree at `f61b7fa` = `origin/main`. The first run stopped at
+  the server tests before touching AWS: this shell had no `JAVA_HOME`. Rerun with `JAVA_HOME=C:\Program Files\Java\jdk-17`
+  and `GRADLE_USER_HOME=D:\.gradle` (as noted in `docs/SUBMISSION_READY.md`): typecheck, build, server tests, CDK
+  (696 s), and the script's end-to-end test against production passed (2/2).
+- **Live check** on https://d2p3027seoreck.cloudfront.net, in IWER (`?emulate`), with the real Nova:
+  - the page serves `assets/main-DcoaOpDw.js`, the file the local build of `f61b7fa` names, with the new poke state;
+  - **the double press is gone:** a controller's tip taps Focus 25 and leaves within a tenth of a second: one press,
+    one timer (two on `b01c8e2`). A hand taps a card quickly: it is picked up ("Holding ...") and not put straight back.
+    The hand's ray steps aside at 12 cm from a panel and comes back at 30 cm;
+  - **the companion answers in the language it is spoken to:** "I am not comfortable" -> "What is harder right now:
+    reading the panels or reaching them?"; "what should I do next" -> an English question; "No estoy cómoda" ->
+    "¿Qué te cuesta más ahora: leer los paneles o alcanzarlos?"; "Un poco más lejos" -> a Spanish proposal to move the
+    panels further. Every call answered 200, from `us.amazon.nova-2-lite-v1:0`, in 1.1 to 1.8 s;
+  - **"this" still works:** a second's look at card c6, "move this to done", the request carried
+    `{"board":"b1","card":"c6"}` and Nova proposed moving exactly that card to Done (1.2 s);
+  - `?cinematicMode=true` on the deployed site does nothing (no start overlay, no recording code): the recording mode
+    stays local;
+  - no page errors and no console errors.
+  - My first two runs of this check misread two answers (they took the previous answer, then the answer to my own
+    "no"); the script now matches each call to its own sentence. The figures above are from the third run.
+- **Not verified:** a physical headset.
+- Development is paused here for the video recording.
