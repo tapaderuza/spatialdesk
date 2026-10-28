@@ -414,9 +414,12 @@ Everything is built for hands first, with no controller needed at any point:
 
 - **Pick and place instead of drag.** Tap or pinch a card to pick it up; every column lights up as a drop target; tap
   one to drop it. No step needs more than 2 cm of precision, so tracking jitter never drops a card halfway.
-- **Poke and pinch both work everywhere.** Each panel is one IWSDK `PokeInteractable` and `RayInteractable`; the
-  control under the finger or the ray is found with a rectangle test, which keeps the app's own cost under half a
-  millisecond per frame.
+- **Poke and pinch both work everywhere.** Each panel is one IWSDK `RayInteractable` for the pinch and the ray, and
+  the app's own poke for the fingertip: from 5 cm the control lights and a ring on the surface shows where the finger
+  will land; touching presses at once, with no time limit, so a slow or unsteady press counts (IWSDK's own poke drops a
+  press held longer than 800 ms). The finger must come from the front and draw back 2 cm to press again. The control
+  under the finger or the ray is found with a rectangle test, which keeps the app's own cost under half a millisecond
+  per frame.
 - **Sized and placed for real hands, seated.** Targets are at least 6 cm with 2 cm gaps, the working board sits 62 cm
   away just below the eyes, and an automated test injects ±1 cm / ±3° of hand-tracking noise and requires a 95 % hit
   rate.

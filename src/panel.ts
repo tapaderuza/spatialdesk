@@ -7,6 +7,7 @@ import { hoverFades } from './ui/hover.js';
 import { PanelHits } from './ui/panel-hits.js';
 import { measureView, sameView } from './ui/view-fit.js';
 import { idleBorder, onSettings, settings, toggleSetting, type Settings } from './ui/settings.js';
+import { lookedAt, onlyPoints } from './ui/attention.js';
 import { play } from './ui/sounds.js';
 import { glidesFor, placeSmoothly } from './ui/glide.js';
 import { requestInvite } from './assist/helper-state.js';
@@ -442,10 +443,12 @@ export class PanelSystem extends createSystem({}) {
 
   /** A 25-minute timer (for the picked-up card, if any), and the other boards move out of the way. */
   /** "Start small": the agent makes the first five minutes of the task named, the card held, or the one in progress. */
+  /** "Help me start this": the card in hand, else the one the eyes rested on (src/ui/attention.ts), else as said. */
   private startSmall(task?: string): void {
     const card = heldCard();
     releaseHeld();
-    this.world.getSystem(AgentSystem)?.firstStep(task ?? card?.title);
+    const looked = task && onlyPoints(task) ? lookedAt(workspace.state) : null;
+    this.world.getSystem(AgentSystem)?.firstStep(looked?.card ? looked.title : (task ?? card?.title));
   }
 
   private focus25(): void {

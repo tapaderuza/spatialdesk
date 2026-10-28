@@ -385,3 +385,55 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
   one per panel, and the card rising and settling back.
 - **Not verified:** a physical headset (the shadow on a real wall, the welcome's legibility at arm's length, the card's
   rise under a real hand). Production still runs `685216d`: this block is pushed, not deployed.
+
+## Block 23: spatial AI and direct interaction (the agent knows what "this" is, poke, 3D sound)
+
+Asked: a continuous, throttled ray from the head that remembers what has been looked at for more than a second, sent to
+Nova when a request points ("this", "esto"); direct touch within 5 cm with a press by the index fingertip, no pinch; 3D
+positional sound for the glide and for clicks. No physical headset: everything below was checked in the IWER emulator.
+
+- **What "this" is** (`src/ui/attention.ts`): five times a second (every 200 ms, never per frame) a ray from the centre
+  of the view, from the eyes where the headset tracks them and else the head, is tested against the panels with the same
+  plane and rectangle tests the hands-free gaze uses. A second on the same control makes what it stands for the focus: a
+  card, a column, a board or a timer. Each panel says what its controls stand for (`PanelHandlers.refer`); the command
+  panel and the agent's card stand for nothing, so looking at them neither sets nor clears it. The focus stays "this"
+  for ten seconds after the eyes move on, because people glance at the agent's card as they speak, and is dropped once
+  its card is removed.
+- **How Nova is told:** `requestPlan` adds `attention` (ids only) when the words point: "this", "that", "it", "these",
+  "esto", "esta", "este", "eso" and the like, accents and case ignored. The server (`Planner.kt`) looks the id up in its
+  own copy of the workspace and, only if it exists, marks that item `[looked at]` in the workspace description and adds
+  one fixed rule to the system prompt: when the request points at something without naming it, it means the marked item.
+  So the injection is invisible to the user, and no text from the headset ever reaches the system prompt (a card title
+  stays in the quoted workspace data, where prompt injection has no rules to override). An old server ignores the field
+  (`ignoreUnknownKeys`). "Help me start this" is resolved in the headset: the card looked at becomes the task, so even the
+  built-in planner, when Nova is unavailable, starts the right card.
+- **Direct touch** (`src/ui/poke.ts`): IWSDK's own poke (`TouchPointer`, for `PokeInteractable`) presses only if the
+  finger leaves again within 800 ms, so a slow or unsteady press, the kind this app is for, is dropped. No panel is
+  `PokeInteractable` any more, and the app owns the fingertip. Every frame in XR, for each hand: the index fingertip with
+  hands, the tip of the ray with a controller, tested against every panel with three dot products and no matrix inverse.
+  From 5 cm the control under it lights (the same hover fade as a ray) and a ring on the surface shows where it will
+  land, closing as the finger nears; contact (6 mm, the fingertip joint sits inside the skin) presses at once, one press
+  per touch. The finger must have been seen 2 cm out first, so a hand arriving from behind or sliding along a panel
+  presses nothing, and must draw back 2 cm to press again. Like a pinch it presses nothing on a gliding panel, in switch
+  mode or while a reach is measured.
+- **3D sound** (`src/ui/sounds.ts`): cues were already HRTF sources placed where they happen, but fixed relative to the
+  head at the moment they started. Now every cue still sounding is a voice in a fixed pool of 12, placed again around the
+  ears every frame (ramped over 30 ms, no zipper noise), so it stays put in the room as the head turns, at no cost when
+  nothing sounds. A glide now breathes: band-passed noise that opens and closes over 0.75 s, from the gliding panel and
+  following it (`whoosh`, started by `placeSmoothly`), softer for short moves, each further panel gliding at once softer
+  still, at most four. The click of a press already came from the control pressed.
+- **Tests:** `tests/spatial-ai.spec.ts` (4): the second's look, about five tests a second, the request carrying only the
+  card's ids with "move this to done" and nothing with "plan my day: ...", "help me start this" starting that card, the
+  command panel never becoming "this", a removed card no longer "this"; a controller's tip lighting the control from 4 cm
+  with the ring closing in, one press on contact, a 1.5 s rest still one press, 1 cm back not re-arming and 2 cm back
+  re-arming, a finger from behind pressing nothing; a tracked hand's index fingertip pushing a card slowly and picking it
+  up; the click sounded from the pushed button (within 2 mm, measured before the press re-anchors the space), and the
+  whoosh following its board as it moves and heard from the side after a quarter turn of the head. Server: a planner
+  test for the mark and the rule (only for an id that exists).
+- **One test fixed, not the code:** the first sound test asked for the click 0.1 s after it had finished, and then
+  compared it with where the button was after Focus 25 had re-anchored the space by 2.4 cm. The click is now read from
+  where each kind of cue last sounded, against where the button was when pushed.
+- **Not verified:** a physical headset (a real fingertip's contact depth, HRTF with real ears, eye-tracked attention on a
+  Quest Pro). Production still runs `685216d` (checked: the live page serves `assets/main-UtJCl-Ml.js` and has no
+  splash, so `93f4d4d` is not live either). This block needs the server deployed with the front end for Nova to receive
+  the mark; the headset sends it either way, and the server in production ignores it.

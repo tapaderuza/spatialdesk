@@ -48,6 +48,12 @@ a board, move a card, start a timer, adapt the comfort zone), each with a *why*.
 engine the headset runs before you see it, nothing changes until **Apply**, and the **AI log** undoes any step, even
 after later changes.
 
+**Spatial AI: it knows what "this" is.** Rest your eyes on a card for a second and say *"move this to Done"* or *"help me
+start this"*. A ray from the centre of the view (the eyes, where the headset tracks them), tested five times a second,
+remembers the card, column, board or timer you looked at; words that point send it to Nova as an id, which the server
+marks in its own copy of the workspace. No text from the headset ever reaches the model's rules, and a request that
+names its own task sends nothing.
+
 **Every input, for every body.** Hands, controllers, look-and-pinch (Meta VR Glasses' input), the eyes alone (hold a
 gaze), voice in your language, one switch (every control reachable with a single button), and **steady aim** for hands
 that shake (the control aimed at for most of the last half second is the one pressed: 100 % correct presses at a 5 cm
@@ -64,6 +70,16 @@ your panel."* It leaves as soon as they act.
 
 **Calibration by voice or by hand.** "Recalibrate", "fit to my reach", "I'm on the sofa", "invite a helper": every
 adjustment is one sentence away, in English or Spanish, and also a button.
+
+**Push it with a finger.** The work board sits at arm's length, so a fingertip simply presses what it touches: from 5
+cm the control lights and a ring on its surface shows where the finger will land, closing as it nears; touching presses
+at once, however slowly. That matters for a careful hand or one with a tremor, which IWSDK's own poke would drop (it
+counts a press only if the finger leaves within 800 ms). A finger that arrives from behind or slides along a panel
+presses nothing.
+
+**Sound from where things happen.** Every cue is an HRTF source at its own place: the click comes from the button
+pushed, the alarm from the timer, and a panel gliding to its place breathes a soft whoosh that follows it as it moves.
+Every cue stays put in the room as the head turns.
 
 **Nothing jumps, everything answers.** When the space adapts, panels glide to their new place in under a second (a
 critically damped spring, no overshoot) instead of teleporting, and they take no pointer while moving, so a hand they
@@ -91,8 +107,9 @@ systems ≤ 3 ms p95, ≤ 80 draw calls, ≤ 4 KB allocated per frame, bundle �
   Module, none tuned for.
 - **Persistent spatial anchors:** the fitted layout is kept relative to an anchor and comes back to the same place next
   time.
-- **Hand tracking** and **controllers**, with pinch, poke and ray; **eye tracking** for hands-free use and look-and-pinch;
-  **haptics** when the space settles.
+- **Hand tracking** and **controllers**, with pinch, ray and direct touch (the index fingertip, or a controller's tip);
+  **eye tracking** for hands-free use, look-and-pinch and telling the agent what you look at; **haptics** when the space
+  settles; **spatial audio** (HRTF) for every cue.
 - **Meta VR Glasses:** the app measures the view the device actually renders and fits the layout into its comfortable
   part (Meta's 58 x 54 degree perceived view).
 
@@ -137,6 +154,9 @@ Every claim is an automated check that fails the build, run in Meta's IWER Quest
 | Guided calibration | Where you sit, the pinch's own reach, height and side, steady aim; applied in one undo; Skip at any step; "recalibrate" brings it back. |
 | Steady aim | Synthetic tremor on the real button grid (3,000 presses per strength): at 3.5 cm, 81.2 % correct without tremor mode and 100 % with it; at 5 cm, 59.0 % and 100 %. A model of selection, not a clinical measure. |
 | One switch | The space bar or any pinch chooses the control lit; the agent's card takes over the scan while open; a tap elsewhere presses nothing. |
+| Knows what "this" is | A second's look at a card makes it "this" (tested about five times a second, not every frame); "move this to done" sends the card's id and nothing else about it, "plan my day: ..." sends nothing, "help me start this" starts that card, a removed card is no longer "this", the command panel never becomes it. On the server, the item is marked in the workspace and the rule for "this" is added only when the id exists. |
+| Direct touch | A controller's tip and a tracked index fingertip: from 5 cm the control is lit and a ring closes in; touching presses once, at once; a press held 1.5 s is still one press; drawing back 1 cm does not re-arm, 2 cm does; a finger from behind presses nothing. |
+| Sound from its place | The click is sounded from the pushed button (within 2 mm); a glide's whoosh follows its board as it moves and, after a quarter turn of the head, is heard from the side. |
 | Hands-free | With the head or eyes as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
 | Voice | The command grammar, the AWS event-stream framing (CRC-32 check value), the capture path against a stand-in Transcribe, and the real Transcribe hearing a spoken "plan my day". |
 | Ready for Meta VR Glasses | In the glasses profile the measured view is 58 x 54 degrees and the board, its timer and the agent's card lie inside it; look-and-pinch picks a card up and drops it. |

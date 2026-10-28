@@ -135,6 +135,7 @@ class TimerView {
         button.setProperties({ borderColor: idleBorder(COLOR.button) });
         hoverFades.paint(button, COLOR.button, hovered); // src/ui/hover.ts
       },
+      refer: () => ({ timer: this.timer.id, title: this.timer.label }),
     }, this.cleanups);
     return { box, label: get('label'), time: get('time'), toggle: get('toggle-label') };
   }

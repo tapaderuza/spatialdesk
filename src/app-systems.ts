@@ -13,10 +13,13 @@ import { CompanionSystem } from './studio/companion-system.js';
 import { FocusBubbleSystem } from './studio/focus-bubble.js';
 import { StudioSystem } from './studio/studio-system.js';
 import { WanderSystem } from './studio/wander.js';
+import { AttentionSystem } from './ui/attention.js';
 import { GazeSystem } from './ui/gaze.js';
 import { GlideSystem } from './ui/glide.js';
+import { PokeSystem } from './ui/poke.js';
 import { PanelShadowSystem } from './ui/panel-shadows.js';
 import { HoverSystem } from './ui/hover.js';
+import { SpatialAudioSystem } from './ui/sounds.js';
 import { BoardSystem } from './workspace/boards.js';
 import { PinnedSystem } from './workspace/pinned.js';
 import { TimerSystem } from './workspace/timers.js';
@@ -45,10 +48,13 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   CoachSystem,
   WelcomeSystem, // the first seconds for someone who has been here before: what to do, above the board
   GazeSystem,
+  AttentionSystem, // what the eyes rest on, five times a second: "this" for the agent
+  PokeSystem, // a fingertip pushes what it touches; after the gaze, like it a way to press
   SwitchSystem, // before HoverSystem, which fades the control it lights
   ReachSystem,
   SetupSystem, // after ReachSystem, whose measurement its second question takes
   HelperSystem, // a family member or carer follows along from a phone; their Help call opens the setup above
   AnchorFeedbackSystem, // the amber flash and the faint pulse when the space settles on the body or a surface
   HoverSystem,
+  SpatialAudioSystem, // last: every sounding cue placed around the ears where its panel is this frame
 ];

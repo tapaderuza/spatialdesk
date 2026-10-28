@@ -13,7 +13,6 @@ import {
   Group,
   PanelDocument,
   PanelUI,
-  PokeInteractable,
   RayInteractable,
   type Entity,
   type Object3D,
@@ -297,7 +296,6 @@ export class HelperSystem extends createSystem({ ready: { required: [HelperPanel
     entity.object3D!.rotation.order = 'YXZ';
     entity.addComponent(PanelUI, { config: CONFIG });
     entity.addComponent(RayInteractable);
-    entity.addComponent(PokeInteractable);
     entity.addComponent(HelperPanel);
     this.entity = entity;
   }

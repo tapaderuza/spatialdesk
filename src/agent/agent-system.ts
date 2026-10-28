@@ -11,7 +11,6 @@ import {
   Group,
   PanelDocument,
   PanelUI,
-  PokeInteractable,
   RayInteractable,
   type Entity,
   type Object3D,
@@ -149,7 +148,6 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.entity.object3D!.rotation.order = 'YXZ';
     this.entity.addComponent(PanelUI, { config: CONFIG });
     this.entity.addComponent(RayInteractable);
-    this.entity.addComponent(PokeInteractable);
     this.entity.addComponent(AgentPanel);
     this.setVisible(false);
     this.queries.ready.subscribe('qualify', (entity) => {

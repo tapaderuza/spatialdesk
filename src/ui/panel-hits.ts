@@ -1,20 +1,22 @@
 /**
  * One pointer listener per panel instead of one per control.
  *
- * pointer-events raycasts every element that has, or whose ancestor has, a listener, for every pointer (ray, grab
- * and poke, on both hands) on every frame. With a listener on each card, a full board cost ~60 raycasts per pointer
+ * pointer-events raycasts every element that has, or whose ancestor has, a listener, for every pointer (ray and grab,
+ * on both hands) on every frame. With a listener on each card, a full board cost ~60 raycasts per pointer
  * per frame and the performance gate measured 109 ms frames. Here only the panel root is raycast (its children are
  * skipped with `intersectChildren = false`), and the control under the hit point is found with a rectangle test,
  * on pointer events only, without allocating.
  *
  * Every live panel is also listed in [livePanels], so the hands-free gaze pointer (src/ui/gaze.ts) can find the
- * control under the centre of the view and press it the same way a tap does.
+ * control under the centre of the view and press it the same way a tap does, a fingertip can push it (src/ui/poke.ts),
+ * and the agent can be told what "this" is (src/ui/attention.ts).
  */
 import { Matrix4, Vector3, type Object3D, type UIKit } from '@iwsdk/core';
 import { play, unlockAudio } from './sounds.js';
 import { accessPreferences } from '../accessibility/preferences.js';
 import { AimTrail, outside, SNAP_METRES } from './aim.js';
 import { reachState } from '../accessibility/reach.js';
+import type { Referent } from './attention.js';
 
 type Element = UIKit.Text;
 
@@ -28,6 +30,8 @@ export interface PanelHandlers<K extends string> {
   click: (key: K) => void;
   /** Called when a control starts or stops being under any pointer. */
   hover?: (key: K, hovered: boolean) => void;
+  /** What a control (null: the panel itself) stands for, when the user can call it "this" (src/ui/attention.ts). */
+  refer?: (key: K | null) => Referent | null;
 }
 
 /** The gaze pointer's id among the hands' pointer ids (which are never negative). */
@@ -39,6 +43,13 @@ export interface GazeTarget {
   gazeHit(point: Vector3, fresh: boolean): string | null;
   press(key: string): void;
   setGazeHover(key: string | null): void;
+  /** What the control stands for, if it can be "this" for the agent; null for the command panel and the like. */
+  refer(key: string | null): Referent | null;
+  /** Direct touch (src/ui/poke.ts): how far a fingertip is in front, the control under it, its highlight. */
+  touchDistance(tip: Vector3, margin: number): number;
+  touchFace(point: Vector3, normal: Vector3): void;
+  pokeHit(fresh: boolean): string | null;
+  setPokeHover(hand: 0 | 1, key: string | null): void;
   /** For one-switch scanning (src/accessibility/switch-system.ts): which panel, shown or not, its visible controls. */
   readonly name: string;
   readonly modal: boolean;
@@ -57,6 +68,8 @@ export interface PanelOptions {
 
 /** The one switch's highlight among the pointers (gaze is -1). */
 const SWITCH_POINTER = -2;
+/** Each hand's direct touch, left and right (src/ui/poke.ts). */
+const POKE_POINTERS = [-3, -4] as const;
 
 /** How long the gaze reuses a panel's control rectangles before measuring them again (layout may have moved). */
 const RECTS_MAX_AGE_MS = 250;
@@ -74,6 +87,11 @@ export class PanelHits<K extends string> {
   /** Each control's rectangle in the root's frame, [minX, maxX, minY, maxY] per control, for the gaze. */
   private readonly rects: Float32Array;
   private rectsAt = -Infinity;
+  /** Where the fingertip last measured by touchDistance() is over the panel, in the root's unit square. */
+  private touchU = 0;
+  private touchV = 0;
+  /** ... and the face's unit normal. */
+  private readonly touchNormal = new Vector3();
   private lastPressKey: K | null = null;
   private lastPressAt = -Infinity;
   /** Tremor mode: each pointer's recent aim, and a scratch tally, one slot per control (src/ui/aim.ts). */
@@ -275,6 +293,66 @@ export class PanelHits<K extends string> {
     }
   }
 
+  refer(key: K | null): Referent | null {
+    return this.handlers.refer?.(key) ?? null;
+  }
+
+  /**
+   * How far [tip] is in front of the panel's face, in metres (negative: behind it), when it is over the panel (within
+   * [margin] metres of its edges) and the panel is shown and taking pointers (not gliding); NaN otherwise. Reads the
+   * matrix as last drawn, with no inverse: three dot products. Remembers where the tip is, for pokeHit().
+   */
+  touchDistance(tip: Vector3, margin: number): number {
+    const e = this.root.matrixWorld.elements;
+    const dx = tip.x - e[12];
+    const dy = tip.y - e[13];
+    const dz = tip.z - e[14];
+    // The root maps the unit square onto the panel: its x and y columns are the panel's width and height.
+    const xx = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    const yy = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+    const u = (dx * e[0] + dy * e[1] + dz * e[2]) / xx;
+    const v = (dx * e[4] + dy * e[5] + dz * e[6]) / yy;
+    if (Math.abs(u) > 0.5 + margin / Math.sqrt(xx) || Math.abs(v) > 0.5 + margin / Math.sqrt(yy)) return NaN;
+    if (!this.root.isVisible.value || !touchable(this.root)) return NaN;
+    this.touchU = u;
+    this.touchV = v;
+    // The face looks along x cross y (+Z in the panel's frame).
+    const n = this.touchNormal.set(e[1] * e[6] - e[2] * e[5], e[2] * e[4] - e[0] * e[6], e[0] * e[5] - e[1] * e[4]).normalize();
+    return dx * n.x + dy * n.y + dz * n.z;
+  }
+
+  /** Where the fingertip touchDistance() just measured meets the face (straight in), and the face's normal. */
+  touchFace(point: Vector3, normal: Vector3): void {
+    const e = this.root.matrixWorld.elements;
+    point.set(
+      e[12] + e[0] * this.touchU + e[4] * this.touchV,
+      e[13] + e[1] * this.touchU + e[5] * this.touchV,
+      e[14] + e[2] * this.touchU + e[6] * this.touchV,
+    );
+    normal.copy(this.touchNormal);
+  }
+
+  /** The control under the fingertip touchDistance() just measured, from the rectangles gazeHit() also uses. */
+  pokeHit(fresh: boolean): K | null {
+    const now = performance.now();
+    if (fresh || now - this.rectsAt > RECTS_MAX_AGE_MS) {
+      this.root.updateWorldMatrix(true, false);
+      this.rootInverse.copy(this.root.matrixWorld).invert();
+      this.measureRects(now);
+    }
+    for (let i = 0; i < this.controls.length; i++) {
+      if (!this.controls[i][1].isVisible.value) continue;
+      const r = i * 4;
+      if (this.touchU >= this.rects[r] && this.touchU <= this.rects[r + 1] && this.touchV >= this.rects[r + 2] && this.touchV <= this.rects[r + 3]) return this.controls[i][0];
+    }
+    return null;
+  }
+
+  /** A hand's direct-touch highlight (null: the finger left), painted like any hover. */
+  setPokeHover(hand: 0 | 1, key: K | null): void {
+    this.setHover(POKE_POINTERS[hand], key);
+  }
+
   /** The gaze pointer's hover (null: the gaze left this panel), painted like a hand's. */
   setGazeHover(key: K | null): void {
     this.setHover(GAZE_POINTER, key);
@@ -321,6 +399,23 @@ export class PanelHits<K extends string> {
     for (const hovered of this.hoverByPointer.values()) if (hovered === key) return true;
     return false;
   }
+}
+
+/**
+ * Shown and taking pointers: false when it or a parent is hidden, or when the nearest pointerEvents set on the way up
+ * is 'none' (a gliding panel, a closed card), exactly as pointer-events itself decides for a pinch.
+ */
+function touchable(object: Object3D): boolean {
+  let decided = false;
+  for (let o: Object3D | null = object; o; o = o.parent) {
+    if (!o.visible) return false;
+    const events = (o as Object3D & { pointerEvents?: string }).pointerEvents;
+    if (!decided && events !== undefined) {
+      if (events === 'none') return false;
+      decided = true;
+    }
+  }
+  return true;
 }
 
 /** False when the panel or any parent is hidden (a closed agent card). */

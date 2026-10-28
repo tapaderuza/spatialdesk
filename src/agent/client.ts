@@ -4,6 +4,7 @@
  */
 import { activeSession, forgetActiveSession } from '../backend/link.js';
 import { AI_PATIENCE_MS } from '../backend/resilience.js';
+import { attentionFor } from '../ui/attention.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
 import type { ConversationTurn } from './conversation.js';
 import type { SessionChoice } from './session-input.js';
@@ -53,13 +54,15 @@ const OFFLINE: AgentPlan = {
 /**
  * [context] says what just happened (a timer ended, a card is running over), for the agent's own suggestions.
  * The whole call, session wait included, gets AI_PATIENCE_MS: then it is a network failure (`network: true`).
+ * Words that point ("move this to Done", "esto") carry what the eyes rested on, as ids (src/ui/attention.ts).
  */
 export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string, conversation: ConversationTurn[] = [], sessionChoice?: SessionChoice): Promise<AgentPlan> {
   const deadline = performance.now() + AI_PATIENCE_MS;
   const left = () => Math.max(1, deadline - performance.now());
   const session = await waitForSession(Math.min(4000, left()));
   if (!session) return OFFLINE;
-  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context, conversation, sessionChoice });
+  const attention = attentionFor(text, workspace);
+  const body = JSON.stringify({ intent, text: text.trim() || undefined, workspace, localTime: localTime(), viewer, context, conversation, sessionChoice, attention });
   try {
     let res = await post(session, body, left());
     if (res.status === 401) {

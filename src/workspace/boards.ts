@@ -9,6 +9,7 @@ import { onAccessPreferences } from '../accessibility/preferences.js';
 import { boardPresentation, presentationText } from '../accessibility/presentation.js';
 import { hoverFades } from '../ui/hover.js';
 import { PanelHits } from '../ui/panel-hits.js';
+import type { Referent } from '../ui/attention.js';
 import { idleBorder, onSettings } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
 import { BOARD_SIZE, panelText, type Board, type Card, type Workspace } from './model.js';
@@ -199,6 +200,20 @@ class BoardView {
    * noise test proves it), so a parked board only takes whole-board and whole-column taps. Tapping it brings it
    * within reach; with a card held, a tap drops the card in the column under the ray.
    */
+  /** What a control stands for when the user says "this" to the agent (src/ui/attention.ts): a card, a column, the board. */
+  refer(key: string | null): Referent | null {
+    const board = this.board();
+    if (!board) return null;
+    const [kind, c, k] = (key ?? 'board').split('-');
+    const column = board.columns[Number(c)];
+    if (kind === 'card') {
+      const card = column?.cards[this.pages[Number(c)] * CARDS + Number(k)];
+      if (card) return { board: board.id, card: card.id, title: card.title };
+    }
+    if (kind === 'col' && column) return { board: board.id, column: column.id, title: column.title };
+    return { board: board.id, title: board.title };
+  }
+
   tapCard(c: number, k: number): void {
     if (!this.isFocus()) {
       this.tapParked(c);
@@ -301,6 +316,7 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
       else view.tapBoard();
     },
     hover: (key, hovered) => view.setHover(key, hovered),
+    refer: (key) => view.refer(key),
   }, view.cleanups);
   return slots;
 }

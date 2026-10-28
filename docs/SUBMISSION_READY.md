@@ -64,6 +64,17 @@
 - **README:** rewritten as a pitch by the judging criteria, with the verification table kept.
 - **To go live it needs a deploy** (front end only this time; the server is unchanged since `685216d`).
 
+## Spatial AI and direct interaction (pushed after `93f4d4d`, not deployed)
+
+- **The agent knows what "this" is:** a second's look at a card (head ray, the eyes where tracked, tested five times a
+  second) makes it "this"; "move this to Done" sends Nova its id, which the server marks in the workspace with one fixed
+  rule in the system prompt. Only words that point send it; "help me start this" starts that card even without the AI.
+- **Direct touch:** a fingertip (or a controller's tip) lights a control from 5 cm, with a ring on the surface closing
+  in, and presses it on contact, however slowly; one press per touch, never from behind.
+- **3D sound:** every cue stays put in the room as the head turns; a gliding panel breathes a soft whoosh that follows it.
+- **To go live it needs a deploy of both the server and the front end** (the server adds the "[looked at]" mark).
+  Production, checked on the live page, still serves `685216d`: `93f4d4d` was not deployed.
+
 ## Video
 
 - **Public link:** https://youtu.be/jtqAi3gl-os (155 s, "SpatialDesk: a workspace that adapts to your body and your mind

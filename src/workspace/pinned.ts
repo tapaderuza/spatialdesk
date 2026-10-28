@@ -17,7 +17,6 @@ import {
   OneHandGrabbable,
   PanelDocument,
   PanelUI,
-  PokeInteractable,
   RayInteractable,
   Vector3,
   type Entity,
@@ -58,12 +57,12 @@ export class PinnedPanel {
   ) {
     this.root = world.createTransformEntity(new Group());
     this.root.object3D!.rotation.order = 'YXZ';
+    this.root.object3D!.name = `${item}:pinned`; // what a glide's sound follows (src/ui/sounds.ts), by name in the tests
     this.unshadow = castShadow(this.root.object3D!, size); // a soft shadow behind it, so it sits in the space
 
     this.panel = world.createTransformEntity(undefined, { parent: this.root });
     this.panel.addComponent(PanelUI, { config });
     this.panel.addComponent(RayInteractable);
-    this.panel.addComponent(PokeInteractable);
     this.panel.addComponent(PinnedItem, { item });
 
     this.material = new MeshStandardMaterial({ color: HANDLE_COLOR, roughness: 0.55, metalness: 0.1 });

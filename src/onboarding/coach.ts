@@ -9,7 +9,6 @@ import {
   Object3D,
   PanelDocument,
   PanelUI,
-  PokeInteractable,
   RayInteractable,
   Vector3,
   type Entity,
@@ -93,7 +92,6 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
     this.entity.object3D!.rotation.order = 'YXZ';
     this.entity.addComponent(PanelUI, { config: CONFIG });
     this.entity.addComponent(RayInteractable);
-    this.entity.addComponent(PokeInteractable);
     this.entity.addComponent(CoachPanel);
     this.queries.ready.subscribe('qualify', (entity) => {
       const document = entity.getValue(PanelDocument, 'document') as UIKitDocument | undefined;

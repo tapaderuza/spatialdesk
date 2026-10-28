@@ -16,7 +16,6 @@ import {
   MeshBasicMaterial,
   PanelDocument,
   PanelUI,
-  PokeInteractable,
   RayInteractable,
   SphereGeometry,
   VisibilityState,
@@ -370,7 +369,6 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     entity.object3D!.rotation.order = 'YXZ';
     entity.addComponent(PanelUI, { config: CONFIG });
     entity.addComponent(RayInteractable);
-    entity.addComponent(PokeInteractable);
     entity.addComponent(SetupPanel);
     this.entity = entity;
   }

@@ -2,11 +2,14 @@
  * The sound of SpatialDesk, synthesised with Web Audio (no files, no licences). Every cue is the same soft mallet (a
  * sine with a quickly fading fourth partial, through a gentle low-pass), tuned to one pentatonic scale, so the cues
  * belong to one instrument and never clash when they overlap. They sound from where things happen: a tap from the
- * control, the alarm from the timer, the plant's notes from the plant (HRTF, placed relative to the head when they
- * play). During a focus block a quiet ambience of soft air, breathing slowly, fades in, and out again when the block
- * pauses or ends. Everything follows the Sound setting except the timer's alarm, which is information, not decoration.
+ * control, the alarm from the timer, the plant's notes from the plant, and a breath of air from a panel gliding to its
+ * place, following it as it moves (HRTF). Every cue still sounding is kept where it is in the room as the head turns:
+ * its place relative to the ears is recomputed each frame (SpatialAudioSystem), for at most [MAX_VOICES] at once and
+ * at no cost when none sounds. During a focus block a quiet ambience of soft air, breathing slowly, fades in, and out
+ * again when the block pauses or ends. Everything follows the Sound setting except the timer's alarm, which is
+ * information, not decoration.
  */
-import { Quaternion, Vector3, type Object3D } from '@iwsdk/core';
+import { createSystem, Quaternion, Vector3, type Object3D } from '@iwsdk/core';
 import { onSettings, settings } from './settings.js';
 import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 
@@ -97,10 +100,10 @@ function mallet(ctx: AudioContext, out: AudioNode, [frequency, start, length, le
   }
 }
 
-// Where the head is, for cues placed in the room (set once by bindHead; read only when a cue plays).
+// Where the head is, for cues placed in the room (set once by bindHead).
 let head: Object3D | null = null;
 const headPosition = new Vector3();
-const headRotation = new Quaternion();
+const headInverse = new Quaternion();
 const local = new Vector3();
 
 /** The camera the listener's ears follow. */
@@ -108,39 +111,165 @@ export function bindHead(camera: Object3D): void {
   head = camera;
 }
 
-/** Where a cue goes: placed at [at] around the listener (HRTF), or straight to the mix. */
-function output(ctx: AudioContext, at?: { x: number; y: number; z: number }): AudioNode {
+/**
+ * A cue sounding from somewhere in the room. The listener stays at the origin facing -Z, and each panner is placed
+ * where its cue is relative to the ears: so it is placed again every frame while it sounds ([tickVoices]), from where it
+ * started or from the object it follows (a gliding panel). A fixed pool, reused: no allocation per frame.
+ */
+interface Voice {
+  panner: PannerNode | null;
+  kind: string;
+  readonly at: Vector3;
+  follow: Object3D | null;
+  /** The context time it has finished by. */
+  until: number;
+}
+const MAX_VOICES = 12;
+const voices: Voice[] = Array.from({ length: MAX_VOICES }, () => ({ panner: null, kind: '', at: new Vector3(), follow: null, until: 0 }));
+let liveVoices = 0;
+/** Where each kind of cue last sounded from, for the tests (a click is over in a tenth of a second). */
+const lastPlace = new Map<string, { x: number; y: number; z: number }>();
+/** Panner moves are ramped over a frame or two: no zipper noise as the head turns. */
+const RAMP_S = 0.03;
+
+/** [world] relative to the ears (a shared scratch vector: read it at once). The head must have been read. */
+function toEars(world: Vector3): Vector3 {
+  return local.copy(world).sub(headPosition).applyQuaternion(headInverse);
+}
+
+function readHead(camera: Object3D): void {
+  camera.getWorldPosition(headPosition);
+  camera.getWorldQuaternion(headInverse).invert();
+}
+
+/**
+ * Where a cue goes: placed at [at] around the listener (HRTF) and kept there until [until] (context time), following
+ * [follow] when given; or straight to the mix (no place given, mono audio, or no head yet).
+ */
+function output(ctx: AudioContext, kind: string, until: number, at?: { x: number; y: number; z: number }, follow?: Object3D): AudioNode {
   const bus = cuesBus ?? master ?? ctx.destination;
   if (!at || !head || !master || accessPreferences.monoAudio) return bus;
-  head.getWorldPosition(headPosition);
-  head.getWorldQuaternion(headRotation);
-  local.set(at.x, at.y, at.z).sub(headPosition).applyQuaternion(headRotation.invert());
-  const panner = ctx.createPanner();
+  readHead(head);
+  // A free voice, else the one that ends soonest (its cue keeps its last place).
+  let voice = voices[0];
+  for (let i = 0; i < MAX_VOICES; i++) {
+    const v = voices[i];
+    if (!v.panner) {
+      voice = v;
+      break;
+    }
+    if (v.until < voice.until) voice = v;
+  }
+  if (!voice.panner) liveVoices++;
+  voice.at.set(at.x, at.y, at.z);
+  lastPlace.set(kind, { x: at.x, y: at.y, z: at.z });
+  voice.kind = kind;
+  voice.follow = follow ?? null;
+  voice.until = until;
+  const panner = (voice.panner = ctx.createPanner());
   panner.panningModel = 'HRTF';
   panner.distanceModel = 'inverse';
   panner.refDistance = 0.6;
   panner.rolloffFactor = 0.5;
-  panner.positionX.value = local.x;
-  panner.positionY.value = local.y;
-  panner.positionZ.value = local.z;
+  const ears = toEars(voice.at);
+  panner.positionX.value = ears.x;
+  panner.positionY.value = ears.y;
+  panner.positionZ.value = ears.z;
   panner.connect(bus);
   return panner;
+}
+
+/** Every frame while cues sound: each one placed again around the ears, at its place or its moving object's. */
+export function tickVoices(): void {
+  if (liveVoices === 0 || !context || !head) return;
+  const now = context.currentTime;
+  readHead(head);
+  for (let i = 0; i < MAX_VOICES; i++) {
+    const v = voices[i];
+    if (!v.panner) continue;
+    if (now > v.until) {
+      v.panner = null;
+      v.follow = null;
+      liveVoices--;
+      continue;
+    }
+    if (v.follow) v.follow.getWorldPosition(v.at);
+    const ears = toEars(v.at);
+    const end = now + RAMP_S;
+    v.panner.positionX.linearRampToValueAtTime(ears.x, end);
+    v.panner.positionY.linearRampToValueAtTime(ears.y, end);
+    v.panner.positionZ.linearRampToValueAtTime(ears.z, end);
+  }
+}
+
+/** When the last of [notes], starting at [at], has died away (context time). */
+function endOf(notes: readonly Note[], at: number): number {
+  let end = at;
+  for (const [, start, length] of notes) end = Math.max(end, at + start + length + 0.05);
+  return end;
 }
 
 /** A cue, from [at] in the room when given (a control, a timer, the plant). */
 export function play(sound: Sound, at?: { x: number; y: number; z: number }): void {
   if (!settings.sound || accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
-  const out = output(context, at);
   const now = context.currentTime + 0.01;
+  const out = output(context, sound, endOf(CUES[sound], now), at);
   for (const note of CUES[sound]) mallet(context, out, note, now);
 }
 
 /** The timer's alarm, from the timer: plays even with sounds off. */
 export function alarm(at: { x: number; y: number; z: number }): void {
   if (accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
-  const out = output(context, at);
   const now = context.currentTime + 0.02;
+  const out = output(context, 'alarm', endOf(ALARM, now), at);
   for (const note of ALARM) mallet(context, out, note, now);
+}
+
+// The glide's breath of air: noise through a band that opens and closes with the motion, softer for a short move.
+const WHOOSH_S = 0.75;
+const WHOOSH_LEVEL = 0.14;
+/** Several panels gliding together (the space moved for comfort) breathe as one: each further one is softer. */
+const MAX_WHOOSHES = 4;
+let whiteNoise: AudioBuffer | null = null;
+const startPlace = new Vector3();
+
+/** A breath of air from [object] as it glides [metres] to its place, following it while it moves (src/ui/glide.ts). */
+export function whoosh(object: Object3D, metres: number): void {
+  const ctx = context;
+  if (!settings.sound || accessPreferences.cuesVolume === 0 || !ctx || ctx.state !== 'running') return;
+  let sounding = 0;
+  for (let i = 0; i < MAX_VOICES; i++) if (voices[i].panner && voices[i].kind === 'whoosh' && voices[i].until > ctx.currentTime) sounding++;
+  if (sounding >= MAX_WHOOSHES) return;
+  if (!whiteNoise) {
+    whiteNoise = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * WHOOSH_S), ctx.sampleRate);
+    const data = whiteNoise.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  const t = ctx.currentTime + 0.01;
+  const out = output(ctx, 'whoosh', t + WHOOSH_S + 0.05, object.getWorldPosition(startPlace), object);
+  const source = ctx.createBufferSource();
+  source.buffer = whiteNoise;
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.Q.value = 0.9;
+  band.frequency.setValueAtTime(320, t);
+  band.frequency.exponentialRampToValueAtTime(1100, t + 0.22);
+  band.frequency.exponentialRampToValueAtTime(420, t + WHOOSH_S);
+  const gain = ctx.createGain();
+  const level = (WHOOSH_LEVEL * Math.min(1, Math.max(0.4, metres / 0.6))) / (1 + sounding);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(level, t + 0.16);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + WHOOSH_S);
+  source.connect(band).connect(gain).connect(out);
+  source.start(t);
+  source.stop(t + WHOOSH_S + 0.02);
+}
+
+/** Keeps every sounding cue where it is in the room as the head turns. Register after the systems that move panels. */
+export class SpatialAudioSystem extends createSystem({}) {
+  update(): void {
+    tickVoices();
+  }
 }
 
 // Focus ambience: soft air (brown noise, low-passed) whose level breathes on a slow wave.
@@ -209,4 +338,16 @@ onAccessPreferences(() => { applyAccessMix(); setAmbience(ambienceWanted); });
   ambienceOn: () => ambience != null,
   running: () => context?.state === 'running',
   mix: () => ({ cues: cuesBus?.gain.value ?? 0, ambience: ambienceBus?.gain.value ?? 0, channels: master?.channelCount ?? 2 }),
+  /** Where a kind of cue last sounded from in the room. */
+  lastPlace: (kind: string) => lastPlace.get(kind) ?? null,
+  /** The cues sounding from a place: what, where in the room, and where around the ears its panner has it now. */
+  voices: () =>
+    voices
+      .filter((v) => v.panner && context && v.until > context.currentTime)
+      .map((v) => ({
+        kind: v.kind,
+        follows: v.follow?.name ?? null,
+        at: { x: v.at.x, y: v.at.y, z: v.at.z },
+        ears: { x: v.panner!.positionX.value, y: v.panner!.positionY.value, z: v.panner!.positionZ.value },
+      })),
 };

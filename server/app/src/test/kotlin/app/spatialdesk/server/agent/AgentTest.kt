@@ -42,8 +42,10 @@ private val starter: Workspace = (
 private class Scripted(vararg answers: ModelPlan) : PlanModel {
     private val queue = ArrayDeque(answers.toList())
     val feedback = mutableListOf<String?>()
+    val systems = mutableListOf<String>()
     override fun propose(system: String, user: String, feedback: String?): ModelPlan {
         this.feedback += feedback
+        systems += system
         return queue.removeFirst()
     }
 }
@@ -365,6 +367,29 @@ class PlannerTest {
         assertTrue(text.startsWith("Local time: Tuesday 2026-10-07 09:10."))
         assertTrue("1. \"Getting started\" [focus board] columns: \"To do\" (1 cards: \"Tap a card\")" in text, text)
         assertTrue("Room for 3 more boards and 3 more timers." in text)
+    }
+
+    @Test
+    fun `what the eyes rest on is marked in the workspace, and only then do the rules say how to read "this"`() {
+        val board = starter.boards.single()
+        val card = board.columns.flatMap { it.cards }.first { it.title == "Tap a card" }
+        val looking = PlanRequest(Intent.Companion, "move this to done", starter, attention = Attention(board = board.id, card = card.id))
+        assertTrue("\"Tap a card\" [looked at]" in Prompt.user(looking), Prompt.user(looking))
+        assertEquals(1, Regex(Regex.escape(Prompt.LOOKED_AT)).findAll(Prompt.user(looking)).count(), "the card only, not its board too")
+        assertTrue(Prompt.system(looking).startsWith(Prompt.SYSTEM) && Prompt.GAZE_RULE in Prompt.system(looking))
+        // The model is given both.
+        val model = Scripted(ModelPlan("I can move it to Done.", emptyList()), ModelPlan("I can move it to Done.", emptyList()))
+        planner(model).plan(looking)
+        assertTrue(model.systems.isNotEmpty() && model.systems.all { Prompt.GAZE_RULE in it })
+        // A board, a column, a timer.
+        assertTrue("\"Getting started\" [looked at]" in Prompt.user(looking.copy(attention = Attention(board = board.id))))
+        assertTrue("\"Doing\" [looked at] (" in Prompt.user(looking.copy(attention = Attention(column = board.columns[1].id))))
+        // Nothing looked at, or an id that is not in the workspace (stale, or invented): the plain rules, no mark.
+        for (none in listOf(null, Attention(card = "c999"), Attention(timer = "t9"), Attention())) {
+            val request = looking.copy(attention = none)
+            assertEquals(Prompt.SYSTEM, Prompt.system(request))
+            assertFalse(Prompt.LOOKED_AT in Prompt.user(request))
+        }
     }
 }
 

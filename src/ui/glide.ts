@@ -10,10 +10,11 @@
  *
  * It slides only what the person (or the AI on their behalf) asked for. Loading, bookkeeping, the first placement,
  * a jump of more than [TELEPORT_M] (walking to another room), a panel in someone's hand, a flat screen and the reduced
- * motion preference all place at once.
+ * motion preference all place at once. A glide sounds as a soft breath of air from the panel itself, following it.
  */
 import { createSystem, VisibilityState, type Object3D } from '@iwsdk/core';
 import { accessPreferences } from '../accessibility/preferences.js';
+import { whoosh } from './sounds.js';
 import type { Pose } from '../workspace/model.js';
 import type { ChangeSource } from '../workspace/store.js';
 
@@ -134,6 +135,7 @@ export function placeSmoothly(object: Object3D, pose: Pose, scale: number, smoot
     g.x[0] = p.x; g.x[1] = p.y; g.x[2] = p.z; g.x[3] = here.y; g.x[4] = here.x; g.x[5] = object.scale.x;
     gliders.set(object, g);
     active.push(g);
+    whoosh(object, distance); // a breath of air from the panel, following it (src/ui/sounds.ts)
   }
   g.hold = options.hold;
   g.moved = options.moved;
