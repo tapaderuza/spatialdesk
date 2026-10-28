@@ -5,15 +5,27 @@
  *
  *   PORT=18080 SPATIALDESK_AGENT_MODE=built-in SPATIALDESK_VOICE_ENABLED=false java -jar server/app/build/libs/app.jar
  *   ASSIST_REAL=http://127.0.0.1:18080 npx playwright test tests/assist-real.spec.ts
+ *
+ * Or against production, where the pages are served by the same host as the API (nothing to redirect):
+ *
+ *   E2E_URL=https://<cloudfront> npx playwright test tests/assist-real.spec.ts
  */
 import { expect, test, type Page } from '@playwright/test';
 import { enterXR, pressXR, type Win } from './helpers.js';
 
 const SERVER = process.env.ASSIST_REAL;
-test.skip(!SERVER, 'set ASSIST_REAL=http://127.0.0.1:<port> to run against a real local server');
+const PRODUCTION = process.env.E2E_URL;
+test.skip(!SERVER && !PRODUCTION, 'set ASSIST_REAL=http://127.0.0.1:<port> (a local server) or E2E_URL=https://<host> (production)');
+test.use(PRODUCTION && !SERVER ? { baseURL: PRODUCTION } : {});
 
 test.beforeEach(async ({ context }) => {
-  await context.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1'));
+  // Neither the first-run coach nor the guided setup in the way. (playwright.config.ts seeds "calibrated" for localhost only;
+  // on production a new visitor would get the setup, and this panel would wait behind it, as it should.)
+  await context.addInitScript(() => {
+    localStorage.setItem('spatialdesk.onboarded', '1');
+    localStorage.setItem('spatialdesk.calibrated', '1');
+  });
+  if (!SERVER) return; // production: the page and its API share a host
   // Every /api call of both pages goes to the real server (the preview server proxies to port 8080 only).
   await context.route('**/api/**', (route) => {
     const url = new URL(route.request().url());
@@ -25,6 +37,10 @@ const helperStage = (page: Page, stage: string) => page.waitForFunction((stage) 
 
 test('the real server: invite, code, Allow, board, a card added, Help opens the setup, it finishes, Stop ends it', async ({ context, page }) => {
   test.setTimeout(150_000);
+  // Against production the console must stay clean too: no failed polling, no errors from either page.
+  const consoleErrors: string[] = [];
+  const watch = (p: Page) => p.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text().slice(0, 200)));
+  watch(page);
   const errors = await enterXR(page, '&fast');
   await page.evaluate(() => (window as Win).__voice.say('invite a helper'));
   await helperStage(page, 'inviting');
@@ -34,6 +50,7 @@ test('the real server: invite, code, Allow, board, a card added, Help opens the 
   const carer = await context.newPage();
   const carerErrors: string[] = [];
   carer.on('pageerror', (e) => carerErrors.push(e.message));
+  watch(carer);
   await carer.goto('/companion.html');
   await carer.locator('#code').fill(code);
   await carer.locator('#connect').click();
@@ -66,6 +83,8 @@ test('the real server: invite, code, Allow, board, a card added, Help opens the 
 
   await page.bringToFront();
   await page.waitForFunction(() => (window as Win).__helper.view.open && (window as Win).__helper.view.a === 'Stop sharing');
+  // While it is shared, polling every two seconds from both sides, the console has said nothing wrong.
+  const whileSharing = [...consoleErrors];
   await pressXR(page, 'helper:a'); // Stop sharing
   await helperStage(page, 'ended');
   await expect(carer.locator('h2')).toHaveText('This session has ended', { timeout: 15_000 });
@@ -78,4 +97,9 @@ test('the real server: invite, code, Allow, board, a card added, Help opens the 
   await expect(late.locator('#code-error')).toContainText('not valid or has expired');
   expect(errors).toEqual([]);
   expect(carerErrors).toEqual([]);
+  if (PRODUCTION && !SERVER) {
+    expect(whileSharing, 'no console errors on production while it is shared, polling included').toEqual([]);
+    // The end itself is signalled by a 404 on the carer's next poll (and on the dead code): the browser notes each one.
+    expect(consoleErrors.slice(whileSharing.length).filter((text) => !/status of 404/.test(text)), 'after the end, nothing but those 404s').toEqual([]);
+  }
 });

@@ -314,3 +314,35 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
   `tests/carer.spec.ts`, and the original got one wait for the slide to finish.
 - Production runs `9f5497a`. Nothing of blocks 16 to 20 is deployed; it needs the user's go-ahead, and the server and the
   front end go together (the Help button and the 6 s Nova limit need the new server).
+
+## Block 21: deployed to production, and the final sanity check
+
+- Deploy, with the user's explicit authorization for `685216d` (the working tree is that code plus one documents-only
+  commit, `f18bdbd`): `node scripts/deploy.mjs` with `JAVA_HOME` and `GRADLE_USER_HOME`; exit 0; the CDK stack took 487 s;
+  the script's end-to-end tests against production: 2 of 2 (the link online and its clock synced, 198 ms; a plan in 3.0 s from
+  `us.amazon.nova-2-lite-v1:0`, steps `create_board`, `start_timer`, `arrange_space`). Before: `assets/index-mKbjlmfo.js`
+  (`9f5497a`). After: `assets/main-UtJCl-Ml.js`, the entry of the local build (renamed because the build now has two pages).
+- The carer page on production: `companion.html` 200 with 755 bytes, its JS, CSS and shared module 200 (9,817, 3,275 and 2,986
+  bytes), `/?mode=companion` 200, `POST /api/assist/pairs/x/help` 401 (404 before the deploy: the route exists now). A trap I
+  noted: `companion.html` also answered 200 before the deploy, because CloudFront falls back to `index.html` (HTTP 200) for a
+  file that is missing; a bare status code proves nothing there, the size and the chunk names do.
+- The whole story against production itself (`tests/assist-real.spec.ts` now also takes `E2E_URL`): invite, code, Allow, the
+  board, a card added, Help opens the setup and its orb, it finishes, Stop, the dead code refused. It passes. The first run
+  failed for a reason in my test, not in production: `playwright.config.ts` seeds "calibrated" for `localhost` only, so on the
+  production origin the guided setup opened by itself and the helper panel waited behind it, as designed; the test now seeds
+  the flag for the origin it runs on. The console check on that run found one `Failed to load resource ... 404`, which is the
+  carer's poll after Stop (the 404 is how the end is signalled); the test now requires a silent console while it is shared and
+  allows only those 404s after the end.
+- Console on production, real Edge, 12 s idle (`scratchpad/console-check.mjs`, not committed): flat screen 4 messages, 3 distinct
+  (the Three.js duplicate-instance warning twice, the IWSDK banner, one shader precision warning), 0 page errors, 0 failed
+  requests; emulated headset 8 messages, 7 distinct (the same plus the emulator's plane, mesh and anchor detection notes and two
+  eye-tracking warnings), 0 errors; companion page 0 messages. The polling is silent. The Three.js duplicate-instance warning
+  is not from this block (it is in the test consoles from before it, and `vite.config.ts` already dedupes what it can); I did
+  not trace which dependency brings the second copy. It appears twice per page load, not per frame.
+- Secrets: no tracked `.env`, key, credential or CDK output; none ever in the history; `.env`, `.env.local`, `.env.production`
+  are ignored. The pattern scan found only AWS's documented example key in a signature unit test and a synthetic passphrase
+  in a vault test. No account id is tracked.
+- Performance after the deploy: right after it (hot, on AC power) the whole frame measured 32.0, 30.5 and 33.7 ms p95
+  (limit 29.4) in three attempts while our systems were at 1.8 to 2.3 ms (limit 3.0): the laptop was hot. After 7 minutes of
+  rest, on AC: **25.8 ms p95, median 16.5 ms**, our systems 1.7 ms p95, 78 draw calls; it passed at the first attempt.
+- Production now runs the code of `685216d`. Open: a physical headset; real hands.

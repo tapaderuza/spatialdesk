@@ -2,55 +2,63 @@
 
 ## Git and performance
 
-- **Pushed:** `main` on https://github.com/tapaderuza/spatialdesk, with the full pre-push CI (typecheck, 153 tests passed and
-  5 skipped as before, size check) and without `--no-verify`. The previous push was `c1ad445`.
-- **Frame time (whole frame, p95, CPU throttled 3x, Intel UHD 630), latest full run:** 27.1 ms (limit 29.4 ms), median
-  16.4 ms. The app's own systems: 1.5 ms p95 (limit 3 ms). 78 draw calls (limit 80), 67 bytes allocated per frame.
-- **Still not reached:** p95 below 25 ms consistently. The same code measures 24 to 33 ms across runs on this laptop;
-  what is left of the frame is the framework (pointer raycasts, render) and the emulator, not our code. The performance
-  test retries twice so noise does not fail the CI; its budgets are unchanged.
+- **Pushed:** `main` on https://github.com/tapaderuza/spatialdesk, with the full pre-push CI and without `--no-verify`. The
+  code is `685216d` (the carer outside the headset, panels that glide, no endless "thinking"): 178 tests passed, 6 skipped
+  (the real-server and production story, which needs a server named), 0 failed; server suite 108 tests, 0 failures. Only
+  documents come after it.
+- **Frame time (whole frame, p95, CPU throttled 3x, Intel UHD 630), standalone run on AC power after a cool-down:** 25.8 ms
+  (limit 29.4 ms), median 16.5 ms. The app's own systems: 1.7 ms p95 (limit 3 ms). 78 draw calls (limit 80).
+- **It depends on the laptop, not on the code:** the same build measured 30.5 to 33.7 ms right after a deploy (hot, on AC)
+  and 85 to 99 ms on battery. With the glide and helper systems taken out it measured the same. Run it cool and plugged in;
+  the test retries twice. Still not reached: p95 below 25 ms consistently.
 
 ## Production
 
-- **In production now: `main = 9f5497a`** (English first, the guided setup, the voice phrases, on top of the panel
-  cache, sofa and bed mode, the amber frame and the controller pulse). Deployed the same day with the user's explicit
-  authorization for that commit (the one before it, for `c1ad445`, was a separate go-ahead). `node scripts/deploy.mjs`
-  needs `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the CDK stack took
-  124 s. The end-to-end tests against production passed 2 of 2 (the link syncs its clock in 117 ms; plan in 1.9 s,
+- **In production now: the code of `685216d`, server and front deployed together,** with the user's explicit authorization
+  for that commit (the earlier one, for `9f5497a`, was a separate go-ahead). `node scripts/deploy.mjs` needs
+  `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the CDK stack took 487 s. The
+  end-to-end tests the script runs against production passed 2 of 2 (the link syncs its clock, 198 ms; plan in 3.0 s,
   Nova 2 Lite, three steps).
-- **How the live version was checked:** the page at https://d2p3027seoreck.cloudfront.net/ names
-  `assets/index-mKbjlmfo.js`, the same file the local build of `9f5497a` names (7.1 MB served, HTTP 200); that bundle
-  holds the new storage keys (`spatialdesk.calibrated`, `spatialdesk.language`, `spatialdesk.seat`) and the setup orb,
-  and `ui/setup.uikitml` answers 200. The previous bundle, `index-BOwyVc7t.js` (`c1ad445`), is still downloadable but no
-  page points to it.
-- **Not checked on production:** the guided setup and English-first were not walked through in the live app (the
-  end-to-end tests cover the link and the plan, not the setup); they were tested on the preview build, in the emulator.
+- **How the live version was checked:** the page at https://d2p3027seoreck.cloudfront.net/ names `assets/main-UtJCl-Ml.js`
+  (the entry was `index-*` before; the build has two pages now), the same file the local build names. `companion.html`
+  answers 200 with 755 bytes and its three files (9.8 KB of JS, 3.3 KB of CSS, 3.0 KB shared) answer 200; before the deploy
+  it also answered 200, but that was CloudFront's fallback to `index.html` for a missing file, so the size and the files
+  are the proof, not the code. `/?mode=companion` answers 200. The new help endpoint exists: `POST /api/assist/pairs/x/help`
+  answered 404 before and 401 (session expired) after.
+- **The carer story against production itself** (`E2E_URL=... npx playwright test tests/assist-real.spec.ts`): the headset
+  invites, the carer types the code, nothing shows until Allow, the Today board appears and follows a card added in the
+  headset, Help / Recalibrate opens the guided setup and its orb and the carer learns it finished, Stop ends it, the dead
+  code is refused. It passes, with a clean console on both pages while it is shared.
+- **Console on production** (real Edge, 12 s idle): a flat screen says 4 things and no errors (the Three.js duplicate-
+  instance warning twice, the IWSDK banner, one shader precision warning); the emulated headset says 8 (the same, plus the
+  emulator's missing plane detection and eye tracking); the companion page says nothing. No page errors and no failed or
+  4xx/5xx requests in any of them; the polling is silent. The only 404s are the deliberate "this sharing has ended" answers.
+- **No secrets in the repository:** no `.env`, key or credential file is tracked or ever was in the history (`.env`,
+  `.env.local` and `.env.production` are ignored); the only matches are AWS's documented example key in a signature unit test
+  and a synthetic passphrase in a vault test. No account id or CDK output is tracked.
+- **Not checked on production:** a physical headset, and real hands (the story drives the setup and the Allow press through
+  the emulator).
 
-## Pushed after that (685216d), not in production yet (waiting for the user's go-ahead)
-
-- **Checked by the pre-push CI:** 178 tests passed, 6 skipped, 0 failed; whole frame p95 27.2 ms, our systems p95 1.6 ms; server
-  suite 108 tests, 0 failures.
+## The asymmetric suite is deployed and ready for the judges
 
 - **The carer outside the headset:** `/companion.html` (also `/?mode=companion`), 17 KB, no XR app. The owner says "invite a
-  helper", the carer types the code, nothing is shown until Allow, then the Today board's card titles follow the headset
-  and one very large Help / Recalibrate button opens the guided setup and its orb in the headset. Tested in two pages of
-  one browser, and against the real server built from this code (running locally): the story passes.
+  helper" (or presses the button on the start screen), the carer types the code, nothing is shown until Allow, then the
+  Today board's card titles follow the headset and one very large Help / Recalibrate button opens the guided setup and its
+  orb in the headset. Only titles and columns travel; the carer cannot configure; 15 minutes; Stop revokes at once.
 - **Panels glide** to the comfort zone in under a second instead of jumping (27 cm: largest frame 5 % of the way, within
   1 mm in 978 ms); a gliding panel takes no pointer; reduced motion and a flat screen place at once.
 - **No endless "thinking":** the AI and the voice get 7 s, then "Network issue. Switched to manual mode." and the cards
-  still work by hand.
-- **To deploy both together:** the Help button and the 6 s Nova limit need the server (new endpoints and timeout). The
-  front end alone still shares the board; its Help button would say the call was not sent.
-- **Not verified:** a physical headset; real hands on the glide; and the performance gate on this hot laptop (whole frame
-  p95 31.7 to 34.8 ms against 29.4, the same with and without these changes; our systems 2.0 to 2.5 ms against 3.0).
+  still work by hand. The server cuts Nova at 6 s so its fallback fits.
+- **How a judge sees it:** two browser tabs are enough. Tab one: the app, "Enter VR" (or `?emulate` to try without a
+  headset), say or type "invite a helper" (the button is on the start screen). Tab two: `/companion.html`, type the code.
 
 ## Video
 
 - **Public link:** https://youtu.be/jtqAi3gl-os (155 s, "SpatialDesk: a workspace that adapts to your body and your mind
   (Meta Quest, Meta VR Glasses)"). Public, not made for kids; YouTube's oEmbed answers 200 without signing in.
 - It shows her request in Spanish, the space adapting, her companion's question, the saved setup, steady aim, one switch,
-  fit to my reach, a session at her pace, a return point, the AI log and her own room. It does not show the guided setup
-  or the sofa and bed mode: both are newer than the recording.
+  fit to my reach, a session at her pace, a return point, the AI log and her own room. It does not show the guided setup,
+  the sofa and bed mode or the carer's view: all are newer than the recording.
 
 ## Devpost (project 1254068, shown as SUBMITTED, 5/5 steps)
 
@@ -59,7 +67,7 @@
   (capabilities used, hand interactions, future of VR).
 - The four contest declarations were ticked by the user in the original submission; they were left as they were.
 
-## Code changes in this push
+## Code changes in the two previous pushes (the latest block is above)
 
 - **English first** (`src/i18n/language.ts`): the app, listening and reading aloud are in English whatever the browser's
   language is; another language comes from the link (`?lang=es-ES`) or from the person ("speak Spanish", "habla
@@ -88,6 +96,8 @@
   check, and a wrong guess would break the voice of the judges. Not attempted.
 - Buttons answered in Spanish: the planner's reply follows the language of what was said; a button with no spoken words
   (Plan my day, Start small) is answered in English even when the panels are in Spanish.
-- Ideas still open from the catalogue (`docs/IDEAS_SALUD_ACCESIBILIDAD_2026-10-27.md`): a carer who sets up the space
-  from a phone (the `/api/assist` server exists), visual and haptic alerts.
+- Ideas still open from the catalogue (`docs/IDEAS_SALUD_ACCESIBILIDAD_2026-10-27.md`): visual and haptic alerts. (The
+  carer who helps from a phone is done and deployed: see above.)
+- The carer's view is a poll every 2 s on each side, so a change shows in about 2 to 6 s; it is not a push.
+- The first card on the companion page is the Today board only (the board titled Today, else the one being worked on).
 - No physical headset evidence, by the project's own rule.
