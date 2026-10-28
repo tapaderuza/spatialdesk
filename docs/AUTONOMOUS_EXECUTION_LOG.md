@@ -234,9 +234,14 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
   beside the board and would otherwise jump while the board glides.
 - What slides, what does not: a change the person or the AI made for them (`source` `user` or `undo`: "Put it within my
   reach", the AI's comfort plan, the guided setup's Start, an undo) slides. Loading, the system's own bookkeeping (the
-  re-anchor when XR starts), the first placement of a panel, a jump of more than 3 m, a panel in someone's hand, a flat
-  screen and the `reducedMotion` preference place at once.
-- Measured in the emulated headset (`tests/glide.spec.ts`, 6 tests): a board 27.2 cm away from where it was, the largest
+  re-anchor when XR starts), the first placement of a panel, a jump of more than 3 m, a move of less than 4 cm and 2
+  degrees, a panel in someone's hand, a flat screen and the `reducedMotion` preference place at once.
+- Found by the pre-push CI, not by me (`seated.spec.ts`, 4 of 4): pressing Focus with the head turned 50 degrees re-anchors
+  the workspace by about 2 cm (the anchor follows the viewer), which started a slide of the whole scene, and for that second
+  the console took no pointer: the next press was lost. A 2 cm creep is invisible and must never cost a press, so a move
+  under 4 cm / 2 degrees / 3 % scale now places at once and only a real adjustment slides (`tests/glide.spec.ts`, the 7th
+  test: a 2 cm re-anchor leaves nothing gliding).
+- Measured in the emulated headset (`tests/glide.spec.ts`, 7 tests): a board 27.2 cm away from where it was, the largest
   single frame 1.4 to 1.6 cm (5 to 6 % of the way), within 1 mm after 978 ms; the undo glides back to within 1 mm of the
   start; at rest the last frames are identical (nothing keeps being updated).
 - The amber frame and the pulse now come when the boards have arrived (`whenSettled`), not when the state changes: they

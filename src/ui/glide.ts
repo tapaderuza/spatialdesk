@@ -26,6 +26,13 @@ const MAX_STEP_S = 0.05;
 const MAX_GLIDE_MS = 3_000;
 /** Further than this is a re-anchor to another place, not an adjustment: no slide across a room. */
 const TELEPORT_M = 3;
+/**
+ * Less than this is not worth a slide: it is the workspace following the head by a couple of centimetres when a button is
+ * pressed (the anchor follows the viewer), which nobody sees and which must never make a panel take no pointer for a second.
+ */
+const SMALL_M = 0.04;
+const SMALL_RAD = 0.035; // 2 degrees
+const SMALL_SCALE = 0.03;
 /** Position (m), angle (rad) and scale below which a channel is "there". Index: x y z yaw pitch scale. */
 const REST = new Float64Array([0.0005, 0.0005, 0.0005, 0.0005, 0.0005, 0.0005]);
 const CHANNELS = 6;
@@ -110,7 +117,10 @@ export function placeSmoothly(object: Object3D, pose: Pose, scale: number, smoot
   let g = gliders.get(object);
   const p = object.position;
   const distance = Math.hypot(p.x - pose.x, p.y - pose.y, p.z - pose.z);
-  if (first || !smooth || !enabled() || distance > TELEPORT_M) {
+  const here = object.rotation;
+  const small =
+    distance < SMALL_M && Math.abs(wrap(pose.yaw - here.y)) < SMALL_RAD && Math.abs(pose.pitch - here.x) < SMALL_RAD && Math.abs(scale - object.scale.x) < SMALL_SCALE;
+  if (first || !smooth || !enabled() || distance > TELEPORT_M || (!g && small)) {
     if (g) release(active.indexOf(g));
     object.position.set(pose.x, pose.y, pose.z);
     object.rotation.set(pose.pitch, pose.yaw, 0);
@@ -119,12 +129,6 @@ export function placeSmoothly(object: Object3D, pose: Pose, scale: number, smoot
     return;
   }
   if (!g) {
-    const here = object.rotation;
-    // Already there (a release, a card dropped, any change that leaves the panel where it is): nothing to animate.
-    if (distance < REST[0] && Math.abs(wrap(pose.yaw - here.y)) < REST[3] && Math.abs(pose.pitch - here.x) < REST[4] && Math.abs(scale - object.scale.x) < REST[5]) {
-      options.moved?.();
-      return;
-    }
     g = { object, x: new Float64Array(CHANNELS), v: new Float64Array(CHANNELS), t: new Float64Array(CHANNELS), hold: options.hold, moved: options.moved, events: (object as Pointable).pointerEvents, began: performance.now() };
     (object as Pointable).pointerEvents = 'none';
     g.x[0] = p.x; g.x[1] = p.y; g.x[2] = p.z; g.x[3] = here.y; g.x[4] = here.x; g.x[5] = object.scale.x;

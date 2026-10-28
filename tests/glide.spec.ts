@@ -164,3 +164,43 @@ test('a board taken away while it slides leaves nothing behind and breaks nothin
   expect(await page.evaluate(() => (window as Win).__glide.active())).toBe(0);
   expect(errors).toEqual([]);
 });
+
+test('a couple of centimetres of re-anchor (the workspace following the head) places at once and blocks nothing', async ({ page }) => {
+  const errors = await enterXR(page, '&fast');
+  await frames(page, 30);
+  const { before, samples } = await page.evaluate(async () => {
+    const w = window as Win;
+    const element = (() => {
+      let found: any = null;
+      w.__world.scene.traverse((o: any) => {
+        if (o.name === 'b1:card-0-0') found = o;
+      });
+      return found;
+    })();
+    const V = w.__world.camera.position.constructor;
+    const probe = new V();
+    const position = () => {
+      element.updateWorldMatrix(true, false);
+      return probe.setFromMatrixPosition(element.matrixWorld);
+    };
+    const before = position().toArray();
+    const a = w.__workspace.state.anchor;
+    w.__workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer: { x: a.x + 0.02, y: a.y, z: a.z + 0.015, yaw: a.yaw, pitch: 0 } });
+    const samples: { moved: number; active: number }[] = [];
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        const p = position().toArray();
+        samples.push({ moved: Math.hypot(p[0] - before[0], p[1] - before[1], p[2] - before[2]), active: w.__glide.active() });
+        if (samples.length >= 4) resolve();
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    return { before, samples };
+  });
+  expect(samples[0].moved, 'the workspace did follow the head by about 2 cm').toBeGreaterThan(0.01);
+  expect(samples[0].moved).toBeLessThan(0.04);
+  for (const sample of samples) expect(sample.active, 'and nothing slides, so nothing is left unpressable').toBe(0);
+  expect(before).toHaveLength(3);
+  expect(errors).toEqual([]);
+});
