@@ -23,6 +23,8 @@ type Element = UIKit.Text;
 interface PanelPointerEvent {
   point?: Vector3;
   pointerId?: number;
+  /** 'ray', 'grab' or 'touch' (pointer-events); a fingertip's touch is src/ui/poke.ts's, never a pointer event's. */
+  pointerType?: string;
   stopPropagation?: () => void;
 }
 
@@ -118,6 +120,7 @@ export class PanelHits<K extends string> {
     this.tally = new Float64Array(controls.length);
     const click = (event: PanelPointerEvent) => {
       event.stopPropagation?.();
+      if (event.pointerType === 'touch') return; // pressed on contact by src/ui/poke.ts; this would press it again
       // One-switch mode: the switch selects what is lit; a pinch must not also press what the ray points at. Nor
       // while a reach is measured (src/accessibility/reach.ts): that pinch is a measurement.
       if (accessPreferences.switchEnabled || reachState.measuring) return;
@@ -125,6 +128,7 @@ export class PanelHits<K extends string> {
       if (key != null) this.press(key);
     };
     const move = (event: PanelPointerEvent) => {
+      if (event.pointerType === 'touch') return; // the fingertip's hover is src/ui/poke.ts's, from 5 cm
       const pointer = event.pointerId ?? 0;
       const key = this.hit(event.point);
       if (!accessPreferences.tremorTolerance) {

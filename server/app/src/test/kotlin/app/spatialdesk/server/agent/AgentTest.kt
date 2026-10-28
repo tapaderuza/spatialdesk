@@ -370,6 +370,14 @@ class PlannerTest {
     }
 
     @Test
+    fun `the companion answers in the language the user spoke, not the language of its examples`() {
+        // Nova once answered every English sentence in Spanish, copying the examples, which were all Spanish.
+        assertTrue("English words get an English answer, Spanish words a Spanish one" in Prompt.SYSTEM)
+        assertTrue("User: \"I'm not comfortable\" -> {\"summary\":\"What is harder right now" in Prompt.SYSTEM)
+        assertTrue("User: \"No estoy cómoda\"" in Prompt.SYSTEM)
+    }
+
+    @Test
     fun `what the eyes rest on is marked in the workspace, and only then do the rules say how to read "this"`() {
         val board = starter.boards.single()
         val card = board.columns.flatMap { it.cards }.first { it.title == "Tap a card" }

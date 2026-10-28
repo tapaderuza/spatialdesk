@@ -10,8 +10,9 @@
  *
  * Pressed on contact, with no time limit, so a slow or unsteady press counts. IWSDK's own poke (its TouchPointer, for
  * PokeInteractable) presses only if the finger leaves again within 800 ms, which a careful hand, or one with a tremor,
- * often does not: so no panel is PokeInteractable and this owns direct touch. Like a pinch, it presses nothing while a
- * panel glides (src/ui/glide.ts), in switch mode, or while a reach is measured.
+ * often does not: so no panel is PokeInteractable, IWSDK's touch pointers are switched off (they are on by default, and
+ * a quick touch then pressed twice: here on contact, there on release), and this owns direct touch. Like a pinch, it
+ * presses nothing while a panel glides (src/ui/glide.ts), in switch mode, or while a reach is measured.
  *
  * Every frame in XR, for each hand: three dot products per panel, no matrix inverse, no allocation.
  */
@@ -75,7 +76,7 @@ export class PokeSystem extends createSystem({}) {
   private readonly normal = new Vector3();
   private fingers!: Finger[];
   /** Read by the Playwright tests. */
-  readonly state = { presses: 0, keys: [null, null] as (string | null)[], distances: [NaN, NaN], ready: [false, false] };
+  readonly state = { presses: 0, keys: [null, null] as (string | null)[], distances: [NaN, NaN], ready: [false, false], log: [] as string[] };
 
   init(): void {
     this.fingers = HANDS.map((hand) => {
@@ -94,6 +95,9 @@ export class PokeSystem extends createSystem({}) {
       this.world.createTransformEntity(ring);
       return { panel: null, key: null, ready: false, ring, material, pressedAt: -Infinity };
     });
+    // IWSDK's own touch pointers start enabled: off, so one touch is one press (PanelHits also ignores their events).
+    this.input.xr.multiPointers.left.toggleSubPointer('touch', false);
+    this.input.xr.multiPointers.right.toggleSubPointer('touch', false);
     (window as unknown as { __poke: PokeSystem['state'] }).__poke = this.state;
   }
 
@@ -141,6 +145,8 @@ export class PokeSystem extends createSystem({}) {
         if (key != null && !accessPreferences.switchEnabled && !reachState.measuring) {
           finger.pressedAt = performance.now();
           this.state.presses++;
+          this.state.log.push(`${hand} ${best.name || 'panel'}:${key}`);
+          if (this.state.log.length > 8) this.state.log.shift();
           best.press(key);
         }
       }

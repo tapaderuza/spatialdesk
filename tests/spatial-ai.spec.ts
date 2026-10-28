@@ -191,6 +191,29 @@ test('poke with a tracked hand: the index fingertip pushes a card, slowly, and p
   expect(errors).toEqual([]);
 });
 
+test("a quick tap is one press, with a hand or a controller (IWSDK's own touch pointer would press again on release)", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1'));
+  const errors = await enterXR(page);
+  // A controller's tip taps Focus 25 and is gone again within a tenth of a second: one timer.
+  await tipAt(page, 'command:focus-button', 0.03);
+  await tipAt(page, 'command:focus-button', 0);
+  await tipAt(page, 'command:focus-button', 0.03);
+  await tipAt(page, 'command:focus-button', 0.2);
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => (window as Win).__workspace.state.timers.length)).toBe(1);
+  // A hand taps a card quickly: it is picked up, and not put straight back.
+  await page.evaluate(() => ((window as Win).__xrDevice.primaryInputMode = 'hand'));
+  await frames(page, 10);
+  await tipAt(page, 'b1:card-0-0', 0.03, 'hands');
+  await tipAt(page, 'b1:card-0-0', 0, 'hands');
+  await tipAt(page, 'b1:card-0-0', 0.03, 'hands');
+  await tipAt(page, 'b1:card-0-0', 0.2, 'hands');
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => (window as Win).__notice?.text ?? '')).toMatch(/^Holding/);
+  expect((await poke(page)).presses).toBe(2);
+  expect(errors).toEqual([]);
+});
+
 test('3D sound: the click comes from the button pushed; a glide breathes from its panel, following it as the head turns', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1'));
   const errors = await openWorkspace(page, '?emulate');
