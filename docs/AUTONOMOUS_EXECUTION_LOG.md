@@ -191,3 +191,15 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
 - The performance gate in that run: whole frame p50 16.4 ms and p95 27.1 ms (limit 29.4), our systems p95 1.5 ms
   (limit 3), 78 draw calls (limit 80), 67 bytes per frame. The p95 below 25 ms asked for earlier is still not reached.
 - Production runs `c1ad445`. This push is not deployed: the authorization covered that commit.
+
+## Block 15: production runs 9f5497a
+
+- The user authorized the deploy of `9f5497a` (English first, the guided setup) with `node scripts/deploy.mjs`, with
+  `JAVA_HOME` and `GRADLE_USER_HOME` set. Before it: working tree clean, `HEAD` and `origin/main` both `9f5497a`.
+- Deploy: exit 0, CDK stack `SpatialDesk` updated in 124 s. End-to-end tests against production: 2 of 2 (link online,
+  117 ms round trip, clock synced; plan in 1.9 s from `us.amazon.nova-2-lite-v1:0`, steps `create_board`,
+  `start_timer`, `arrange_space`).
+- Live check: the page names `assets/index-mKbjlmfo.js`, the same bundle as the local build of this commit; it contains
+  `spatialdesk.calibrated`, `spatialdesk.language`, `spatialdesk.seat` and `setup-orb`; `ui/setup.uikitml` answers 200.
+- Not done: no walk through the guided setup in the live app (the e2e tests do not cover it) and nothing on a real
+  headset, as before.

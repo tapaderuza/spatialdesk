@@ -12,13 +12,19 @@
 
 ## Production
 
-- **Deployed today, with the user's explicit authorization:** `main = c1ad445` (panel cache, sofa and bed mode, the
-  amber frame and the controller pulse, on top of the scan frame and "fit to my reach"). `node scripts/deploy.mjs`
-  needs `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the first attempt
-  without them stopped before deploying anything. The end-to-end tests against production passed 2 of 2 (plan in 2.1 s,
-  Nova 2 Lite), and the live bundle is `assets/index-BOwyVc7t.js`, the hash of that commit's build.
-- **Not in production yet:** this push (English first, the guided setup, the voice phrases). A deploy needs a new
-  go-ahead from the user, because the authorization given covered `c1ad445`.
+- **In production now: `main = 9f5497a`** (English first, the guided setup, the voice phrases, on top of the panel
+  cache, sofa and bed mode, the amber frame and the controller pulse). Deployed the same day with the user's explicit
+  authorization for that commit (the one before it, for `c1ad445`, was a separate go-ahead). `node scripts/deploy.mjs`
+  needs `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the CDK stack took
+  124 s. The end-to-end tests against production passed 2 of 2 (the link syncs its clock in 117 ms; plan in 1.9 s,
+  Nova 2 Lite, three steps).
+- **How the live version was checked:** the page at https://d2p3027seoreck.cloudfront.net/ names
+  `assets/index-mKbjlmfo.js`, the same file the local build of `9f5497a` names (7.1 MB served, HTTP 200); that bundle
+  holds the new storage keys (`spatialdesk.calibrated`, `spatialdesk.language`, `spatialdesk.seat`) and the setup orb,
+  and `ui/setup.uikitml` answers 200. The previous bundle, `index-BOwyVc7t.js` (`c1ad445`), is still downloadable but no
+  page points to it.
+- **Not checked on production:** the guided setup and English-first were not walked through in the live app (the
+  end-to-end tests cover the link and the plan, not the setup); they were tested on the preview build, in the emulator.
 
 ## Video
 
