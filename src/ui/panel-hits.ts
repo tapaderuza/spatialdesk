@@ -49,6 +49,8 @@ export interface GazeTarget {
   refer(key: string | null): Referent | null;
   /** Direct touch (src/ui/poke.ts): how far a fingertip is in front, the control under it, its highlight. */
   touchDistance(tip: Vector3, margin: number, front?: number, behind?: number): number;
+  touchOver(margin: number): boolean;
+  touchGap(): number;
   touchFace(point: Vector3, normal: Vector3): void;
   pokeHit(fresh: boolean): string | null;
   setPokeHover(hand: 0 | 1, key: string | null): void;
@@ -92,6 +94,9 @@ export class PanelHits<K extends string> {
   /** Where the fingertip last measured by touchDistance() is over the panel, in the root's unit square. */
   private touchU = 0;
   private touchV = 0;
+  private touchW = 1;
+  private touchH = 1;
+  private touchD = 0;
   /** ... and the face's unit normal. */
   private readonly touchNormal = new Vector3();
   private lastPressKey: K | null = null;
@@ -325,7 +330,22 @@ export class PanelHits<K extends string> {
     if (d > front || d < -behind || !this.root.isVisible.value || !touchable(this.root)) return NaN;
     this.touchU = u;
     this.touchV = v;
+    this.touchW = Math.sqrt(xx);
+    this.touchH = Math.sqrt(yy);
+    this.touchD = d;
     return d;
+  }
+
+  /** How far the fingertip touchDistance() just measured is from the panel's nearest point, edges included (metres). */
+  touchGap(): number {
+    const ou = Math.max(Math.abs(this.touchU) - 0.5, 0) * this.touchW;
+    const ov = Math.max(Math.abs(this.touchV) - 0.5, 0) * this.touchH;
+    return Math.hypot(ou, ov, this.touchD);
+  }
+
+  /** Whether the fingertip touchDistance() just measured is over the panel, give or take [margin] metres. */
+  touchOver(margin: number): boolean {
+    return Math.abs(this.touchU) <= 0.5 + margin / this.touchW && Math.abs(this.touchV) <= 0.5 + margin / this.touchH;
   }
 
   /** Where the fingertip touchDistance() just measured meets the face (straight in), and the face's normal. */

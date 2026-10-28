@@ -124,6 +124,8 @@ test('voice commands act on the workspace: focus, undo, yes, no, settings', asyn
       json: { ok: true, summary: 'A break.', steps: [{ op: { op: 'start_timer', minutes: 5, label: 'Break' }, why: 'Rest' }], source: 'us.amazon.nova-2-lite-v1:0' },
     }),
   );
+  // The guided start's "You are set" can land on the notice line between a command and the check: not this test's.
+  await page.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1'));
   const errors = await openWorkspace(page);
   const say = (said: string) => page.evaluate((s) => (window as Win).__voice.say(s), said);
   const timers = () => page.evaluate(() => (window as Win).__workspace.state.timers.map((t: any) => t.label));

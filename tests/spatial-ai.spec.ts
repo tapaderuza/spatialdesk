@@ -164,11 +164,14 @@ test('poke: from 5 cm the control lights and a ring closes in; touching presses 
   await tipAt(page, 'command:focus-button', -0.025);
   await tipAt(page, 'command:focus-button', 0);
   expect((await poke(page)).presses).toBe(2);
-  // Away from the panel: nothing lit, no ring.
-  await tipAt(page, 'command:focus-button', 0.2);
+  // Away from the panel: nothing lit, no ring; within 18 cm the hand is about to poke and its ray steps aside.
+  await tipAt(page, 'command:focus-button', 0.12);
   state = await poke(page);
   expect(state.keys[1]).toBeNull();
   expect((await ring(page)).visible).toBe(false);
+  expect(await page.evaluate(() => (window as Win).__poke.rayOff[1])).toBe(true);
+  await tipAt(page, 'command:focus-button', 0.3);
+  expect(await page.evaluate(() => (window as Win).__poke.rayOff[1])).toBe(false);
   expect(errors).toEqual([]);
 });
 

@@ -16,7 +16,7 @@
  *
  * Every frame in XR, for each hand: three dot products per panel, no matrix inverse, no allocation.
  */
-import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState } from '@iwsdk/core';
+import { createSystem, InputComponent, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState } from '@iwsdk/core';
 import { livePanels, type GazeTarget } from './panel-hits.js';
 import { accessPreferences } from '../accessibility/preferences.js';
 import { reachState } from '../accessibility/reach.js';
@@ -31,6 +31,13 @@ const BEHIND = 0.03;
 const ARM = 0.02;
 /** Over the panel, give or take this much at its edges. */
 const MARGIN = 0.01;
+/**
+ * A fingertip this close to a panel's nearest point (in front, behind or past an edge) is about to poke: its ray
+ * steps aside, and comes back past [RAY_BACK]. IWSDK's own thresholds for its poke's priority over the ray. Never while
+ * the trigger is held, so a drag with the ray is never cut.
+ */
+const RAY_OFF = 0.15;
+const RAY_BACK = 0.2;
 const RING_FAR = 0.028;
 const RING_NEAR = 0.012;
 /** In front of the surface, never inside it. */
@@ -68,6 +75,8 @@ interface Finger {
   ring: Mesh;
   material: ShaderMaterial;
   pressedAt: number;
+  /** This hand's ray is switched off while it pokes ([RAY_OFF]). */
+  rayOff: boolean;
 }
 
 export class PokeSystem extends createSystem({}) {
@@ -76,7 +85,7 @@ export class PokeSystem extends createSystem({}) {
   private readonly normal = new Vector3();
   private fingers!: Finger[];
   /** Read by the Playwright tests. */
-  readonly state = { presses: 0, keys: [null, null] as (string | null)[], distances: [NaN, NaN], ready: [false, false], log: [] as string[] };
+  readonly state = { presses: 0, keys: [null, null] as (string | null)[], distances: [NaN, NaN], ready: [false, false], rayOff: [false, false], log: [] as string[] };
 
   init(): void {
     this.fingers = HANDS.map((hand) => {
@@ -93,7 +102,7 @@ export class PokeSystem extends createSystem({}) {
       ring.renderOrder = 1000; // over the panel it marks
       ring.visible = false;
       this.world.createTransformEntity(ring);
-      return { panel: null, key: null, ready: false, ring, material, pressedAt: -Infinity };
+      return { panel: null, key: null, ready: false, ring, material, pressedAt: -Infinity, rayOff: false };
     });
     // IWSDK's own touch pointers start enabled: off, so one touch is one press (PanelHits also ignores their events).
     this.input.xr.multiPointers.left.toggleSubPointer('touch', false);
@@ -107,6 +116,7 @@ export class PokeSystem extends createSystem({}) {
       const finger = this.fingers[h];
       const hand = HANDS[h];
       if (!xr || !(this.input.xr.isPrimary('hand', hand) || this.input.xr.isPrimary('controller', hand))) {
+        this.setRay(finger, h, false);
         this.leave(finger, h);
         continue;
       }
@@ -114,14 +124,17 @@ export class PokeSystem extends createSystem({}) {
       this.world.player.indexTipSpaces[hand].getWorldPosition(this.tip);
       let best: GazeTarget | null = null;
       let distance = NaN;
+      let nearest = Infinity;
       for (let i = 0; i < livePanels.length; i++) {
-        const d = livePanels[i].touchDistance(this.tip, MARGIN, NEAR, BEHIND);
-        if (Number.isNaN(d)) continue; // not over this panel, or not near it
-        if (best === null || Math.abs(d) < Math.abs(distance)) {
+        const d = livePanels[i].touchDistance(this.tip, RAY_BACK, RAY_BACK, RAY_BACK);
+        if (Number.isNaN(d)) continue; // nowhere near this panel
+        nearest = Math.min(nearest, livePanels[i].touchGap());
+        if (d <= NEAR && d >= -BEHIND && livePanels[i].touchOver(MARGIN) && (best === null || Math.abs(d) < Math.abs(distance))) {
           best = livePanels[i];
           distance = d;
         }
       }
+      this.setRay(finger, h, nearest < (finger.rayOff ? RAY_BACK : RAY_OFF));
       if (!best) {
         this.leave(finger, h);
         continue;
@@ -170,6 +183,16 @@ export class PokeSystem extends createSystem({}) {
     ring.visible = true;
   }
 
+  /** Switches a hand's ray off while it is about to poke, and back on after; never in the middle of a pull. */
+  private setRay(finger: Finger, h: number, off: boolean): void {
+    if (finger.rayOff === off) return;
+    if (off && this.input.xr.gamepads[HANDS[h]]?.getButtonPressed(InputComponent.Trigger)) return;
+    finger.rayOff = off;
+    this.state.rayOff[h] = off;
+    this.input.xr.multiPointers[HANDS[h]].toggleSubPointer('ray', !off);
+  }
+
+  /** Nothing within reach of the fingertip: no highlight, no ring (the ray is setRay's business). */
   private leave(finger: Finger, h: number): void {
     if (finger.panel) finger.panel.setPokeHover(h as 0 | 1, null);
     finger.panel = null;

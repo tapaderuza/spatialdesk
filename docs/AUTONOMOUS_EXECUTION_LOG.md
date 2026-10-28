@@ -473,6 +473,16 @@ commit `b01c8e2` a producción."
   `onMoveCommited`. Now the poke switches IWSDK's touch pointers off on both hands, and `PanelHits` ignores clicks and
   hovers from a `touch` pointer. A new test (a quick tap with a controller, then with a hand) gives two timers on the
   deployed code and one now; the earlier tests had only pressed slowly or rested on the control.
+- **The ray near a panel:** with IWSDK's touch pointers off, nothing hid a hand's ray when it came near a panel any more
+  (their priority over the ray had done it), so the performance scene drew one more ray beam: 80 draw calls, the
+  limit. Found by counting the visible meshes with the touch pointers off and on, then asking IWSDK's touch pointer what
+  it was hovering (the console, 15 cm from the left hand). The poke now switches a hand's ray off when its fingertip is
+  within 15 cm of a panel's nearest point (in front, behind or past an edge) and back on past 20 cm, IWSDK's own
+  thresholds, and never while the trigger is held. A first version measured a box instead of the distance to the
+  panel, which took the ray from a seated test's controller: `seated.spec` caught it. The scene is now at 76 draw calls.
+- **A flaky test made deterministic:** `voice.spec` checked the notice line right after "Banana" and once read the
+  guided start's "You are set" there instead (the full suite only; 12 of 12 alone). It now starts as someone who has
+  done the guided start, which the test is not about.
 - **Both fixes need a deploy of the server and the front end.** Not deployed.
 - **Recording mode** (`src/cinematic/cinematic.ts`, its own chunk, loaded only with `?cinematicMode=true` on
   localhost, never on the deployed site; the emulator is installed for it):
