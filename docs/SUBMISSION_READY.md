@@ -26,7 +26,10 @@
 - **Not checked on production:** the guided setup and English-first were not walked through in the live app (the
   end-to-end tests cover the link and the plan, not the setup); they were tested on the preview build, in the emulator.
 
-## Pushed after that, not in production yet (waiting for the user's go-ahead)
+## Pushed after that (685216d), not in production yet (waiting for the user's go-ahead)
+
+- **Checked by the pre-push CI:** 178 tests passed, 6 skipped, 0 failed; whole frame p95 27.2 ms, our systems p95 1.6 ms; server
+  suite 108 tests, 0 failures.
 
 - **The carer outside the headset:** `/companion.html` (also `/?mode=companion`), 17 KB, no XR app. The owner says "invite a
   helper", the carer types the code, nothing is shown until Allow, then the Today board's card titles follow the headset

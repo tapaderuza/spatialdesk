@@ -299,3 +299,18 @@ and a sofa seat is lower; it needs its own rule and tests across the rooms, so i
 - The performance gate: with the machine hot after a long CI, the whole-frame p95 measured 31.7 to 34.8 ms (limit 29.4,
   and 27.2 ms an hour earlier); with the glide and helper systems taken out it measured 32.2 to 34.2 ms, so it is the
   laptop and not these changes. Our systems: p95 2.0 to 2.5 ms (limit 3.0), p50 0.5 ms.
+
+## Block 20: review
+
+- Pushed `203c047` was blocked by its own pre-push CI (176 passed, 1 failed: `seated.spec.ts`, the 2 cm creep of block 17);
+  the fix was pushed as `685216d`. The hook's run on that tree: typecheck, **178 tests passed, 6 skipped** (the 5 skipped
+  before plus the real-server test, which needs `ASSIST_REAL`), 0 failed, 11.3 min, size check 2.31 MB gz of 2.5.
+- The performance gate in that run: whole frame p50 16.0 ms and p95 27.2 ms (limit 29.4), our systems p50 0.4 ms and p95
+  1.6 ms (limit 3.0), 78 draw calls (limit 80). (The two quiet runs earlier in the block, on a hot machine, had measured
+  31.7 to 34.8 ms: the gate depends on the laptop's temperature, and retries twice.)
+- Server: the whole suite, 108 tests, 0 failures. The real-server story (headset and carer) passed on a local jar.
+- A slip of mine, caught by `git status` before committing: writing the new carer tests as `tests/companion.spec.ts`
+  overwrote an existing test file of the focus companion (3 tests). It was restored from git byte for byte, my tests live in
+  `tests/carer.spec.ts`, and the original got one wait for the slide to finish.
+- Production runs `9f5497a`. Nothing of blocks 16 to 20 is deployed; it needs the user's go-ahead, and the server and the
+  front end go together (the Help button and the 6 s Nova limit need the new server).
