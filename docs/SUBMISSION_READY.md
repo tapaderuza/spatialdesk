@@ -65,12 +65,12 @@
 - **README:** rewritten as a pitch by the judging criteria, with the verification table kept.
 - **To go live it needs a deploy** (front end only this time; the server is unchanged since `685216d`).
 
-## Production now runs `b01c8e2` (deployed 2026-10-28)
+## Production now runs `f61b7fa` (deployed 2026-10-28)
 
-The spatial AI sprint and the earlier polish are live: the dark splash, "this" for the agent (checked live: Nova moved
-the card that was looked at), direct touch, 3D sound. Two fixes found by the live check are pushed after it and **not
-deployed yet**: the companion answered English in Spanish (prompt examples), and a quick touch pressed twice (IWSDK's
-touch pointers). Both need the server and the front end deployed.
+Everything pushed is live: the dark splash, "this" for the agent, direct touch, 3D sound, and the two fixes found by
+the live check of `b01c8e2`. Checked live on `assets/main-DcoaOpDw.js`: a quick tap with a controller or a hand
+presses once; the real Nova answers English in English and Spanish in Spanish, and moved the card that was looked at;
+`?cinematicMode=true` does nothing on the deployed site; no console errors. The script's end-to-end test passed 2/2.
 
 ## Recording the video (local only, never deployed)
 
