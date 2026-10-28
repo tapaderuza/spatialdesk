@@ -447,3 +447,55 @@ positional sound for the glide and for clicks. No physical headset: everything b
   Quest Pro). Production still runs `685216d` (checked: the live page serves `assets/main-UtJCl-Ml.js` and has no
   splash, so `93f4d4d` is not live either). This block needs the server deployed with the front end for Nova to receive
   the mark; the headset sends it either way, and the server in production ignores it.
+
+## Block 24: `b01c8e2` in production, two flaws found live, and a recording mode for the video
+
+Authorization, verbatim: "Tienes mi autorización explícita y absoluta para desplegar el servidor y el front-end del
+commit `b01c8e2` a producción."
+
+- **Deployed** with `node scripts/deploy.mjs` (front end and server together), from a clean tree at `b01c8e2` =
+  `origin/main`. CDK finished, and the script's own end-to-end test against production passed (2/2).
+- **Live check** on https://d2p3027seoreck.cloudfront.net, in IWER: the page serves `assets/main-B8H7zHUP.js` with the
+  dark splash (until now it still served `685216d`: `93f4d4d` had never gone live); the recording mode is not in it. A
+  card under a controller's ray rises 3.5 %; a controller's tip lights Focus 25 from 3 cm and touching it presses it once
+  (one timer). With the real Nova: a second's look at a card, "move this to done", the request carried
+  `{"board":"b1","card":"c6"}` and Nova proposed moving exactly that card to Done, in 1.6 s. No page or console errors.
+- **Flaw 1, found live (it predates this work):** every English sentence to the companion was answered in Spanish
+  ("I am not comfortable" got the Spanish example word for word): all of the system prompt's companion examples were
+  Spanish, and Nova copied their language. Now the examples come in English and Spanish pairs, and one rule says the
+  answer follows the language of the user's words. Checked with the real Nova through a local server (port 18093, the
+  deployed Bedrock model): three English sentences answered in English, two Spanish ones in Spanish. A server test keeps
+  the rule and both examples in the prompt.
+- **Flaw 2, found while building the recording mode (it came with `28f5da6` and is live now):** a quick touch (in and
+  out within 800 ms) pressed twice. IWSDK switches its own touch pointers on by default and off only when the last
+  `PokeInteractable` goes away; none was ever added, so they stayed on and pressed on release what the app's poke had
+  already pressed on contact. A dispatch trace showed both stacks: `PokeSystem.update` and pointer-events' `up` from
+  `onMoveCommited`. Now the poke switches IWSDK's touch pointers off on both hands, and `PanelHits` ignores clicks and
+  hovers from a `touch` pointer. A new test (a quick tap with a controller, then with a hand) gives two timers on the
+  deployed code and one now; the earlier tests had only pressed slowly or rested on the control.
+- **Both fixes need a deploy of the server and the front end.** Not deployed.
+- **Recording mode** (`src/cinematic/cinematic.ts`, its own chunk, loaded only with `?cinematicMode=true` on
+  localhost, never on the deployed site; the emulator is installed for it):
+  - the webcam's live picture on a curved screen 4 m away, 70 degrees wide by default (`&fov=`), fixed in the direction
+    the head faced when the session started, so turning the head pans across it as passthrough does; its centre follows
+    the head, since a fixed webcam has no parallax to give. The app runs its passthrough mode ("In my room": no studio,
+    the boards' shadows on). The edges fade to black. With no camera, or a refused one, the VR studio is filmed;
+  - the page shows only the canvas, black around it, with no cursor (one stylesheet hides everything else; the canvas
+    and its parent are kept);
+  - the mouse (pointer lock) turns the emulated head through a critically damped spring (0.35 s smoothing, slow
+    sensitivity), so a flick becomes a turn of about a second that never overshoots;
+  - a click selects what the centre of the view rests on; P makes the right hand come up, push it (the poke's ring
+    closing in, the press) and go back down, arcing away from the panels; T presses Talk; R looks straight ahead.
+  - `vite.config.ts`: `SPATIALDESK_API=https://...` makes `vite preview` forward `/api` and `/ws` to a deployed server,
+    so the local build films against the real Nova and Transcribe without deploying it (default: localhost:8080).
+- **Recording mode tests** (`tests/cinematic.spec.ts`, 4, with `getUserMedia` mocked by an animated canvas stream, so
+  no machine needs a camera): the webcam fills the room in passthrough mode and the page shows nothing but the canvas,
+  with no cursor; the head follows a mouse flick on the spring (first frame under 15 % of the way, one way only, never
+  past the target, arrives); a click picks a card up and P pushes Focus 25 once; a refused camera films the VR studio,
+  and without the parameter nothing of it loads and the camera is never asked for.
+- **Frame cost of the webcam** (Chromium's fake 1280 x 720 camera, the perf probe, no throttle, 10 s each, alternating):
+  60 fps with and without it (601 and 600 frames); main-thread CPU per frame p50 1.9 and 2.1 ms with it against 1.6 and
+  1.7 ms without (the video upload), p95 3.4 to 4.3 ms either way; two more draw calls (one per eye).
+- **Honest limits:** the webcam is a stand-in for passthrough, not passthrough: no depth, no parallax, and only the part
+  of the room the webcam sees. The contest accepts footage "via XR Simulator or another equivalent emulator", and the
+  video's description should say the room is the laptop's webcam. Not verified on a physical headset.

@@ -6,13 +6,21 @@
  *    ship without controllers;
  *  - `?room=<id>` adds IWER's Synthetic Environment Module: a procedural real room (`home_office`, `kitchen`, ...)
  *    shown as passthrough in "In my room", with the plane detection, hit testing and anchors a Quest provides.
- * In dev the IWSDK Vite plugin already injects IWER, so this is a no-op there.
+ * In dev the IWSDK Vite plugin already injects IWER, so this is a no-op there. The recording mode
+ * (`?cinematicMode=true`, src/cinematic/cinematic.ts) runs in this emulator too.
  */
 import { emulateRenderExtent } from './ui/view-fit.js';
 
+/** The recording mode: asked for in the URL, and only on this machine, never on the deployed site. */
+export function cinematicRequested(): boolean {
+  const host = location.hostname;
+  const local = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  return local && new URLSearchParams(location.search).get('cinematicMode') === 'true';
+}
+
 export async function maybeInstallEmulator(): Promise<void> {
   const params = new URLSearchParams(location.search);
-  if (!import.meta.env.PROD || !params.has('emulate')) return;
+  if (!import.meta.env.PROD || !(params.has('emulate') || cinematicRequested())) return;
   const { XRDevice, metaQuest3, metaVRGlasses, metaVRGlassesVisibilityMask } = await import('iwer');
   const glasses = params.has('glasses');
   const device = new XRDevice(

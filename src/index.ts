@@ -9,7 +9,7 @@ import { SessionMode, World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
 import { APP_SYSTEMS } from './app-systems.js';
 import { installPerfProbe } from './perf/probe.js';
-import { maybeInstallEmulator } from './emulator.js';
+import { cinematicRequested, maybeInstallEmulator } from './emulator.js';
 import { workspace } from './workspace/store.js';
 import { bindColorScheme } from './ui/settings.js';
 import { bindHead } from './ui/sounds.js';
@@ -31,6 +31,8 @@ World.create(
   bindHead(world.camera); // cues sound from where they happen (src/ui/sounds.ts)
   for (const system of APP_SYSTEMS) world.registerSystem(system);
   if (new URLSearchParams(location.search).has('perf')) installPerfProbe(world, APP_SYSTEMS);
+  // Recording mode, on this machine only: its own chunk, never loaded otherwise (src/cinematic/cinematic.ts).
+  if (cinematicRequested()) void import('./cinematic/cinematic.js').then((m) => m.startCinematic(world));
   // The dark splash of index.html goes once the world has drawn: never a white page, never a jump to an empty one.
   requestAnimationFrame(() => requestAnimationFrame(hideSplash));
 }).catch((error: unknown) => {

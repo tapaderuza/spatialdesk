@@ -57,6 +57,14 @@ function semRooms(): Plugin {
   };
 }
 
+// The command server that dev and preview forward /api and /ws to: one running locally by default, or a deployed one
+// with SPATIALDESK_API=https://... (the recording mode films a local build against production without deploying it).
+const api = process.env.SPATIALDESK_API ?? 'http://localhost:8080';
+const proxy = {
+  '/api': { target: api, changeOrigin: true },
+  '/ws': { target: api.replace(/^http/, 'ws'), ws: true, changeOrigin: true },
+};
+
 export default defineConfig({
   // No headset in this project (emulator only): localhost over HTTP is already a secure context for WebXR,
   // so no self-signed certificate is needed.
@@ -66,17 +74,9 @@ export default defineConfig({
     port: 8081,
     open: false,
     // Same paths as production (CloudFront routes /api and /ws to the backend): the app never knows the difference.
-    proxy: {
-      '/api': 'http://localhost:8080',
-      '/ws': { target: 'ws://localhost:8080', ws: true },
-    },
+    proxy,
   },
-  preview: {
-    proxy: {
-      '/api': 'http://localhost:8080',
-      '/ws': { target: 'ws://localhost:8080', ws: true },
-    },
-  },
+  preview: { proxy },
   build: {
     outDir: 'dist',
     sourcemap: process.env.NODE_ENV !== 'production',
