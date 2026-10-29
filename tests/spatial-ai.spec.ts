@@ -228,14 +228,29 @@ test('3D sound: the click comes from the button pushed; a glide breathes from it
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
   await frames(page, 20);
 
-  // The click: pushed with a fingertip, it sounds from the button itself.
+  // The click: pushed with a fingertip, it sounds from the button itself, where the finger has pushed it (the key
+  // gives way, up to 12 mm back into its panel: src/ui/poke.ts).
   await tipAt(page, 'command:focus-button', 0.03);
   const button = await placeOf(page, 'command:focus-button'); // where it is when pushed (Focus 25 then re-anchors the space)
+  const normal = await page.evaluate(() => {
+    let el: any = null;
+    (window as Win).__world.scene.traverse((o: any) => {
+      if (o.name === 'command:focus-button') el = o;
+    });
+    const e = el.matrixWorld.elements;
+    const V = (window as Win).__world.camera.position.constructor;
+    const n = new V(e[0], e[1], e[2]).cross(new V(e[4], e[5], e[6])).normalize();
+    return { x: n.x as number, y: n.y as number, z: n.z as number };
+  });
   await tipAt(page, 'command:focus-button', 0);
   expect((await poke(page)).presses).toBe(1);
   const click = await page.evaluate(() => (window as Win).__sound.lastPlace('tap'));
   expect(click, 'the click sounds from a place').toBeTruthy();
-  expect(Math.hypot(click.x - button.x, click.y - button.y, click.z - button.z)).toBeLessThan(0.002);
+  const d = { x: click.x - button.x, y: click.y - button.y, z: click.z - button.z };
+  const along = d.x * normal.x + d.y * normal.y + d.z * normal.z;
+  expect(Math.hypot(d.x - along * normal.x, d.y - along * normal.y, d.z - along * normal.z)).toBeLessThan(0.002); // on the button
+  expect(along).toBeGreaterThan(-0.0125); // no further back than the key travels
+  expect(along).toBeLessThan(0.002);
   await tipAt(page, 'command:focus-button', 0.3);
   await settled(page);
   await page.waitForTimeout(600); // the click and anything it set off have died away
