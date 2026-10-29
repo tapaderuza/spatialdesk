@@ -1,4 +1,9 @@
-# SpatialDesk: submission status (2026-10-28)
+# SpatialDesk: submission status (2026-10-29)
+
+## Official Feature Freeze (2026-10-29)
+
+**The product is finished.** From `30244e5` on, not one more line of code, feature or fix goes in, unless it is a
+critical bug that breaks the demo. Production runs `30244e5` (below), and the judges' video is recorded against it.
 
 ## Git and performance
 
@@ -14,7 +19,7 @@
 
 ## Production
 
-- **In production now: `f61b7fa`** (see "Production now runs `f61b7fa`" below). Earlier: the code of `685216d`, server
+- **In production now: `30244e5`** (see "Production now runs `30244e5`" below). Earlier: the code of `685216d`, server
   and front deployed together, with the user's explicit authorization for that commit (the earlier one, for `9f5497a`,
   was a separate go-ahead). `node scripts/deploy.mjs` needs
   `JAVA_HOME=C:\Program Files\Java\jdk-17` and `GRADLE_USER_HOME=D:\.gradle` on this machine; the CDK stack took 487 s. The
@@ -65,7 +70,16 @@
 - **README:** rewritten as a pitch by the judging criteria, with the verification table kept.
 - **To go live it needs a deploy** (front end only this time; the server is unchanged since `685216d`).
 
-## Production now runs `f61b7fa` (deployed 2026-10-28)
+## Production now runs `30244e5` (deployed 2026-10-29)
+
+The micro-interactions are live, on `assets/main-CyPplfzo.js`: a soft rim of light breathes round the card under a
+ray (and round the one the eyes rest on for a second); a key gives way under a fingertip (0.5 mm at 3.9 cm, 2.5 mm by
+contact, 12 mm pushed through, one press, back in its place); a faint tick sounds from each new control a pointer comes
+onto, never two within 120 ms (a sweep across six cards: one tick); an orb breathes beside "Thinking..." while Nova
+answers (1.1 s live). Clean CI before the deploy: 198 passed, 0 failed, whole frame p95 24.6 ms, app systems 2.1 ms, 78
+draw calls, 2.32 MB. No console errors live. The script's end-to-end test passed 2/2.
+
+## Earlier: `f61b7fa` (deployed 2026-10-28)
 
 Everything pushed is live: the dark splash, "this" for the agent, direct touch, 3D sound, and the two fixes found by
 the live check of `b01c8e2`. Checked live on `assets/main-DcoaOpDw.js`: a quick tap with a controller or a hand

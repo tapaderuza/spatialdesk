@@ -583,3 +583,43 @@ thinks; no new features, no server change, draw calls under 80, the suite green.
   card there, so the gate measures it lit), 48 with it under the right ray, 52 with the agent's card thinking (the card
   itself; the orb adds none).
 - **Not verified:** a physical headset; the stereo depth of the sinking key is measured, not seen.
+
+## Block 27: a clean CI, `30244e5` in production, and the Official Feature Freeze
+
+Authorization, verbatim: "Tienes mi autorización absoluta para desplegar el front-end y/o backend a producción." And:
+"Una vez desplegado, escribe ... que el proyecto entra en "Official Feature Freeze"."
+
+- **The CI that ran overnight was stopped** (the laptop had slept inside a test: 9.3 h on `companion.spec`, so its timings
+  and profile meant nothing), with every process it had left (npm, Playwright and its worker, `vite preview` on 4173).
+- **Clean runs, from scratch, through the pre-push hook** (the full `npm run ci`; a push happens only when it is green):
+  - first: 197 passed, 1 failed. The 3D sound test expected the click within 2 mm of where Focus 25 was before the touch;
+    the key now gives way, so the click comes from the key where the finger pushed it, 8.5 mm deeper. The test now asks
+    for the click on the button (within 2 mm across it) and no further back than the key travels (12.5 mm);
+  - second: 196 passed, 2 failed. The rim test counted every hover tick in the app and another pointer ticked meanwhile
+    (it now counts the eyes' own tick); and once, three page errors "Cannot read properties of null (reading '0')" in
+    the slow hand poke. Not reproduced since: 4 runs of that poke alone, 4 with the CPU throttled 4x, and the two spec
+    files three times over (27 runs). The test helpers now keep each page error's stack, so a recurrence names its
+    source. A third, separate flake of the rim test (its size read a frame apart from the card's while the card was
+    still rising) was fixed by reading both in the same frame; 12 of 12 after;
+  - third, `30244e5`: **198 passed, 6 skipped, 0 failed** (12.6 min). Whole frame p95 **24.6 ms** (limit 29.4), app
+    systems p95 2.1 ms (limit 3), **78 draw calls** (limit 80: two more than before, the rim lit under the emulator's
+    starting left ray, one per eye), 2.32 MB gzipped (limit 2.5). Pushed `e6b1b62..30244e5`.
+- **Deployed** with `node scripts/deploy.mjs` from a clean tree at `30244e5`: CDK 52 s (only the front end's files had
+  changed), the script's end-to-end test against production 2/2.
+- **Live check** on https://d2p3027seoreck.cloudfront.net, in IWER, with the real Nova (`live-polish.mjs`, local):
+  - the page serves `assets/main-CyPplfzo.js`, the file the local build of `30244e5` names;
+  - the rim lights round the card under the ray and breathes (opacity 0.44 to 0.80), and is gone when the ray leaves;
+  - Undo gives way under a controller's tip: 0.5 mm at 3.9 cm, 1.5 mm at 2.4 cm, 2.5 mm at 0.8 cm, 12 mm pushed through,
+    one press, and back to 0.00 mm;
+  - a sweep across six cards in six frames: one tick played, five held; the next tick sounds from the card (0.0 mm);
+  - "what should I do next": Nova thought for 1.1 s with the orb breathing (core 0.18, ring 0.54, glow 0.38 of range),
+    then answered in English;
+  - no page errors and no console errors.
+- **Not verified:** a physical headset.
+
+### Official Feature Freeze (2026-10-29)
+
+SpatialDesk is finished. From `30244e5` on, not one more line of code, feature or fix goes in, unless it is a critical
+bug that breaks the demo. Production runs `30244e5` and is what the judges' video is recorded against (the local
+recording mode, `?cinematicMode=true`, uses the same build and the production server). Documentation may still be
+corrected.
