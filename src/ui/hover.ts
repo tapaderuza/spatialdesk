@@ -2,7 +2,8 @@
  * Hover as Meta's eye-tracking guidance asks (developers.meta.com/vr/design/eyes-best-practices): the control itself
  * turns a little lighter, with no outline (an outline pulls the eyes to the edge, away from the centre they aim at),
  * fading on over 300 ms and off over 400 ms, so a gaze sweeping across a panel leaves no flicker behind it. Eyes,
- * rays, pokes and the mouse all hover alike, through each panel's PanelHits.
+ * rays, pokes and the mouse all hover alike, through each panel's PanelHits. A card under a ray, or rested on by the
+ * eyes, also wears a soft rim of light outside its edge (src/ui/rim.ts), which leaves its centre as it is.
  *
  * Paint code says what a control's idle colour is and whether it is hovered (hoverFades.paint); HoverSystem moves the
  * colour there. Each fade's colour steps are computed once per idle colour and reused, and a control is restyled only

@@ -48,6 +48,10 @@ const CONFIG = `${import.meta.env.BASE_URL}ui/plan.uikitml`;
 const SIZE = { width: 0.46, height: 0.55 } as const; // public/ui/plan.uikitml is 46 x 55 cm
 const STEP_ROWS = 4;
 const WATCH_EVERY_MS = 30_000;
+/** While Nova thinks: the orb's core swells and settles once every BREATH_MS, and a ring of light rises from it and
+ * fades every RIPPLE_MS. Slow enough to calm, quick enough that a second and a half shows it alive. */
+const BREATH_MS = 1600;
+const RIPPLE_MS = 1200;
 const TITLES: Record<Intent, string> = {
   plan_my_day: 'Plan my day',
   prioritise: 'Prioritise',
@@ -74,6 +78,10 @@ interface Slots {
   title: Element;
   source: Element;
   summary: Element;
+  /** The orb that breathes beside the summary while Nova thinks: a ring of light (halo) round a core. */
+  thinking: Element;
+  halo: Element;
+  core: Element;
   stepList: Element;
   conversation: Element;
   said: Element;
@@ -136,7 +144,8 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
   private readonly runningSince = Date.now();
   private nextWatch = 0;
   private startedAt = 0;
-  private shownTenths = -1;
+  /** The thinking orb as last drawn (scales relative to the card, the halo's opacity): read by the tests. */
+  readonly orb = { halo: 0, core: 0, glow: 0 };
   private readonly cleanups: (() => void)[] = [];
   private readonly stateListeners = new Set<() => void>();
   private localPlanGuard: (() => boolean) | null = null;
@@ -439,7 +448,6 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.mode = 'thinking';
     this.quiet = options.auto === true;
     this.startedAt = this.timings.requested = performance.now();
-    this.shownTenths = -1;
     if (!this.quiet) this.show();
     const requestedWorkspace = workspace.state;
     const plan = await requestPlan(intent, text, requestedWorkspace, deskPose(this.world), options.context, this.quiet ? [] : this.conversation.snapshot(), options.sessionChoice);
@@ -627,13 +635,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
   }
 
   update(): void {
-    if (this.mode === 'thinking' && !this.quiet && this.slots) {
-      const tenths = Math.floor((performance.now() - this.startedAt) / 100);
-      if (tenths !== this.shownTenths) {
-        this.shownTenths = tenths;
-        this.slots.summary.setProperties({ text: `Thinking... ${(tenths / 10).toFixed(1)} s` });
-      }
-    }
+    if (this.mode === 'thinking' && !this.quiet && this.slots && !accessPreferences.reducedMotion) this.breathe(performance.now() - this.startedAt);
     const now = Date.now();
     if (now < this.nextWatch) return;
     this.nextWatch = now + WATCH_EVERY_MS;
@@ -722,6 +724,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     slots.discard.setProperties({ borderColor: idleBorder(COLOR.base) });
     slots.reply.setProperties({ display: 'none', borderColor: idleBorder(COLOR.primary) });
     slots.stepList.setProperties({ display: 'flex' });
+    slots.thinking.setProperties({ display: 'none' });
     slots.conversation.setProperties({ display: 'none' });
     slots.conversation.setProperties({ height: 18.6 });
     slots.stepList.setProperties({ height: 28.2 });
@@ -835,6 +838,8 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       slots.source.setProperties({ text: 'Asking Amazon Nova' });
       slots.summary.setProperties({ text: 'Thinking...', color: COLOR.text });
       this.rows([]);
+      slots.thinking.setProperties({ display: 'flex' });
+      this.breathe(performance.now() - this.startedAt); // still, with reduced motion: drawn once, mid-breath
       slots.note.setProperties({ text: '' });
       slots.apply.setProperties({ display: 'none' });
       slots.discardLabel.setProperties({ text: spanish ? 'Cancelar' : 'Cancel' });
@@ -909,6 +914,28 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     slots.discardLabel.setProperties({ text: es ? 'Cerrar' : 'Close' });
   }
 
+  /**
+   * The orb that keeps Nova's second or two alive instead of a spinner or a counter, in the violet the companion
+   * shimmers in as it thinks (src/studio/companion-system.ts): its core breathes, and a ring of light rises from it and
+   * fades. Two restyles a frame while it shows, nothing otherwise. With reduced motion it holds still, mid-breath.
+   */
+  private breathe(ms: number): void {
+    const slots = this.slots;
+    if (!slots) return;
+    const still = accessPreferences.reducedMotion;
+    const breath = still ? 0.5 : 0.5 - 0.5 * Math.cos((2 * Math.PI * ms) / BREATH_MS);
+    const ripple = still ? 0.4 : (ms % RIPPLE_MS) / RIPPLE_MS;
+    const halo = 0.55 + 0.65 * ripple;
+    const core = 0.86 + 0.18 * breath;
+    const glow = 0.4 * (1 - ripple) * (1 - ripple);
+    // The core sits inside the halo, so it is scaled against the halo's own scale.
+    slots.halo.setProperties({ transformScaleX: halo, transformScaleY: halo, opacity: glow });
+    slots.core.setProperties({ transformScaleX: core / halo, transformScaleY: core / halo, opacity: 0.7 + 0.3 * breath }); // its own: opacity is inherited otherwise
+    this.orb.halo = halo;
+    this.orb.core = core;
+    this.orb.glow = glow;
+  }
+
   private rows(items: { title: string; why: string; undone: boolean }[]): void {
     this.slots?.steps.forEach((row, i) => {
       const item = items[i];
@@ -934,6 +961,9 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       title: get('plan-title'),
       source: get('plan-source'),
       summary: get('plan-summary'),
+      thinking: get('plan-thinking'),
+      halo: get('plan-thinking-halo'),
+      core: get('plan-thinking-core'),
       stepList: get('plan-steps'),
       conversation: get('plan-conversation'),
       said: get('plan-said'),

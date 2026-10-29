@@ -72,20 +72,24 @@ your panel."* It leaves as soon as they act.
 adjustment is one sentence away, in English or Spanish, and also a button.
 
 **Push it with a finger.** The work board sits at arm's length, so a fingertip simply presses what it touches: from 5
-cm the control lights and a ring on its surface shows where the finger will land, closing as it nears; touching presses
-at once, however slowly. That matters for a careful hand or one with a tremor, which IWSDK's own poke would drop (it
+cm the control lights and a ring on its surface shows where the finger will land, closing as it nears, and the control
+gives way like a real key: a few millimetres back into its panel as the finger comes, then with the finger, springing
+back as it leaves. Touching presses at once, however slowly. That matters for a careful hand or one with a tremor, which IWSDK's own poke would drop (it
 counts a press only if the finger leaves within 800 ms). A finger that arrives from behind or slides along a panel
 presses nothing.
 
-**Sound from where things happen.** Every cue is an HRTF source at its own place: the click comes from the button
-pushed, the alarm from the timer, and a panel gliding to its place breathes a soft whoosh that follows it as it moves.
+**Sound from where things happen.** Every cue is an HRTF source at its own place: a faint tick from each new control a
+pointer comes onto (never two within 120 ms, however fast it sweeps), the click from the button pushed, the alarm from
+the timer, and a panel gliding to its place breathes a soft whoosh that follows it as it moves.
 Every cue stays put in the room as the head turns.
 
 **Nothing jumps, everything answers.** When the space adapts, panels glide to their new place in under a second (a
 critically damped spring, no overshoot) instead of teleporting, and they take no pointer while moving, so a hand they
 pass through presses nothing. The space confirms it has settled with an amber glow round the work board and a faint
 controller pulse. Cards rise a little under the pointer, and hover follows Meta's eye-tracking guidance: the control
-itself brightens, never an outline. In passthrough every board casts a soft shadow on the real wall behind it. Reduced
+itself brightens, and a card under a ray, or rested on by the eyes for a second (it is then "this" for the agent), wears
+a soft rim of light outside its edge that breathes slowly, leaving the centre the eyes aim at alone. While Nova thinks,
+an orb breathes beside its words instead of a counter. In passthrough every board casts a soft shadow on the real wall behind it. Reduced
 motion turns the movement off.
 
 **Gentle on attention.** A small companion works beside your board (body doubling), the world beyond arm's reach dims
@@ -143,20 +147,21 @@ Every claim is an automated check that fails the build, run in Meta's IWER Quest
 |---|---|
 | Runs smoothly on a Quest | Worst-case workspace, CPU throttled 3x, hands-free on (our heaviest mode). App systems ≤ 3 ms p95; the whole frame no heavier than Meta's IWSDK starter scene under the same conditions (p95 29.4 ms); ≤ 80 draw calls; bundle ≤ 2.5 MB gzipped. |
 | The first seconds | A dark splash covers the load and is gone once the world draws; the start card offers Enter VR only where VR exists and its Enter VR enters it; a newcomer's setup opens with a welcome, someone back gets a banner above the board that leaves as soon as they act. |
-| Physical presence | In passthrough each board and timer casts a soft shadow that follows it (one instanced mesh, one draw call); in VR none is drawn. A card under the pointer brightens and rises 2.5 to 5 % and settles back when the pointer leaves. |
+| Physical presence | In passthrough each board and timer casts a soft shadow that follows it (one instanced mesh, one draw call); in VR none is drawn. A card under the pointer brightens and rises 2.5 to 5 % and settles back when the pointer leaves; it wears a rim of its own size that breathes (dimmer and brighter, never out, never a jump) and leaves with the ray; the eyes light it after a second's rest, not before; reduced motion holds it still. |
 | Usable with hands | Every interactive target is ≥ 6 x 6 cm and within arm's reach of a seated user, and is hit by ≥ 95 % of 400 rays jittered like hand tracking (±1 cm origin, 3° cone). |
 | Comfortable seated | Focus board at 0.55-0.65 m, no overlapping near panels, parked boards ≥ 1.3 m away; looking at a side panel to tap it never moves the desk. |
 | Adapts to the body | Engine tests for nine bodies and three postures; in the emulator a spoken request gathers everything on the right with the console by the right hand, and one undo takes it back. |
 | Panels glide | A comfort change moves a board 27 cm with no frame carrying more than ~6 % of the way and arrives within 1 mm in under a second; the undo glides back; a sliding panel takes no pointer; a move under 4 cm, a flat screen or reduced motion places at once. |
 | A carer outside the headset | Two pages of one browser, and the same story against the real server: invite, code, nothing shown before Allow, only card titles travel, the board follows the headset, Help / Recalibrate opens the setup and the carer learns how it ended, a lost network is shown and recovered, titles are text and never markup. |
+| Nova's second or two | While the agent thinks, an orb breathes beside "Thinking..." on its card (the core swells and settles, a ring of light rises and fades), in conversation too, and is gone when the answer comes. |
 | Fails gracefully | An AI or a voice slower than 7 s, a gateway error or no network ends "thinking" and "listening" with one calm line, and a card is still moved by hand afterwards; a spent quota is explained. |
 | The agent is useful and safe | Planner tests on the server (normaliser, guardrails, retry, fallback). End-to-end against production: a plan applied in under 4 s (typically 2-3 s). |
 | Guided calibration | Where you sit, the pinch's own reach, height and side, steady aim; applied in one undo; Skip at any step; "recalibrate" brings it back. |
 | Steady aim | Synthetic tremor on the real button grid (3,000 presses per strength): at 3.5 cm, 81.2 % correct without tremor mode and 100 % with it; at 5 cm, 59.0 % and 100 %. A model of selection, not a clinical measure. |
 | One switch | The space bar or any pinch chooses the control lit; the agent's card takes over the scan while open; a tap elsewhere presses nothing. |
 | Knows what "this" is | A second's look at a card makes it "this" (tested about five times a second, not every frame); "move this to done" sends the card's id and nothing else about it, "plan my day: ..." sends nothing, "help me start this" starts that card, a removed card is no longer "this", the command panel never becomes it. On the server, the item is marked in the workspace and the rule for "this" is added only when the id exists. |
-| Direct touch | A controller's tip and a tracked index fingertip: from 5 cm the control is lit and a ring closes in; touching presses once, at once; a press held 1.5 s is still one press; drawing back 1 cm does not re-arm, 2 cm does; a finger from behind presses nothing. |
-| Sound from its place | The click is sounded from the pushed button (within 2 mm); a glide's whoosh follows its board as it moves and, after a quarter turn of the head, is heard from the side. |
+| Direct touch | A controller's tip and a tracked index fingertip: from 5 cm the control is lit and a ring closes in; touching presses once, at once; a press held 1.5 s is still one press; drawing back 1 cm does not re-arm, 2 cm does; a finger from behind presses nothing. The button really moves back in proportion to the finger's nearness from 5 cm (within a quarter of a millimetre), goes with the finger once touched (up to 12 mm, still one press) and is back in its place within 0.2 s. |
+| Sound from its place | A sweep across six cards in six frames ticks no more than once every 120 ms, and a pointer onto a new card ticks from that card (within 2 cm); the click is sounded from the pushed button (within 2 mm); a glide's whoosh follows its board as it moves and, after a quarter turn of the head, is heard from the side. |
 | Hands-free | With the head or eyes as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
 | Voice | The command grammar, the AWS event-stream framing (CRC-32 check value), the capture path against a stand-in Transcribe, and the real Transcribe hearing a spoken "plan my day". |
 | Ready for Meta VR Glasses | In the glasses profile the measured view is 58 x 54 degrees and the board, its timer and the agent's card lie inside it; look-and-pinch picks a card up and drops it. |

@@ -542,3 +542,44 @@ Authorization, verbatim: "Tienes mi autorización explícita para desplegar el s
     "no"); the script now matches each call to its own sentence. The figures above are from the third run.
 - **Not verified:** a physical headset.
 - Development is paused here for the video recording.
+
+## Block 26: micro-interactions (the rim, the key that gives way, the tick, the thinking orb)
+
+Asked: hover feedback before and during a touch, a subtle hover tick that never saturates, and a living wait while Nova
+thinks; no new features, no server change, draw calls under 80, the suite green.
+
+- **A rim of light round the card a pointer rests on** (`src/ui/rim.ts`): at once under a ray (a controller's, a hand's
+  for a distant pinch, or the mouse), and under the eyes once they have rested on the card for a second, when it is
+  "this" for the agent (the attention system's own dwell, so a glance sweeping across a column lights nothing). It
+  breathes once every 2.6 s between 55 % and 100 % of its peak, never blinks, never goes out; with reduced motion it holds
+  still. It lies outside the card's edge with only a hairline on the edge: the existing hover guidance (Meta's eye
+  guidance: the control brightens, no outline pulling the eyes off the centre) is kept, the rim adds light around it.
+  One mesh for the whole app, a rounded rectangle measured in the shader, placed every frame from the card's own matrix
+  (it rises with the card), shown only while a card is lit.
+- **The key gives way under a fingertip** (`src/ui/poke.ts`, `PanelHits.setPokeDepth`): from 5 cm the control moves back
+  into its panel in proportion to the finger's nearness, 2.5 mm by contact, then with the finger up to 12 mm (still one
+  press), and springs back in about a tenth of a second when the finger leaves. It is UIKit's `transformTranslateZ`, so
+  the label goes with it, in quarter-millimetre steps so UIKit restyles only visible changes. A finger sliding onto
+  another control lets the one before come straight back up.
+- **A hover tick** (`src/ui/sounds.ts`, `hoverTick`): the same mallet as every cue, a quarter of a tap's level and half
+  its length, from the control itself (HRTF), scheduled 5 ms ahead. Any pointer coming onto a new control ticks (rays,
+  fingertips, the hands-free gaze); the eyes tick once when they come to rest on a card. At most one every 120 ms: the
+  first of a sweep sounds at once, the ones right after it are dropped rather than delayed.
+- **While Nova thinks, an orb breathes** beside "Thinking..." on the agent's card, in the violet the companion shimmers in
+  as it thinks: its core swells and settles every 1.6 s and a ring of light rises from it and fades every 1.2 s. It
+  replaces the seconds counter (whose text was laid out again every 100 ms). Two UIKit elements in the card's own
+  instanced panels; still, mid-breath, with reduced motion. A first version put it in the step list, which a
+  conversation with the companion hides: the test caught it, and it now sits beside the summary in every mode.
+- **Tests** (`tests/polish.spec.ts`, 4): the rim is the card's own size, breathes (more than a quarter of its peak, never
+  below 45 %, no jump between samples 100 ms apart), leaves with the ray, comes with the eyes only after a second's rest
+  with one tick, and holds still with reduced motion; Undo sinks in proportion from 5 cm (within a quarter of a
+  millimetre of the promise, measured on the button's real position against its row), goes with the finger once
+  touched, one press, and is back within 0.2 s; a sweep across six cards in six frames ticks no more than once every
+  120 ms and a pointer onto a new card ticks from it (within 2 cm); the orb breathes during a 1.6 s answer, in a
+  conversation, and is gone with the answer. Two first failures were the tests' own: the emulator starts the left ray on
+  a card (the rim was already lit there), and Focus 25 re-anchors the space after the press (the panel glided away
+  under the finger), so the sink is measured on Undo.
+- **Draw calls** in the performance scene (hands-free, emulator start pose): 48 with the rim lit (the left ray rests on a
+  card there, so the gate measures it lit), 48 with it under the right ray, 52 with the agent's card thinking (the card
+  itself; the orb adds none).
+- **Not verified:** a physical headset; the stereo depth of the sinking key is measured, not seen.

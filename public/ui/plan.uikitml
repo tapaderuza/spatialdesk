@@ -2,14 +2,16 @@
   The agent's card, shown before anything changes and afterwards to explain it. Centimetres at real size (46 x 55),
   placed half a metre in front of the user like a card handed over. Modes (src/agent/agent-system.ts): a plan to
   review, a suggestion the agent makes on its own, and "what the AI did" with an Undo per step (8 x 6 cm). The source
-  is always shown (Amazon Nova or the built-in planner). Hover is painted by the app (no :hover styles).
+  is always shown (Amazon Nova or the built-in planner). While Nova thinks, an orb breathes beside the summary
+  (#plan-thinking). Hover is painted by the app (no :hover styles).
 -->
 <style>
   .root { flex-direction: column; width: 46; height: 55; padding-top: 2; padding-bottom: 2; padding-left: 2; padding-right: 2; gap: 0.8; background-color: #15181e; border-radius: 2.4; border-width: 0.4; border-color: #5b8def; }
   .header { flex-direction: row; align-items: center; justify-content: space-between; height: 3.4; }
   .title { font-size: 2.4; font-weight: 700; color: #eef1f5; }
   .source { flex-shrink: 1; margin-left: 1; font-size: 1.4; color: #9cc3ff; }
-  .summary { height: 6.4; font-size: 1.7; color: #eef1f5; overflow: hidden; }
+  .summary-row { flex-direction: row; align-items: center; }
+  .summary { flex-grow: 1; flex-shrink: 1; height: 6.4; font-size: 1.7; color: #eef1f5; overflow: hidden; }
   .steps { flex-direction: column; gap: 0.6; height: 28.2; }
   .step { flex-direction: row; align-items: center; gap: 0.8; height: 6.6; padding-left: 1.2; padding-right: 0.3; border-radius: 1; background-color: #1d222a; overflow: hidden; }
   .step-text { flex-direction: column; flex-grow: 1; flex-shrink: 1; }
@@ -17,6 +19,9 @@
   .step-why { font-size: 1.3; color: #b9c2cf; }
   .step-undo { flex-shrink: 0; width: 8; height: 6; align-items: center; justify-content: center; border-radius: 1; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .step-undo-label { font-size: 1.5; font-weight: 700; color: #eef1f5; }
+  .thinking { display: none; flex-shrink: 0; width: 6.4; height: 6.4; margin-right: 1.2; align-items: center; justify-content: center; }
+  .halo { width: 5.6; height: 5.6; border-radius: 2.8; align-items: center; justify-content: center; background-color: #8f6bff; }
+  .core { width: 2.4; height: 2.4; border-radius: 1.2; background-color: #ece4ff; }
   .note { height: 2.4; font-size: 1.4; color: #f2b84b; }
   .conversation { display: none; flex-direction: column; justify-content: space-between; height: 18.6; gap: 1; padding-top: 1; padding-bottom: 1; }
   .said { font-size: 1.6; color: #b9c2cf; height: 4.6; overflow: hidden; }
@@ -35,13 +40,17 @@
   .memory:dark { color: #ffffff; }
   .said:dark { color: #ffffff; }
   .label:dark { color: #ffffff; }
+  .core:dark { background-color: #ffffff; }
 </style>
 <div id="plan-root" class="root">
   <div class="header">
     <div id="plan-title" class="title">AI plan</div>
     <div id="plan-source" class="source">Amazon Nova</div>
   </div>
-  <div id="plan-summary" class="summary">Planning...</div>
+  <div class="summary-row">
+    <div id="plan-thinking" class="thinking"><div id="plan-thinking-halo" class="halo"><div id="plan-thinking-core" class="core"></div></div></div>
+    <div id="plan-summary" class="summary">Planning...</div>
+  </div>
   <div id="plan-steps" class="steps">
     <div id="step-0" class="step"><div class="step-text"><div id="step-0-title" class="step-title">Step</div><div id="step-0-why" class="step-why">Why</div></div><div id="step-0-undo" class="step-undo"><div id="step-0-undo-label" class="step-undo-label">Undo</div></div></div>
     <div id="step-1" class="step"><div class="step-text"><div id="step-1-title" class="step-title">Step</div><div id="step-1-why" class="step-why">Why</div></div><div id="step-1-undo" class="step-undo"><div id="step-1-undo-label" class="step-undo-label">Undo</div></div></div>

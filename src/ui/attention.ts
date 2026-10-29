@@ -15,6 +15,7 @@
 import { createSystem, Vector3, VisibilityState } from '@iwsdk/core';
 import { gazeFinding } from './gaze.js';
 import { livePanels, type GazeTarget } from './panel-hits.js';
+import { rimGaze } from './rim.js';
 import type { Workspace } from '../workspace/model.js';
 
 /** What a control stands for, by id, and its title (for "help me start this" and the tests). */
@@ -107,6 +108,7 @@ export class AttentionSystem extends createSystem({}) {
 
   update(): void {
     if (this.world.visibilityState.peek() === VisibilityState.NonImmersive) {
+      if (this.panel) rimGaze(null, null);
       this.panel = null;
       return;
     }
@@ -117,7 +119,8 @@ export class AttentionSystem extends createSystem({}) {
 
     let best: GazeTarget | null;
     let key: string | null;
-    if (now - gazeFinding.at < TEST_EVERY_MS) {
+    const handsFree = now - gazeFinding.at < TEST_EVERY_MS;
+    if (handsFree) {
       // Hands-free is casting this very ray every few frames: its finding is ours.
       best = gazeFinding.panel;
       key = gazeFinding.key;
@@ -126,6 +129,7 @@ export class AttentionSystem extends createSystem({}) {
       key = best ? best.gazeHit(this.point, best !== this.panel) : null;
     }
     if (!best) {
+      if (this.panel) rimGaze(null, null);
       this.panel = null;
       this.state.key = null;
       return;
@@ -134,12 +138,15 @@ export class AttentionSystem extends createSystem({}) {
       this.panel = best;
       this.key = key;
       this.since = now;
+      rimGaze(null, null); // the eyes moved on: the rim waits for them to rest again
     }
     this.state.key = key;
     if (now - this.since < DWELL_MS) return;
     // A second on the same control: what it stands for, if anything, is "this". Asked again on every test, since the
     // card in a place can change under the eyes (it was moved away, another took its place).
     const referent = best.refer(key);
+    // A card at rest under the eyes wears the rim (src/ui/rim.ts); hands-free has ticked already as it hovered.
+    rimGaze(referent?.card ? best : null, referent?.card ? key : null, handsFree);
     if (focus && referent && sameItem(referent, focus.referent)) {
       focus.seenAt = now;
       this.state.seenAt = now;

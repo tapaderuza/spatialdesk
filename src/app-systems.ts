@@ -19,6 +19,7 @@ import { GlideSystem } from './ui/glide.js';
 import { PokeSystem } from './ui/poke.js';
 import { PanelShadowSystem } from './ui/panel-shadows.js';
 import { HoverSystem } from './ui/hover.js';
+import { RimSystem } from './ui/rim.js';
 import { SpatialAudioSystem } from './ui/sounds.js';
 import { BoardSystem } from './workspace/boards.js';
 import { PinnedSystem } from './workspace/pinned.js';
@@ -56,5 +57,6 @@ export const APP_SYSTEMS: readonly SystemClass[] = [
   HelperSystem, // a family member or carer follows along from a phone; their Help call opens the setup above
   AnchorFeedbackSystem, // the amber flash and the faint pulse when the space settles on the body or a surface
   HoverSystem,
+  RimSystem, // after HoverSystem: the rim follows the card as its hover has lifted it this frame
   SpatialAudioSystem, // last: every sounding cue placed around the ears where its panel is this frame
 ];

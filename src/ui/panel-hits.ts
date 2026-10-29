@@ -12,7 +12,8 @@
  * and the agent can be told what "this" is (src/ui/attention.ts).
  */
 import { Matrix4, Vector3, type Object3D, type UIKit } from '@iwsdk/core';
-import { play, unlockAudio } from './sounds.js';
+import { hoverTick, play, unlockAudio } from './sounds.js';
+import { rimPointer } from './rim.js';
 import { accessPreferences } from '../accessibility/preferences.js';
 import { AimTrail, outside, SNAP_METRES } from './aim.js';
 import { reachState } from '../accessibility/reach.js';
@@ -54,6 +55,8 @@ export interface GazeTarget {
   touchFace(point: Vector3, normal: Vector3): void;
   pokeHit(fresh: boolean): string | null;
   setPokeHover(hand: 0 | 1, key: string | null): void;
+  /** Sinks a control [metres] into the panel under a fingertip (0: back in its place). */
+  setPokeDepth(key: string, metres: number): void;
   /** For one-switch scanning (src/accessibility/switch-system.ts): which panel, shown or not, its visible controls. */
   readonly name: string;
   readonly modal: boolean;
@@ -380,6 +383,21 @@ export class PanelHits<K extends string> {
     this.setHover(POKE_POINTERS[hand], key);
   }
 
+  /**
+   * Moves a control [metres] back into its panel, text and all (UIKit's transformTranslateZ, in the panel's own units:
+   * the control's width in units over its width in metres).
+   */
+  setPokeDepth(key: K, metres: number): void {
+    const i = this.indexOf(key);
+    if (i < 0) return;
+    const element = this.controls[i][1];
+    const units = element.size.value?.[0];
+    const e = element.matrixWorld.elements;
+    const width = Math.hypot(e[0], e[1], e[2]);
+    if (!units || !width) return;
+    element.setProperties({ transformTranslateZ: metres === 0 ? 0 : (-metres * units) / width });
+  }
+
   /** The gaze pointer's hover (null: the gaze left this panel), painted like a hand's. */
   setGazeHover(key: K | null): void {
     this.setHover(GAZE_POINTER, key);
@@ -415,8 +433,13 @@ export class PanelHits<K extends string> {
   private setHover(pointerId: number, key: K | null): void {
     const previous = this.hoverByPointer.get(pointerId) ?? null;
     if (previous === key) return;
+    const already = key != null && this.isHovered(key);
     if (key == null) this.hoverByPointer.delete(pointerId);
     else this.hoverByPointer.set(pointerId, key);
+    // A pointer onto something new ticks from it; the one switch's scan has its own voice.
+    if (key != null && !already && pointerId !== SWITCH_POINTER) hoverTick(this.positionOf(key));
+    // A ray (or the mouse) on a card lights the rim round it (src/ui/rim.ts).
+    if (pointerId >= 0) rimPointer(pointerId, this, key != null && this.handlers.refer?.(key)?.card ? key : null);
     if (!this.handlers.hover) return;
     if (previous != null && !this.isHovered(previous)) this.handlers.hover(previous, false);
     if (key != null) this.handlers.hover(key, true);

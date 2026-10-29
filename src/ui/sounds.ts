@@ -1,8 +1,8 @@
 /**
  * The sound of SpatialDesk, synthesised with Web Audio (no files, no licences). Every cue is the same soft mallet (a
  * sine with a quickly fading fourth partial, through a gentle low-pass), tuned to one pentatonic scale, so the cues
- * belong to one instrument and never clash when they overlap. They sound from where things happen: a tap from the
- * control, the alarm from the timer, the plant's notes from the plant, and a breath of air from a panel gliding to its
+ * belong to one instrument and never clash when they overlap. They sound from where things happen: a faint tick from a
+ * control a pointer comes onto (at most one every 120 ms), a tap from the control, the alarm from the timer, the plant's notes from the plant, and a breath of air from a panel gliding to its
  * place, following it as it moves (HRTF). Every cue still sounding is kept where it is in the room as the head turns:
  * its place relative to the ears is recomputed each frame (SpatialAudioSystem), for at most [MAX_VOICES] at once and
  * at no cost when none sounds. During a focus block a quiet ambience of soft air, breathing slowly, fades in, and out
@@ -58,7 +58,7 @@ export function audioContext(): AudioContext | null {
   return context;
 }
 
-export type Sound = 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen' | 'grow' | 'call' | 'welcome';
+export type Sound = 'tick' | 'tap' | 'pick' | 'drop' | 'apply' | 'undo' | 'error' | 'nudge' | 'listen' | 'grow' | 'call' | 'welcome';
 
 // The scale (Hz): C major pentatonic over three octaves.
 const C4 = 261.63, D4 = 293.66, C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880;
@@ -67,6 +67,8 @@ const C6 = 1046.5, D6 = 1174.66, E6 = 1318.51, G6 = 1567.98, A6 = 1760;
 /** [frequency, start (s after the cue), length (s), level] per note. */
 type Note = readonly [number, number, number, number];
 const CUES: Record<Sound, readonly Note[]> = {
+  // The faintest cue: a pointer comes onto something new that can be pressed. A quarter of a tap's level, half its length.
+  tick: [[A6, 0, 0.025, 0.012]],
   tap: [[G6, 0, 0.05, 0.05]],
   pick: [[E5, 0, 0.09, 0.08], [A5, 0.06, 0.14, 0.08]],
   drop: [[A5, 0, 0.09, 0.08], [E5, 0.06, 0.16, 0.08]],
@@ -217,6 +219,33 @@ export function play(sound: Sound, at?: { x: number; y: number; z: number }): vo
   for (const note of CUES[sound]) mallet(context, out, note, now);
 }
 
+/** No two hover ticks closer than this: a ray or the eyes sweeping across a column tick a few times, never a buzz. */
+const TICK_GAP_MS = 120;
+let lastTickMs = -Infinity;
+/** Ticks let through and held back, and when the last few sounded (performance.now()): for the tests. */
+const ticks = { played: 0, held: 0, at: [] as number[] };
+
+/**
+ * A tick from [at] as a pointer (a ray, a fingertip, the eyes) comes onto a new control, at most one every
+ * [TICK_GAP_MS] (the first of a sweep sounds at once, the ones right after it are dropped, never delayed). Scheduled 5 ms
+ * ahead instead of a cue's 10: it must land with the highlight.
+ */
+export function hoverTick(at?: { x: number; y: number; z: number }): void {
+  const nowMs = performance.now();
+  if (nowMs - lastTickMs < TICK_GAP_MS) {
+    ticks.held++;
+    return;
+  }
+  lastTickMs = nowMs;
+  ticks.played++;
+  ticks.at.push(nowMs);
+  if (ticks.at.length > 16) ticks.at.shift();
+  if (!settings.sound || accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
+  const now = context.currentTime + 0.005;
+  const out = output(context, 'tick', endOf(CUES.tick, now), at);
+  for (const note of CUES.tick) mallet(context, out, note, now);
+}
+
 /** The timer's alarm, from the timer: plays even with sounds off. */
 export function alarm(at: { x: number; y: number; z: number }): void {
   if (accessPreferences.cuesVolume === 0 || !context || context.state !== 'running') return;
@@ -340,6 +369,8 @@ onAccessPreferences(() => { applyAccessMix(); setAmbience(ambienceWanted); });
   mix: () => ({ cues: cuesBus?.gain.value ?? 0, ambience: ambienceBus?.gain.value ?? 0, channels: master?.channelCount ?? 2 }),
   /** Where a kind of cue last sounded from in the room. */
   lastPlace: (kind: string) => lastPlace.get(kind) ?? null,
+  /** Hover ticks let through and held back by the gap between them. */
+  ticks: () => ({ played: ticks.played, held: ticks.held, at: [...ticks.at] }),
   /** The cues sounding from a place: what, where in the room, and where around the ears its panner has it now. */
   voices: () =>
     voices
