@@ -231,9 +231,9 @@ ${previewLog}`);
 
   await page.goto(`/?cinematicMode=true&fast=true${process.env.CINEMATIC_QUERY ?? ''}`);
   await page.waitForSelector('#cinematic-start', { timeout: 60_000 });
-  // A 62-degree vertical view (about 95 across a 16:9 frame): the emulator's default 90 makes a 120-degree frame whose
-  // edges stretch the panels.
-  await page.evaluate(() => (window.__xrDevice.fovy = (62 * Math.PI) / 180));
+  // An 80-degree vertical view: the agent's card, 55 cm tall half a metre away (58 degrees), fits
+  // whole, with room above it and its buttons clear of the captions; the emulator's default is 90.
+  await page.evaluate(() => (window.__xrDevice.fovy = (80 * Math.PI) / 180));
   // The script's own workspace (real tasks instead of the first-run tutorial), as if typed before the take.
   if (script.seed) {
     await page.waitForFunction(() => window.__workspace?.state?.boards?.length > 0, null, { timeout: 30_000 });
@@ -326,6 +326,17 @@ ${previewLog}`);
       return Math.abs(s.yaw - s.targetYaw) < 0.003 && Math.abs(s.pitch - s.targetPitch) < 0.003;
     }, null, 6000);
   };
+  /** Apply, pushed by the hand: a glance at the button, then the whole card again while the finger presses it. */
+  const pokeApply = async () => {
+    await aimAt('agent:plan-apply');
+    const before = await page.evaluate(() => window.__cinematic.state.pokes);
+    event('poke-start');
+    await page.evaluate(() => window.__cinematic.poke());
+    await sleep(250);
+    await aimAt('agent:plan-root', 0, -0.06);
+    await page.waitForFunction((n) => window.__cinematic.state.pokes > n, before, { timeout: 8000 });
+    event('poke-end');
+  };
   const pokeIt = async () => {
     const before = await page.evaluate(() => window.__cinematic.state.pokes);
     event('poke-start');
@@ -344,6 +355,7 @@ ${previewLog}`);
     const shownAt = Date.now();
     const plan = await page.evaluate(() => window.__agent.state.plan);
     if (!/nova/i.test(plan.source ?? '')) throw new Error(`Not Amazon Nova's answer: ${plan.source}`);
+    await aimAt('agent:plan-root', 0, -0.06); // the whole card in view, its buttons too
     await settle();
     const at = Math.max(shownAt, Date.now());
     markers.nova.push({ id, text: plan.summary, at, shownAt });
@@ -427,9 +439,8 @@ ${previewLog}`);
     markers.heard = await page.evaluate(() => window.__heard.said);
     await novaSays('nova-reach');
     await beat('apply');
-    await aimAt('agent:plan-apply');
-    await page.evaluate(() => window.__cinematic.select());
-    await sleep(2600); // the glide, and Nova asking how it feels
+    await pokeApply();
+    await sleep(2000); // the glide, and Nova asking how it feels
     await aimAt('agent:plan-discard');
     await page.evaluate(() => window.__cinematic.select()); // Close: the board is clear for her eyes
     await page.waitForFunction(() => window.__agent.state.phase === 'idle', null, { timeout: 5000 });
@@ -450,10 +461,15 @@ ${previewLog}`);
     await page.evaluate((said) => window.__voice.say(said), beatOf('move').command ?? 'Move this to done.');
     await novaSays('nova-move');
     await beat('poke');
-    await aimAt('agent:plan-apply');
-    await sleep(600);
-    await pokeIt();
-    await sleep(1800);
+    await pokeApply();
+    // The card lands in the last column: the head follows it there and stays a moment.
+    const done = await page.evaluate((t) => {
+      const board = t ? window.__workspace.state.boards.find((b) => b.title === t.board) : window.__workspace.state.boards.find((b) => b.id === 'b1');
+      return `${board.id}:col-${board.columns.length - 1}`;
+    }, beatOf('gaze').target ?? null);
+    await aimAt(done);
+    event('done-shown');
+    await sleep(2400);
 
     // 2:00 A carer, on a phone: the invitation, the code, Allow, the board, Help / Recalibrate opens her setup.
     await beat('helper');

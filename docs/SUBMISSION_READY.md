@@ -8,8 +8,8 @@ critical bug that breaks the demo. Production runs `30244e5` (below), and the ju
 **One exception, taken with the user's go-ahead (2026-10-29):** a critical bug that broke the demo (a board brought close
 hid the helper's Allow and the guided setup), fixed in `97cb9fe`, pushed, **not deployed** (production stays `30244e5`).
 
-**Second exception, asked by the user (2026-10-29, log block 30):** "closer" could move the board away (fixed on the
-server, pushed, **not deployed**); the demo's tasks are real; the narration says head pose, not eyes. The freeze is back.
+**Second exception, asked by the user (2026-10-29, log blocks 30 and 31):** "closer" could move the board away (fixed on
+the server and **deployed as `7dd7e7b`**, confirmed live: 53 cm to 43 cm); the demo's tasks are real; the narration says head pose, not eyes. The freeze is back.
 
 ## Git and performance
 

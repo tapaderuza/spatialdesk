@@ -745,3 +745,25 @@ narration said "her eyes" although Quest 3 has no eye tracking.
   failed on a port not yet free).
 - **The Feature Freeze is back** from this commit: the server fix is pushed, **not deployed** (production stays
   `30244e5`, whose companion can still move the board away on "closer" until it is).
+
+## Block 31: the distance fix in production, the framing fixed, the freeze back
+
+Asked: "Abre el Feature Freeze temporalmente solo para ajustes de cámara y despliegue": deploy the distance fix, frame
+Nova's card whole with its buttons and the card landing in Done, re-render with a re-recorded carer clip.
+
+- **Deployed `7dd7e7b`** (server and front end) with the user's explicit go-ahead ("Despliega inmediatamente a
+  producción el commit que contiene esta corrección"): CDK 1,032 s, the script's end-to-end test 2/2. First its push:
+  the CI was blocked once by the performance gate (p95 30 to 38 ms) with leftover browsers of earlier takes running;
+  with those closed it passed (199 passed, p95 22.4 ms, 78 draw calls). **Confirmed live:** the takes now run against
+  production, and its Nova proposed "Comfort: board 43 cm away" after "Hoy es un mal día. Acércalo todo." from 53 cm.
+- **Framing** (`scripts/make-cinematic-video.mjs`): an 80-degree vertical view (the card is 58 degrees tall at half a
+  metre); the head centres the whole card (6 % below its middle) while Nova answers; Apply is pushed by the hand after
+  a glance at it, the head back on the card while the finger presses; after the move the head turns to the Done column
+  and stays 2.4 s on the task in it. Nova's caption is now her English only (her Spanish is on the card), so it stays
+  clear of the buttons. Checked on frames: both cards whole, title to buttons; "Llamar a Rocío..." in Hecho.
+- **The carer clip:** the Drive folder still holds the earlier `IMG_2089.MOV` (byte for byte the same file), so the cut
+  uses it; once the new recording is there, `python scripts/build_pitch_video.py --edit` (with its new in and out points
+  in `docs/video/pitch-2026.json`) is all it takes.
+- **The cut:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: 111.6 s, 1920x1080, 60/1, no decoding
+  errors, -16 LUFS.
+- **The Feature Freeze is back.**

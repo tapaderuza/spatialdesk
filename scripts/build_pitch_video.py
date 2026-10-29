@@ -255,7 +255,8 @@ def edit(directory):
         english = SCRIPT.get("nova_captions", {}).get(n["text"])
         if not english:
             print(f"  Nova's answer has no English caption yet (add it to nova_captions, then --edit): {n['text']}")
-        lines.append((start, seconds(file), f"Nova: {n['text']}" + (f"\n{english}" if english else "")))
+        # Her Spanish is on the card itself: the caption carries the English only, short enough to stay clear of its buttons.
+        lines.append((start, seconds(file), f"Nova: {english}" if english else f"Nova: {n['text']}"))
     voices.append((narration("carer"), o_c1 + 0.3))
     lines.append((o_c1 + 0.3, seconds(narration("carer")), next(b["text"] for b in SCRIPT["beats"] if b["id"] == "carer")))
     voices.append((narration("end"), o_d + END_LEAD_S))

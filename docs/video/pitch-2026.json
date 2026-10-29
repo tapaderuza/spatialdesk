@@ -140,7 +140,9 @@
     "Hoy es un mal día. Te acerco todo un poco para que esté más cerca y sea más fácil de alcanzar.": "A bad day today. I will bring everything a little closer, so it is nearer and easier to reach.",
     "Entiendo que quieres mover la tarjeta seleccionada a la columna de hecho. Te ayudo a hacerlo.": "I understand you want to move the selected card to the Done column. I will help you do it.",
     "Ajusto la distancia para que todo esté más cerca. ¿Te parece bien esta posición?": "I will adjust the distance so everything is closer. Does this position feel right?",
-    "Puedo mover la tarea seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected task to the Done column. Shall I do it now?"
+    "Puedo mover la tarea seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected task to the Done column. Shall I do it now?",
+    "Ajusto la distancia para que todo esté más cerca, ya que hoy es un mal día. Te pregunto si necesitas algo más.": "I will adjust the distance so everything is closer, since today is a bad day. Do you need anything else?",
+    "Puedo mover la tarea seleccionada a la columna Hecho. ¿Es esta la tarea que quieres mover?": "I can move the selected task to the Done column. Is this the task you want to move?"
   },
   "seed": [
     {
