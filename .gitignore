@@ -52,6 +52,8 @@ yarn-error.log*
 
 # Submission video build (scripts/make-video.mjs)
 .video/
+# Real footage for the pitch cut (scripts/build_pitch_video.py): people filmed at home, never committed
+inputs/
 
 # Local tooling and review captures (personal paths; not part of the app)
 .work/

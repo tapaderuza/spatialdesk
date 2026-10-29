@@ -18,7 +18,10 @@ import { chromium } from '@playwright/test';
 
 const root = process.cwd();
 const editOnly = process.argv.includes('--edit');
-const script = JSON.parse(readFileSync(join(root, 'docs/video/cinematic-2026.json'), 'utf-8'));
+// NARRATION_FILE: another script of the same shape (scripts/build_pitch_video.py uses docs/video/pitch-2026.json).
+// CAPTURE_ONLY: stop after the take, Nova's voice and the cards (the pitch cut is edited in Python). CINEMATIC_QUERY:
+// more of the recording mode's URL (e.g. &fov=120). MIC_FILE: a WAV her request is played from instead of her voice.
+const script = JSON.parse(readFileSync(join(root, process.env.NARRATION_FILE ?? 'docs/video/cinematic-2026.json'), 'utf-8'));
 const base = join(root, '.video', 'cinematic');
 mkdirSync(base, { recursive: true });
 const work = editOnly ? readFileSync(join(base, 'last.txt'), 'utf-8').trim() : join(base, new Date().toISOString().replace(/[:.]/g, '-'));
@@ -88,6 +91,7 @@ function voices() {
   step('Voices (Piper, local)');
   for (const role of ['narrator', 'person']) speak(role, script.beats.filter((b) => b.voice === role), join(voiceDir, role));
   const durations = Object.fromEntries(script.beats.map((b) => [b.id, seconds(join(voiceDir, b.voice, `${b.id}.wav`))]));
+  if (process.env.MIC_FILE) durations.say = seconds(process.env.MIC_FILE) + 0.3; // her own voice, as the microphone plays it
   writeFileSync(join(work, 'durations.json'), JSON.stringify(durations, null, 2));
   console.log(`${script.beats.length} lines, ${Object.values(durations).reduce((a, b) => a + b, 0).toFixed(1)} s of voice`);
   return durations;
@@ -187,7 +191,8 @@ async function capture(durations) {
     await sleep(500);
   }
 
-  const markers = { camera: CAMERA, beats: [], nova: [], carer: null };
+  const markers = { camera: CAMERA, beats: [], nova: [], carer: null, events: [] };
+  const event = (kind) => markers.events.push({ kind, at: Date.now() });
   const audioChunks = [];
   const browser = await chromium.launch({
     channel: 'msedge', headless: false, chromiumSandbox: true,
@@ -198,7 +203,7 @@ async function capture(durations) {
   await context.exposeFunction('__videoAudioChunk', (index, data) => (audioChunks[index] = Buffer.from(data, 'base64')));
   await context.route('**/__video/**', (route) => {
     const name = new URL(route.request().url()).pathname.split('/').pop();
-    const file = name === 'camera' ? CAMERA.slice('file:'.length) : join(voiceDir, 'person', name);
+    const file = name === 'camera' ? CAMERA.slice('file:'.length) : name === 'say.wav' && process.env.MIC_FILE ? process.env.MIC_FILE : join(voiceDir, 'person', name);
     return route.fulfill({ path: file });
   });
   await context.addInitScript(inPage, { camera: CAMERA.startsWith('file:') ? 'file' : CAMERA });
@@ -216,7 +221,7 @@ async function capture(durations) {
   const carer = await phoneContext.newPage();
   await carer.goto('/companion.html');
 
-  await page.goto('/?cinematicMode=true&fast=true');
+  await page.goto(`/?cinematicMode=true&fast=true${process.env.CINEMATIC_QUERY ?? ''}`);
   await page.waitForSelector('#cinematic-start', { timeout: 60_000 });
   // A 62-degree vertical view (about 95 across a 16:9 frame): the emulator's default 90 makes a 120-degree frame whose
   // edges stretch the panels.
@@ -310,8 +315,10 @@ async function capture(durations) {
   };
   const pokeIt = async () => {
     const before = await page.evaluate(() => window.__cinematic.state.pokes);
+    event('poke-start');
     await page.evaluate(() => window.__cinematic.poke());
     await page.waitForFunction((n) => window.__cinematic.state.pokes > n, before, { timeout: 8000 });
+    event('poke-end');
   };
   const phase = (want) => page.waitForFunction((want) => {
     const s = window.__agent.state;
@@ -332,6 +339,7 @@ async function capture(durations) {
   };
   /** The right hand reaches the orb, pinches it, and goes back down. */
   const pinchOrb = async () => {
+    event('pinch-start');
     await page.evaluate(async () => {
       const w = window.__world;
       const V = w.camera.position.constructor;
@@ -363,6 +371,7 @@ async function capture(durations) {
       await move(goal, from, 900);
       hand.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
     });
+    event('pinch-end');
   };
 
   let carerFrom = 0;
@@ -374,6 +383,7 @@ async function capture(durations) {
     await aimAt('setup:setup-b');
     await pokeIt(); // Sofa/Bed
     await page.waitForFunction(() => window.__setup.view.stage === 'reach', null, { timeout: 8000 });
+    event('orb-shown');
     await beat('orb');
     await aimAt('setup-orb');
     await sleep(Math.max(0, durations.orb * 1000 - 3200));
@@ -419,7 +429,7 @@ async function capture(durations) {
     markers.lookedAt = await page.evaluate(() => window.__attention.state.focus);
     await beat('move');
     await sleep(durations.move * 1000);
-    await page.evaluate(() => window.__voice.say('Move this to done.'));
+    await page.evaluate((said) => window.__voice.say(said), beatOf('move').command ?? 'Move this to done.');
     await novaSays('nova-move');
     await beat('poke');
     await aimAt('agent:plan-apply');
@@ -432,7 +442,7 @@ async function capture(durations) {
     await page.evaluate(() => window.__cinematic.aim(0, -0.1));
     await beat('invite');
     await sleep(durations.invite * 1000);
-    await page.evaluate(() => window.__voice.say('invite a helper'));
+    await page.evaluate((said) => window.__voice.say(said), beatOf('invite').command ?? 'invite a helper');
     await page.waitForFunction(() => window.__helper?.view.stage === 'inviting' && window.__helper.state.code, null, { timeout: 15_000 });
     const code = await page.evaluate(() => window.__helper.state.code);
     await aimAt('helper:root').catch(() => aimAt('helper:a'));
@@ -447,8 +457,10 @@ async function capture(durations) {
     await page.waitForFunction(() => window.__helper.view.stage === 'sharing', null, { timeout: 15_000 });
     await carer.locator('#board').waitFor({ timeout: 15_000 });
     await sleep(1800);
+    event('help');
     await carer.locator('#help').click();
     await page.waitForFunction(() => window.__setup.view.stage === 'where', null, { timeout: 15_000 });
+    event('setup-reopened');
     await aimAt('setup:setup-root');
     await settle();
     await sleep(TAIL_S * 1000);
@@ -661,5 +673,18 @@ function cards() {
 console.log(`Working directory: ${work}`);
 const durations = voices();
 const markers = editOnly ? JSON.parse(readFileSync(join(work, 'markers.json'), 'utf-8')) : await capture(durations);
+if (process.env.CAPTURE_ONLY) {
+  speak('nova', markers.nova.map(({ id, text }) => ({ id, text })), join(work, 'nova'));
+  const browser = await chromium.launch({ channel: 'msedge' });
+  const page = await browser.newPage({ viewport: { width: W, height: H } });
+  for (const [name, html] of Object.entries(cards())) {
+    await page.setContent(html);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(work, `${name}.png`) });
+  }
+  await browser.close();
+  console.log(`Take ready for the pitch edit: ${work}`);
+  process.exit(0);
+}
 const report = await edit(durations, markers);
 console.log(`\n${OUTPUT}: ${report.seconds.toFixed(1)} s, ${report.video.width}x${report.video.height} at ${report.video.rate}`);

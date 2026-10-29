@@ -1,0 +1,138 @@
+{
+  "_comment": "The hybrid pitch cut (scripts/build_pitch_video.py): real iPhone footage (inputs/, never committed) around the app recorded in the emulator. The beats are the take's, as in cinematic-2026.json (scripts/make-cinematic-video.mjs paces the take by these lines); 'hook', 'pinch', 'poke' and 'carer_clip' are the real clips with their in and out points (seconds); the hook's captions are her own words in English. Her request in the take is her own voice from the hook (mic), heard by the real Amazon Transcribe in Spanish (lang=es-ES); Nova answers in Spanish, in a Spanish voice; nova_captions maps each answer Nova gave (her exact Spanish) to its English; the edit lists any answer still without one.",
+  "title": "SpatialDesk",
+  "subtitle": "A workspace that adapts to your body, in mixed reality.",
+  "disclosure": "The interface is the real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script, with live Amazon Nova and Amazon Transcribe. The hand gestures were filmed separately.",
+  "pip_label": "Real gesture, filmed separately",
+  "voices": {
+    "narrator": "en_US-lessac-medium",
+    "person": "en_US-amy-medium",
+    "nova": "es_ES-sharvard-medium"
+  },
+  "metrics": [
+    [
+      "199",
+      "automated tests passing"
+    ],
+    [
+      "24.6 ms",
+      "frame time at the 95th percentile, CPU throttled 3x (Meta's IWSDK starter scene: 29.4 ms)"
+    ],
+    [
+      "78",
+      "draw calls, under a budget of 80"
+    ],
+    [
+      "Offline",
+      "the network drops: one calm line, and the cards still move by hand"
+    ]
+  ],
+  "end_line": "A workspace that adapts to you.",
+  "hook": {
+    "clip": "inputs/IMG_2085.MOV",
+    "in": 1.2,
+    "out": 6.36,
+    "captions": [
+      {
+        "at": 0.7,
+        "to": 3.7,
+        "text": "Hoy es un mal día, acércalo todo.\nToday is a bad day. Bring everything closer."
+      }
+    ]
+  },
+  "pinch": {
+    "clip": "inputs/IMG_2087.MOV",
+    "in": 0
+  },
+  "poke": {
+    "clip": "inputs/IMG_2088.MOV",
+    "in": 0
+  },
+  "carer_clip": {
+    "clip": "inputs/IMG_2089.MOV",
+    "in": 13.0,
+    "out": 19.6
+  },
+  "beats": [
+    {
+      "id": "intro",
+      "voice": "narrator",
+      "text": "SpatialDesk fits the space to her body. First: where is she sitting?"
+    },
+    {
+      "id": "orb",
+      "voice": "narrator",
+      "text": "On the sofa, everything comes lower and closer. She pinches wherever her hand is comfortable: that is her reach."
+    },
+    {
+      "id": "fitted",
+      "voice": "narrator",
+      "text": "The space glides into reach, and settles with an amber glow."
+    },
+    {
+      "id": "ask",
+      "voice": "narrator",
+      "text": "She says what she needs, in her own words. Amazon Transcribe hears her, and while Amazon Nova thinks, an orb breathes."
+    },
+    {
+      "id": "say",
+      "voice": "person",
+      "text": "Hoy es un mal día, acércalo todo.",
+      "caption": "Today is a bad day. Bring everything closer."
+    },
+    {
+      "id": "apply",
+      "voice": "narrator",
+      "text": "Nothing changes until she agrees. She applies it, and every panel glides closer."
+    },
+    {
+      "id": "gaze",
+      "voice": "narrator",
+      "text": "Her eyes rest on a card. A soft rim breathes around it: for Nova, that card is now this."
+    },
+    {
+      "id": "move",
+      "voice": "narrator",
+      "text": "She says: move this to done.",
+      "command": "Mueve esto a hecho.",
+      "caption": "Mueve esto a hecho. (Move this to done.)"
+    },
+    {
+      "id": "poke",
+      "voice": "narrator",
+      "text": "She pushes Apply with a fingertip. The key gives way under it, and the card moves to Done."
+    },
+    {
+      "id": "helper",
+      "voice": "narrator",
+      "text": "Someone who cares can help, from a phone."
+    },
+    {
+      "id": "invite",
+      "voice": "narrator",
+      "text": "She invites them.",
+      "command": "invita a un ayudante"
+    },
+    {
+      "id": "carer",
+      "voice": "narrator",
+      "text": "One large button, Help, recalibrate, opens the guided setup in her headset."
+    },
+    {
+      "id": "end",
+      "voice": "narrator",
+      "text": "Every claim here is an automated test. One hundred ninety-nine of them pass. A twenty-four millisecond frame, seventy-eight draw calls, and when the network drops, it keeps working by hand."
+    }
+  ],
+  "mic": {
+    "clip": "inputs/IMG_2085.MOV",
+    "in": 1.2,
+    "out": 5.0
+  },
+  "nova_captions": {
+    "Entiendo que hoy es un día difícil y quieres acercar todo. Puedo ajustar la distancia para que todo esté más cerca. ¿Te parece bien?": "I understand today is a hard day and you want everything closer. I can adjust the distance so it is all nearer. Is that all right?",
+    "Puedo mover la tarjeta seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected card to the Done column. Shall I do it now?",
+    "Hoy es un mal día. Te acerco todo un poco para que esté más cerca y sea más fácil de alcanzar.": "A bad day today. I will bring everything a little closer, so it is nearer and easier to reach.",
+    "Entiendo que quieres mover la tarjeta seleccionada a la columna de hecho. Te ayudo a hacerlo.": "I understand you want to move the selected card to the Done column. I will help you do it."
+  }
+}

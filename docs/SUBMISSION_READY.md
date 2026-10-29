@@ -111,6 +111,12 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 ## Video
 
+- **Pitch cut with her real footage (2026-10-29, local file, not uploaded):** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`,
+  copied to `dist/SpatialDesk_Final_Pitch_2026.mp4`: 106 s, 1920x1080 at 60 fps. Her request on the sofa ("Hoy es un mal
+  día, acércalo todo", captioned), then the app on a dark background, her own voice heard by the real Transcribe and
+  answered by the real Nova in Spanish (captioned in English), a corner showing her real pinch and poke (labelled as
+  filmed separately), the carer's phone pressing Help / Recalibrate and the setup opening in the headset, the figures.
+  Made by `python scripts/build_pitch_video.py` (log block 29); the clips stay in `inputs/`, never committed.
 - **New cut (2026-10-29, local file, not uploaded):** `.video/SpatialDesk_Demo_2026.mp4`, copied to
   `dist/SpatialDesk_Demo_2026.mp4` (the next `npm run build` empties `dist/`, and the next deploy would publish what is
   there: keep the `.video/` copy). 123 s, 1920x1080 at 60 fps (52 captured frames a second, the rest repeated), H.264 +

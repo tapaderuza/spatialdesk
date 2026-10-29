@@ -676,3 +676,41 @@ space fitting her; the gaze rim, "move this to done" and a poke; the carer's pho
   `CAMERA=file:<clip>` loops a recorded room); a physical headset.
 - **Not deployed:** the bug fix is pushed with this block, not deployed (production stays `30244e5`); the video was
   recorded against the local build, which has it. The public YouTube video is still the 2025 cut.
+
+## Block 29: the hybrid pitch cut, with her real footage
+
+Asked: `scripts/build_pitch_video.py` cutting the user's iPhone footage (Drive folder) together with the app: a hook of
+her request, the app with a picture-in-picture of her real pinch and poke, the carer's phone pressing Help /
+Recalibrate and back to the app, a card with the figures; a dark neutral background instead of a fake passthrough; English
+captions, narration, the app's sound; `dist/SpatialDesk_Final_Pitch_2026.mp4`.
+
+- **The footage** (`inputs/`, now in `.gitignore` before anything was downloaded: people filmed at home are never
+  committed): four iPhone clips, HEVC 1920x1080 at 60 fps, HDR (HLG, BT.2020), tone-mapped to SDR (BT.709) in the cut.
+  Downloaded with `gdown` once the folder was shared with anyone with the link (the first try answered 401). Her words,
+  transcribed locally (faster-whisper, nothing sent anywhere): "Hoy es un mal día, acércalo todo." ("Today is a bad day.
+  Bring everything closer."), after a spoken countdown, so the hook and the microphone start at 1.2 s.
+- **Her own voice in the app** (the user's choice): her line from the hook is played into the take's microphone and heard
+  by the real Amazon Transcribe in Spanish (`lang=es-ES`): "Hoy es un mal día. Acércalo todo." exactly. The real Nova
+  answered in Spanish ("Hoy es un mal día. Te acerco todo un poco...", board 62 cm), spoken afterwards in a Spanish Piper
+  voice (`es_ES-sharvard-medium`) and captioned in English (`nova_captions`, keyed by Nova's exact words; the script lists
+  any answer still without one). "Mueve esto a hecho." moved the card she looked at to Done by a poke on Apply. The setup
+  and Nova's card read in Spanish, captioned in English.
+- **The background:** a solid #1a1a1a clip as the recording mode's camera, 120 degrees wide (`&fov=120`): the app's room
+  mode on a dark neutral wall instead of the VR studio, no fake passthrough.
+- **The take** (`scripts/make-cinematic-video.mjs`, now with `NARRATION_FILE`, `CAPTURE_ONLY`, `CINEMATIC_QUERY`, `MIC_FILE`
+  and timed events: orb shown, pinch, each poke, Help, setup reopened) at the pace of `docs/video/pitch-2026.json`.
+- **The edit** (`scripts/build_pitch_video.py`, ffmpeg via subprocess, standard library only): hook 5.2 s (her clip, her
+  sound, captioned); the app 76.0 s with the corner PiP (rounded, soft-edged, a faint glow, labelled "Real gesture, filmed
+  separately") playing her poke while the hand pushes Sofa/Bed and Apply, and her pinch while the orb is up, plus a
+  disclosure line for the first seconds; the carer's phone 6.6 s (13.0 to 19.6 s of the clip: the button, the tap at 15.0 s,
+  the setup arriving on the laptop behind); back to the app 5.5 s as "¿Dónde te sientas?" opens in the headset; the end
+  card 13.8 s (199 tests, not the 198 asked: the carer test from block 28 is the 199th). Captions bottom left, clear of the
+  corner. Two edit bugs found by looking at the cut and fixed: the corner's looped masks never ended, so the cut froze on
+  the app's last frame from 81 s (every part is now bounded), and captions overlapped the corner's label.
+- **The cut:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: **106.4 s**, 1920x1080, 60/1, 6,383
+  frames (exactly 106.38 x 60), no decoding errors, -16.0 LUFS; each part has its sound (her voice, the narration and the
+  app, the phone, the end line). The app drew 57.3 frames a second during the take; the screen capture kept 52.
+- **Against the storyboard:** the hook is 5.2 s (her clip is 6.4 s, with a countdown); the app part runs to 1:21 instead
+  of 1:15 (her request, Nova and two glides need it), the carer to 1:28, the setup to 1:33, the card to 1:46.
+- **Honest limits:** the gestures in the corner were filmed separately (she wears no headset; the label and the
+  disclosure say so); the interface is the emulator driven by a script. Not on a physical headset.
