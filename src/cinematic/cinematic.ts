@@ -129,7 +129,12 @@ function installCleanPage(canvas: HTMLCanvasElement): void {
       color: #b4bfce; font: 600 18px/1.5 system-ui, sans-serif; text-align: center; cursor: pointer; }
     #cinematic-start small { display: block; font-weight: 400; font-size: 14px; color: #7d8796; margin-top: 8px; }`;
   document.head.appendChild(style);
-  for (let e: HTMLElement | null = canvas; e && e !== document.body; e = e.parentElement) e.classList.add('cinematic-keep');
+  // The canvas and what holds it stay shown, the container the XR session moves it into later included.
+  const keep = () => {
+    for (let e: HTMLElement | null = canvas; e && e !== document.body; e = e.parentElement) e.classList.add('cinematic-keep');
+  };
+  keep();
+  new MutationObserver(keep).observe(document.body, { childList: true, subtree: true });
   document.documentElement.classList.add('cinematic');
 }
 

@@ -75,7 +75,11 @@ test('recording mode: the webcam fills the room behind the panels, and the page 
       const r = (e as HTMLElement).getBoundingClientRect();
       return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && !e.contains(w.renderer.domElement);
     });
+    // The canvas and every element holding it are shown: the XR session moves the canvas into a new container.
+    const hidden: string[] = [];
+    for (let e: HTMLElement | null = w.renderer.domElement; e; e = e.parentElement) if (getComputedStyle(e).display === 'none') hidden.push(e.tagName);
     return {
+      hidden,
       camera: c.state.camera,
       inRoom: (window as Win).__room.state.inRoom,
       backdrop: backdrop ? { visible: backdrop.visible, gap: backdrop.position.distanceTo(head), playing: !backdrop.material.map.image.paused } : null,
@@ -83,6 +87,7 @@ test('recording mode: the webcam fills the room behind the panels, and the page 
       cursor: getComputedStyle(w.renderer.domElement).cursor,
     };
   });
+  expect(look.hidden, 'the canvas is on screen').toEqual([]);
   expect(look.camera).toBe('on');
   expect(look.inRoom).toBe(true); // the app's passthrough mode: no virtual studio, shadows on
   expect(look.backdrop).toMatchObject({ visible: true, playing: true });
