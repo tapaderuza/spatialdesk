@@ -623,3 +623,55 @@ SpatialDesk is finished. From `30244e5` on, not one more line of code, feature o
 bug that breaks the demo. Production runs `30244e5` and is what the judges' video is recorded against (the local
 recording mode, `?cinematicMode=true`, uses the same build and the production server). Documentation may still be
 corrected.
+
+## Block 28: the 2026 demo video, automated (1080p60), and one critical bug fixed under the freeze
+
+Asked: the judges' video from the automated pipeline (Playwright, ffmpeg, a voice-over) instead of OBS, in the
+cinematic mode at `/?cinematicMode=true&fast=true`, along a five-part storyboard (the guided setup and her request; the
+space fitting her; the gaze rim, "move this to done" and a poke; the carer's phone; an end card with the metrics), at
+1080p60 with the app's own 3D sound under the voices, exported to `dist/SpatialDesk_Demo_2026.mp4`, under 3 minutes.
+
+- **The pipeline** (`scripts/make-cinematic-video.mjs`, `docs/video/cinematic-2026.json`; the 2025 pipeline,
+  `scripts/make-video.mjs` and its contract test, is untouched):
+  - voices: Piper, locally (narrator `en_US-lessac-medium`, her `en_US-amy-medium`, Nova `en_GB-jenny_dioco-medium`),
+    from a local venv (`.video/piper-venv`, `piper-tts==1.3.0`, the Dockerfile's version) since Docker Desktop's engine
+    would not start; `scripts/tts.py` takes an optional directory (the Docker path is unchanged);
+  - capture: the production build served locally with `/api` and `/ws` going to the deployed server, so Amazon Transcribe
+    and Amazon Nova are live; Edge full screen, driven beat by beat, each beat waiting for its line. Her first line is
+    played into the page's microphone and heard by the real Transcribe ("Today is a hard day. Bring everything closer to
+    me." came back word for word); her other two lines are given to the voice pipeline as text. Nova's answers are
+    whatever Nova returned in the take, spoken afterwards in Nova's Piper voice where they appeared on the card;
+  - the screen at 1080p by Windows desktop duplication (ffmpeg `ddagrab`) into Media Foundation's hardware encoder; the
+    app's own sound by the page (its AudioContext is recognised by its 6.5 kHz low-pass on the way to the speakers and
+    recorded); the carer's phone by a second browser; a magenta mark in the corner syncs page time to video time;
+  - the edit: title card with the disclosure, the take, the phone picture-in-picture, an end card with the metrics;
+    voices and app sound mixed and levelled to -16 LUFS; captions burned in; H.264 1080p60 + AAC 48 kHz.
+- **What the first takes found:**
+  - **A critical product bug (fixed, `97cb9fe`, with the user's go-ahead under the freeze):** with the space brought
+    close (reach below about 0.9), the work board stood in front of the helper's panel and of the guided setup (0.62 m
+    times the reach against their fixed 0.55 m), so the ray, the fingertip and the gaze reached the board: Allow could
+    not be pressed, nor the setup a carer's Help opens, for exactly the people who ask for things closer. Both panels now
+    stand at least 7 cm in front of the nearest board (`aheadOfBoards`, `src/workspace/viewer.ts`); at the default reach
+    nothing moves. A new carer test fails on the old code (Allow 4.3 cm behind the board) and passes now.
+  - **The recording mode filmed black (fixed, `c1cfba2`; localhost-only code):** the XR session moves the canvas into a
+    new container that the clean-page style then hid; a manual OBS recording would have been black too. The canvas's
+    holders are now kept shown whenever the page changes, and the cinematic test checks the canvas is on screen.
+  - Script-side: "within my reach" led Nova to propose the reach already set (nothing moved), so her line is "closer to
+    me"; companion mode asks "how does it feel?" after an applied change, so she closes that card; the setup ends on a
+    "Your space is ready" page (Start); the orb is pinched at a comfortable arm's length (the profile's reach 0.85, board
+    53 cm) so "closer" has somewhere to go; a 62-degree vertical view instead of the emulator's 90 (whose 120-degree
+    frame stretched the panels).
+- **The cut** (take 7): `.video/SpatialDesk_Demo_2026.mp4`, copied to `dist/SpatialDesk_Demo_2026.mp4`: **123.0 s**,
+  1920x1080, 60/1, 7,381 frames (exactly 123.0 x 60), no decoding errors, AAC 48 kHz stereo, -16.2 LUFS integrated, true
+  peak -1.5 dBFS. Live in the take: Transcribe heard her line exactly; Nova answered twice ("I can bring the workspace
+  closer to you..." and "Bring the card to the Done column..."); the rim lit card "Tap a column to drop it there" for
+  her eyes, which then went to Done by a poke on Apply; the carer's code, Allow, the board on the phone and Help
+  reopening the setup all ran against the deployed helper service; no page errors.
+- **Frames, honestly:** the app drew 57.5 frames a second on average during the take (p95 17.1 ms, worst 133 ms); the
+  screen capture kept 52 a second (5,476 frames in 104.4 s; ffmpeg dropped 8); the 60 fps file repeats a frame where
+  the capture had none. 60 unique frames a second are not reachable here: the laptop's panel refreshes at 59 Hz, and the
+  fastest capture path measured 55 on a trivial page. In-page canvas recording managed about 23.
+- **Not in it:** a webcam room (`CAMERA=none`: the app's VR studio is filmed; `CAMERA=real` uses this machine's webcam,
+  `CAMERA=file:<clip>` loops a recorded room); a physical headset.
+- **Not deployed:** the bug fix is pushed with this block, not deployed (production stays `30244e5`); the video was
+  recorded against the local build, which has it. The public YouTube video is still the 2025 cut.

@@ -1,0 +1,85 @@
+{
+  "_comment": "The 2026 cinematic demo (scripts/make-cinematic-video.mjs): one entry per beat, in order. 'narrator' and 'person' lines are spoken by Piper before the capture; the capture waits for each line to end before the next beat. The person's 'say' line is played into the browser's microphone, so the real Amazon Transcribe hears it; her other lines are given to the voice pipeline as text. Nova's answers are whatever the real Amazon Nova returns during the take, spoken afterwards in her own voice and laid where they appeared.",
+  "title": "SpatialDesk",
+  "subtitle": "A workspace that adapts to your body, in mixed reality.",
+  "disclosure": "The real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script. Live Amazon Nova and Amazon Transcribe.",
+  "voices": {
+    "narrator": "en_US-lessac-medium",
+    "person": "en_US-amy-medium",
+    "nova": "en_GB-jenny_dioco-medium"
+  },
+  "metrics": [
+    ["198", "automated tests passing"],
+    ["24.6 ms", "frame time at the 95th percentile, CPU throttled 3x (Meta's IWSDK starter scene: 29.4 ms)"],
+    ["78", "draw calls, under a budget of 80"],
+    ["Offline", "the network drops: one calm line, and the cards still move by hand"]
+  ],
+  "end_line": "A workspace that adapts to you.",
+  "beats": [
+    {
+      "id": "intro",
+      "voice": "narrator",
+      "text": "This is SpatialDesk, in mixed reality. The first time you put the headset on, it asks where you are sitting."
+    },
+    {
+      "id": "orb",
+      "voice": "narrator",
+      "text": "On a sofa or in bed, the space comes lower and closer. Then it measures your own reach: you pinch this orb, wherever it is comfortable."
+    },
+    {
+      "id": "fitted",
+      "voice": "narrator",
+      "text": "No pointer steadying needed. The whole space glides into reach, and settles with an amber glow."
+    },
+    {
+      "id": "ask",
+      "voice": "narrator",
+      "text": "She only has to say what she needs. Amazon Transcribe hears her, and while Amazon Nova thinks, a small orb breathes on the card."
+    },
+    {
+      "id": "say",
+      "voice": "person",
+      "text": "Today is a hard day. Bring everything closer to me."
+    },
+    {
+      "id": "apply",
+      "voice": "narrator",
+      "text": "Nothing changes until she agrees. She applies it, and every panel glides closer: nothing jumps. Nova asks how it feels, and she closes the card."
+    },
+    {
+      "id": "gaze",
+      "voice": "narrator",
+      "text": "Her eyes rest on a card. After a second, a soft rim of light breathes around it: for Nova, that card is now this."
+    },
+    {
+      "id": "move",
+      "voice": "person",
+      "text": "Move this to done."
+    },
+    {
+      "id": "poke",
+      "voice": "narrator",
+      "text": "She pushes Apply with a fingertip. The key gives way under her finger, like a real one, and the card moves to Done."
+    },
+    {
+      "id": "helper",
+      "voice": "narrator",
+      "text": "Someone who cares can help from a phone."
+    },
+    {
+      "id": "invite",
+      "voice": "person",
+      "text": "Invite a helper."
+    },
+    {
+      "id": "carer",
+      "voice": "narrator",
+      "text": "They see nothing until she allows it, then only her card titles, and one large button: Help, recalibrate. It opens the guided setup in her headset."
+    },
+    {
+      "id": "end",
+      "voice": "narrator",
+      "text": "Every claim in this video is an automated test. One hundred ninety-eight of them pass. A twenty-four millisecond frame, seventy-eight draw calls, and when the network drops, it keeps working by hand. SpatialDesk: a workspace that adapts to you."
+    }
+  ]
+}

@@ -5,6 +5,9 @@
 **The product is finished.** From `30244e5` on, not one more line of code, feature or fix goes in, unless it is a
 critical bug that breaks the demo. Production runs `30244e5` (below), and the judges' video is recorded against it.
 
+**One exception, taken with the user's go-ahead (2026-10-29):** a critical bug that broke the demo (a board brought close
+hid the helper's Allow and the guided setup), fixed in `97cb9fe`, pushed, **not deployed** (production stays `30244e5`).
+
 ## Git and performance
 
 - **Pushed:** `main` on https://github.com/tapaderuza/spatialdesk, with the full pre-push CI and without `--no-verify`. The
@@ -108,6 +111,14 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 ## Video
 
+- **New cut (2026-10-29, local file, not uploaded):** `.video/SpatialDesk_Demo_2026.mp4`, copied to
+  `dist/SpatialDesk_Demo_2026.mp4` (the next `npm run build` empties `dist/`, and the next deploy would publish what is
+  there: keep the `.video/` copy). 123 s, 1920x1080 at 60 fps (52 captured frames a second, the rest repeated), H.264 +
+  AAC, -16 LUFS, captions burned in. The guided setup (sofa or bed, her reach, Start), her spoken request heard by the
+  real Transcribe and answered by the real Nova, the space gliding closer, the gaze rim and "move this to done" pushed
+  with a fingertip, a carer's phone (code, Allow, Help / Recalibrate), and an end card with the metrics. Made by
+  `node scripts/make-cinematic-video.mjs` (log block 28); `CAMERA=real` films this machine's webcam behind the panels.
+  Uploading it and changing the Devpost link are the user's steps.
 - **Public link:** https://youtu.be/jtqAi3gl-os (155 s, "SpatialDesk: a workspace that adapts to your body and your mind
   (Meta Quest, Meta VR Glasses)"). Public, not made for kids; YouTube's oEmbed answers 200 without signing in.
 - It shows her request in Spanish, the space adapting, her companion's question, the saved setup, steady aim, one switch,
