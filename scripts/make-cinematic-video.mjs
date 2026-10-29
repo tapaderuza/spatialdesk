@@ -180,15 +180,23 @@ async function capture(durations) {
   if (!process.env.SKIP_BUILD) execSync('npm run build', { cwd: root, stdio: 'inherit' });
   step(`Serving it on :${PORT}, /api and /ws to ${api}`);
   const preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'],
-    { cwd: root, env: { ...process.env, SPATIALDESK_API: api }, stdio: 'ignore' });
+    { cwd: root, env: { ...process.env, SPATIALDESK_API: api }, stdio: ['ignore', 'pipe', 'pipe'] });
+  let previewLog = '';
+  preview.stdout.on('data', (d) => (previewLog += d));
+  preview.stderr.on('data', (d) => (previewLog += d));
   const local = `http://localhost:${PORT}`;
-  for (let i = 0; i < 60; i++) {
+  let up = false;
+  for (let i = 0; i < 120 && !up; i++) {
     try {
-      if ((await fetch(local)).ok) break;
+      up = (await fetch(local)).ok;
     } catch {
-      /* not up yet */
+      await sleep(500); // not up yet
     }
-    await sleep(500);
+  }
+  if (!up) {
+    preview.kill();
+    throw new Error(`The preview never answered on ${local}:
+${previewLog}`);
   }
 
   const markers = { camera: CAMERA, beats: [], nova: [], carer: null, events: [] };
@@ -226,6 +234,11 @@ async function capture(durations) {
   // A 62-degree vertical view (about 95 across a 16:9 frame): the emulator's default 90 makes a 120-degree frame whose
   // edges stretch the panels.
   await page.evaluate(() => (window.__xrDevice.fovy = (62 * Math.PI) / 180));
+  // The script's own workspace (real tasks instead of the first-run tutorial), as if typed before the take.
+  if (script.seed) {
+    await page.waitForFunction(() => window.__workspace?.state?.boards?.length > 0, null, { timeout: 30_000 });
+    markers.seed = await page.evaluate((ops) => JSON.stringify(window.__workspace.dispatch(ops)).slice(0, 200), script.seed);
+  }
   await page.click('#cinematic-start');
   await page.waitForFunction(() => window.__cinematic.state.started && window.__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
   await page.waitForFunction(() => window.__setup?.view.stage === 'where', null, { timeout: 15_000 });
@@ -424,7 +437,12 @@ async function capture(durations) {
 
     // 1:15 Her eyes rest on a card: the rim; "move this to done"; she pokes Apply: the key gives way, the card moves.
     await beat('gaze');
-    await aimAt('b1:card-0-1');
+    // The card the head rests on: the script's (board title, column, place) or the tutorial's second card.
+    await aimAt(await page.evaluate((t) => {
+      if (!t) return 'b1:card-0-1';
+      const board = window.__workspace.state.boards.find((b) => b.title === t.board);
+      return `${board.id}:card-${t.column}-${t.card}`;
+    }, beatOf('gaze').target ?? null));
     await until('the rim of her eyes', () => window.__rim.state.visible && window.__rim.state.by === 'eyes', null, 6000);
     markers.lookedAt = await page.evaluate(() => window.__attention.state.focus);
     await beat('move');
@@ -663,7 +681,7 @@ function cards() {
   return {
     title: `${style}<div class="wrap"><h1>${script.title}</h1><p>${script.subtitle}</p><div class="small">${script.disclosure}</div></div>`,
     end: `${style}<div class="wrap"><h1 style="font-size:84px">${script.title}</h1><p>${script.end_line}</p><div class="grid">${tiles}</div>
-      <div class="url">${api.replace(/^https:\/\//, '')}</div>
+      <div class="url">${(process.env.PUBLIC_URL ?? 'https://d2p3027seoreck.cloudfront.net').replace(/^https:\/\//, '')}</div>
       <div class="small" style="margin-top:22px">${script.disclosure} Meta IWSDK · TypeScript · Kotlin · Spring Boot · AWS.</div></div>`,
   };
 }

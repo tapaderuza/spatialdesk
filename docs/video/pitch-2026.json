@@ -1,5 +1,5 @@
 {
-  "_comment": "The hybrid pitch cut (scripts/build_pitch_video.py): real iPhone footage (inputs/, never committed) around the app recorded in the emulator. The beats are the take's, as in cinematic-2026.json (scripts/make-cinematic-video.mjs paces the take by these lines); 'hook', 'pinch', 'poke' and 'carer_clip' are the real clips with their in and out points (seconds); the hook's captions are her own words in English. Her request in the take is her own voice from the hook (mic), heard by the real Amazon Transcribe in Spanish (lang=es-ES); Nova answers in Spanish, in a Spanish voice; nova_captions maps each answer Nova gave (her exact Spanish) to its English; the edit lists any answer still without one.",
+  "_comment": "The hybrid pitch cut (scripts/build_pitch_video.py): real iPhone footage (inputs/, never committed) around the app recorded in the emulator. The beats are the take's, as in cinematic-2026.json (scripts/make-cinematic-video.mjs paces the take by these lines); 'hook', 'pinch', 'poke' and 'carer_clip' are the real clips with their in and out points (seconds); the hook's captions are her own words in English. Her request in the take is her own voice from the hook (mic), heard by the real Amazon Transcribe in Spanish (lang=es-ES); Nova answers in Spanish, in a Spanish voice; nova_captions maps each answer Nova gave (her exact Spanish) to its English; the edit lists any answer still without one. 'seed' is the take's workspace, ops dispatched before it starts (real tasks, not the first-run tutorial); the gaze beat's 'target' is the card the head rests on.",
   "title": "SpatialDesk",
   "subtitle": "A workspace that adapts to your body, in mixed reality.",
   "disclosure": "The interface is the real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script, with live Amazon Nova and Amazon Transcribe. The hand gestures were filmed separately.",
@@ -88,7 +88,12 @@
     {
       "id": "gaze",
       "voice": "narrator",
-      "text": "Her eyes rest on a card. A soft rim breathes around it: for Nova, that card is now this."
+      "text": "Her head turns to a card and rests there. After a second, a soft rim breathes around it: for Nova, that card is now this.",
+      "target": {
+        "board": "Hoy",
+        "column": 0,
+        "card": 0
+      }
     },
     {
       "id": "move",
@@ -100,7 +105,7 @@
     {
       "id": "poke",
       "voice": "narrator",
-      "text": "She pushes Apply with a fingertip. The key gives way under it, and the card moves to Done."
+      "text": "She pushes Apply with a fingertip. The key gives way under it, and the call to Rocío moves to Done."
     },
     {
       "id": "helper",
@@ -133,6 +138,49 @@
     "Entiendo que hoy es un día difícil y quieres acercar todo. Puedo ajustar la distancia para que todo esté más cerca. ¿Te parece bien?": "I understand today is a hard day and you want everything closer. I can adjust the distance so it is all nearer. Is that all right?",
     "Puedo mover la tarjeta seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected card to the Done column. Shall I do it now?",
     "Hoy es un mal día. Te acerco todo un poco para que esté más cerca y sea más fácil de alcanzar.": "A bad day today. I will bring everything a little closer, so it is nearer and easier to reach.",
-    "Entiendo que quieres mover la tarjeta seleccionada a la columna de hecho. Te ayudo a hacerlo.": "I understand you want to move the selected card to the Done column. I will help you do it."
-  }
+    "Entiendo que quieres mover la tarjeta seleccionada a la columna de hecho. Te ayudo a hacerlo.": "I understand you want to move the selected card to the Done column. I will help you do it.",
+    "Ajusto la distancia para que todo esté más cerca. ¿Te parece bien esta posición?": "I will adjust the distance so everything is closer. Does this position feel right?",
+    "Puedo mover la tarea seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected task to the Done column. Shall I do it now?"
+  },
+  "seed": [
+    {
+      "op": "create_board",
+      "title": "Hoy",
+      "columns": [
+        "Por hacer",
+        "En curso",
+        "Hecho"
+      ],
+      "focus": true,
+      "cards": [
+        {
+          "title": "Llamar a Rocío para coordinar la cita",
+          "column": "Por hacer",
+          "minutes": 10,
+          "priority": "high"
+        },
+        {
+          "title": "Pagar la factura de la luz",
+          "column": "Por hacer",
+          "minutes": 15
+        },
+        {
+          "title": "Pedir la compra del viernes",
+          "column": "Por hacer",
+          "minutes": 20
+        },
+        {
+          "title": "Preparar las preguntas para el médico",
+          "column": "En curso",
+          "minutes": 30,
+          "priority": "high"
+        },
+        {
+          "title": "Tomar la medicación de las 12",
+          "column": "Hecho",
+          "minutes": 5
+        }
+      ]
+    }
+  ]
 }

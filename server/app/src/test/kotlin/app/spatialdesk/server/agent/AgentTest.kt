@@ -265,6 +265,35 @@ class PlannerTest {
     }
 
     @Test
+    fun `closer is always nearer than now and further always further, whatever the model proposes`() {
+        // The board at 53 cm (reach 0.85, from the guided setup); she asks the companion to bring everything closer.
+        val near = starter.copy(comfort = starter.comfort.copy(reach = 0.85))
+        val ask = PlanRequest(Intent.Companion, "Hoy es un mal día, acércalo todo", near)
+        assertTrue(Guardrails.facts(ask, clock.millis().toDouble()).lines.any { "must be below it (0.7" in it })
+        val model = Scripted(
+            ModelPlan("Te acerco todo.", steps("""[{"op":"set_comfort","reach":1.0,"why":"Más cerca"}]""")),
+            ModelPlan("Te acerco todo.", steps("""[{"op":"set_comfort","reach":0.7,"why":"Más cerca"}]""")),
+        )
+        val response = planner(model).plan(ask)
+        assertTrue(response.ok, response.error)
+        assertEquals(2, response.attempts)
+        assertTrue(model.feedback[1]!!.contains("closer is a reach below 0.85"), model.feedback[1])
+        assertEquals(0.7, response.steps[0].op["reach"]?.jsonPrimitive?.content?.toDouble())
+        // "A little further" from 0.8 may not bring it in.
+        val far = PlanRequest(Intent.Companion, "Un poco más lejos, por favor", starter.copy(comfort = starter.comfort.copy(reach = 0.8)))
+        val back = Scripted(
+            ModelPlan("x", steps("""[{"op":"set_comfort","reach":0.7,"why":"x"}]""")),
+            ModelPlan("y", steps("""[{"op":"set_comfort","reach":1.0,"why":"y"}]""")),
+        )
+        assertTrue(planner(back).plan(far).ok)
+        assertTrue(back.feedback[1]!!.contains("further is a reach above 0.8"), back.feedback[1])
+        // Without the AI too: closer is a step in from where the space is, not a fixed distance.
+        val built = BuiltInPlanner().plan(PlanRequest(Intent.AdaptSpace, "Acércalo todo", near))
+        assertEquals(0.7, built.steps.single()["reach"]?.jsonPrimitive?.content?.toDouble())
+        assertEquals(0.75, BuiltInPlanner().plan(PlanRequest(Intent.AdaptSpace, "Bring everything closer", starter)).steps.single()["reach"]?.jsonPrimitive?.content?.toDouble())
+    }
+
+    @Test
     fun `help me start - five minutes on the task's first bit, then the momentum is kept instead of a break`() {
         val now = clock.millis().toDouble()
         val ws = (

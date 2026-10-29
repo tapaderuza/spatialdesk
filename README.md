@@ -87,7 +87,7 @@ Every cue stays put in the room as the head turns.
 critically damped spring, no overshoot) instead of teleporting, and they take no pointer while moving, so a hand they
 pass through presses nothing. The space confirms it has settled with an amber glow round the work board and a faint
 controller pulse. Cards rise a little under the pointer, and hover follows Meta's eye-tracking guidance: the control
-itself brightens, and a card under a ray, or rested on by the eyes for a second (it is then "this" for the agent), wears
+itself brightens, and a card under a ray, or rested on by the gaze for a second (the head's direction on Quest 3, the eyes where a headset tracks them; it is then "this" for the agent), wears
 a soft rim of light outside its edge that breathes slowly, leaving the centre the eyes aim at alone. While Nova thinks,
 an orb breathes beside its words instead of a counter. In passthrough every board casts a soft shadow on the real wall behind it. Reduced
 motion turns the movement off.
@@ -147,7 +147,7 @@ Every claim is an automated check that fails the build, run in Meta's IWER Quest
 |---|---|
 | Runs smoothly on a Quest | Worst-case workspace, CPU throttled 3x, hands-free on (our heaviest mode). App systems ≤ 3 ms p95; the whole frame no heavier than Meta's IWSDK starter scene under the same conditions (p95 29.4 ms); ≤ 80 draw calls; bundle ≤ 2.5 MB gzipped. |
 | The first seconds | A dark splash covers the load and is gone once the world draws; the start card offers Enter VR only where VR exists and its Enter VR enters it; a newcomer's setup opens with a welcome, someone back gets a banner above the board that leaves as soon as they act. |
-| Physical presence | In passthrough each board and timer casts a soft shadow that follows it (one instanced mesh, one draw call); in VR none is drawn. A card under the pointer brightens and rises 2.5 to 5 % and settles back when the pointer leaves; it wears a rim of its own size that breathes (dimmer and brighter, never out, never a jump) and leaves with the ray; the eyes light it after a second's rest, not before; reduced motion holds it still. |
+| Physical presence | In passthrough each board and timer casts a soft shadow that follows it (one instanced mesh, one draw call); in VR none is drawn. A card under the pointer brightens and rises 2.5 to 5 % and settles back when the pointer leaves; it wears a rim of its own size that breathes (dimmer and brighter, never out, never a jump) and leaves with the ray; the gaze (the head on Quest 3) lights it after a second's rest, not before; reduced motion holds it still. |
 | Usable with hands | Every interactive target is ≥ 6 x 6 cm and within arm's reach of a seated user, and is hit by ≥ 95 % of 400 rays jittered like hand tracking (±1 cm origin, 3° cone). |
 | Comfortable seated | Focus board at 0.55-0.65 m, no overlapping near panels, parked boards ≥ 1.3 m away; looking at a side panel to tap it never moves the desk. |
 | Adapts to the body | Engine tests for nine bodies and three postures; in the emulator a spoken request gathers everything on the right with the console by the right hand, and one undo takes it back. |

@@ -444,7 +444,7 @@ class BuiltInPlanner {
             Intent.Replan -> prioritise(focus)
             Intent.Regroup -> ModelPlan("Your boards already have a clear place each; nothing to regroup.", emptyList())
             Intent.WrapUp -> wrapUp(ws)
-            Intent.AdaptSpace -> adapt(request.text)
+            Intent.AdaptSpace -> adapt(request.text, ws.comfort)
             Intent.FirstStep -> firstStep(ws, facts.start)
         }
     }
@@ -453,7 +453,7 @@ class BuiltInPlanner {
      * What someone says about their body ([ComfortNeeds]): one set_comfort per need, each with its reason. Anything it
      * cannot read gets a question back, never a guess.
      */
-    private fun adapt(text: String?): ModelPlan {
+    private fun adapt(text: String?, current: Comfort): ModelPlan {
         if (ComfortNeeds.isReset(text)) {
             return ModelPlan(
                 "Back to the layout as designed. Say undo to have your adapted space back.",
@@ -464,7 +464,7 @@ class BuiltInPlanner {
                 ),
             )
         }
-        val steps = ComfortNeeds.of(text).map { need -> step("set_comfort", need.why) { put(need.field, need.value) } }
+        val steps = ComfortNeeds.of(text, current).map { need -> step("set_comfort", need.why) { put(need.field, need.value) } }
         if (steps.isEmpty()) {
             return ModelPlan("Tell me what is hard: turning your head, reaching, seeing, or one side, and I will adapt the space to you.", emptyList())
         }

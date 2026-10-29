@@ -714,3 +714,34 @@ captions, narration, the app's sound; `dist/SpatialDesk_Final_Pitch_2026.mp4`.
   of 1:15 (her request, Nova and two glides need it), the carer to 1:28, the setup to 1:33, the card to 1:46.
 - **Honest limits:** the gestures in the corner were filmed separately (she wears no headset; the label and the
   disclosure say so); the interface is the emulator driven by a script. Not on a physical headset.
+
+## Block 30: the freeze opened for three fixes, the pitch rendered again, the freeze back
+
+Asked (verbatim): "Abre temporalmente el Feature Freeze para solucionar estos 3 problemas críticos antes de volver a
+renderizar." The three: "acércalo todo" moved the board from 53 cm to 62 cm; the cards were a tutorial, not tasks; the
+narration said "her eyes" although Quest 3 has no eye tracking.
+
+- **"Closer" now always comes closer (server).** The guided setup leaves a reach of 0.85 (board 53 cm); her request goes
+  to the companion, where nothing checked the direction, and the built-in fallback used a fixed 0.75. Now
+  (`Guardrails.kt`): the words' direction is read in English and Spanish ("closer", "acerca", "trae", "no alcanzo"...;
+  "further", "más lejos", "aleja"...); the prompt states the reach now and that closer is below it; a plan whose
+  set_comfort reach goes the other way goes back to the model as feedback, like every rule; and the fallback steps in
+  from where the space is (0.15 in, 0.75 at most). A server test: from 0.85, a proposed 1.0 is refused and 0.7 kept;
+  "un poco más lejos" from 0.8 may not bring it in; without the AI, "acércalo todo" from 0.85 is 0.7. Server suite: 59
+  tests, 0 failures. Live in the take (the fixed server run locally): Nova proposed "Comfort: board 43 cm away".
+- **Real tasks in the demo.** The take now starts on a board "Hoy" (Por hacer / En curso / Hecho) with "Llamar a Rocío
+  para coordinar la cita", "Pagar la factura de la luz", "Pedir la compra del viernes", "Preparar las preguntas para el
+  médico" and "Tomar la medicación de las 12" (`seed` in `docs/video/pitch-2026.json`, dispatched before the take as if
+  typed). The head rests on "Llamar a Rocío..." (rim, "this"), "Mueve esto a hecho" proposes moving that task, a poke on
+  Apply moves it, and the end of the app part shows it in Hecho. The product's first-run board stays the tutorial: it
+  teaches a first user, and the tests and the carer's real footage rely on it.
+- **Head pose, not eyes.** Both narration scripts now say "Her head turns to a card and rests there"; the README says
+  the gaze is the head's direction on Quest 3 and the eyes only where a headset tracks them.
+- **The pitch, again:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: **107.6 s**, 1920x1080,
+  60/1, 6,456 frames (exactly 107.6 x 60), no decoding errors, -16.0 LUFS. Her voice heard exactly ("Hoy es un mal día.
+  Acércalo todo."), Nova's two answers captioned in English, the app drawn at 55.7 frames a second, no page errors.
+  The take ran against the fixed server locally (port 18093, the real Bedrock and Transcribe), since the fix is not
+  deployed; the end card shows the public URL. The take script now checks that its preview server answers (a first try
+  failed on a port not yet free).
+- **The Feature Freeze is back** from this commit: the server fix is pushed, **not deployed** (production stays
+  `30244e5`, whose companion can still move the board away on "closer" until it is).

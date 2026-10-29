@@ -36,6 +36,7 @@ object Guardrails {
             return Facts(
                 buildList {
                     add("Current comfort: ${Prompt.comfortLine(ws.comfort)}$designed.")
+                    ComfortNeeds.towards(request.text, ws.comfort)?.let { add(it) }
                     if (asked.isNotEmpty()) {
                         add("The user asked for: ${asked.joinToString { "${it.asked} (${it.field})" }}. Cover each with its own set_comfort step.")
                     }
@@ -84,6 +85,11 @@ object Guardrails {
                 },
                 emptyList(),
             )
+        }
+        // The companion and free requests move the space too: which way the words asked for is stated, then checked.
+        if (request.intent == Intent.Companion || request.intent == Intent.Custom) {
+            val towards = ComfortNeeds.towards(request.text, ws.comfort) ?: return Facts(emptyList(), emptyList())
+            return Facts(listOf("Current comfort: ${Prompt.comfortLine(ws.comfort)}.", towards), emptyList())
         }
         if (request.intent != Intent.NextBlock && request.intent != Intent.Replan) return Facts(emptyList(), emptyList())
         val inProgress = request.workspace.boards.flatMap { board ->
@@ -145,6 +151,21 @@ object Guardrails {
                 }
             }
         }
+        // Measured on 2026-10-29: "acércalo todo" with the board at 53 cm (reach 0.85), Nova proposed 62 cm (reach 1).
+        val reach = request.workspace.comfort.reach
+        val way = ComfortNeeds.direction(request.text)
+        steps.forEachIndexed { i, step ->
+            val proposed = step.double("reach") ?: return@forEachIndexed
+            if (step.string("op") != "set_comfort") return@forEachIndexed
+            if (way < 0 && proposed >= reach && reach > Comfort.REACH.start) {
+                return "Step ${i + 1} sets reach $proposed, but the user asked for everything closer and the reach is $reach now: " +
+                    "closer is a reach below $reach, such as ${ComfortNeeds.nearer(reach)}."
+            }
+            if (way > 0 && proposed <= reach && reach < Comfort.REACH.endInclusive) {
+                return "Step ${i + 1} sets reach $proposed, but the user asked for everything further away and the reach is $reach now: " +
+                    "further is a reach above $reach, such as ${ComfortNeeds.further(reach)}."
+            }
+        }
         val start = facts.start
         if (request.intent == Intent.FirstStep && start != null && steps.count { it.string("op") == "start_timer" } != 1) {
             return "Start exactly one 5-minute timer on \"${start.title}\"."
@@ -201,7 +222,33 @@ object ComfortNeeds {
 
     fun isReset(text: String?): Boolean = says(fold(text.orEmpty()), "normal|reset|default|as (?:it was|before|designed)|como antes|por defecto|restablece")
 
-    fun of(text: String?): List<Need> {
+    /** Which way the words ask the space to move: -1 closer, 1 further away, 0 neither (or both). */
+    fun direction(text: String?): Int {
+        val said = fold(text.orEmpty())
+        val closer = says(said, "closer|nearer|near me|bring (?:it|everything|them)|can ?t reach|within (?:my )?reach|cerca|acerc|trae|no alcanz|a mi alcance")
+        val further = says(said, "further|farther|more distant|(?:move|push) (?:it|everything|them) (?:away|back)|mas lejos|alej|aparta")
+        return when {
+            closer && !further -> -1
+            further && !closer -> 1
+            else -> 0
+        }
+    }
+
+    /** "Closer" from [reach]: a step of 0.15 in (0.75 at most), never past the nearest the space goes. */
+    fun nearer(reach: Double): Double = Math.round(minOf(0.75, reach - 0.15).coerceAtLeast(Comfort.REACH.start) * 20) / 20.0
+
+    /** "Further" from [reach]: a step of 0.2 out (1.2 at least), never past the furthest. */
+    fun further(reach: Double): Double = Math.round(maxOf(1.2, reach + 0.2).coerceAtMost(Comfort.REACH.endInclusive) * 20) / 20.0
+
+    /** The fact a prompt states when the words ask for a direction; null when they ask for none. */
+    fun towards(text: String?, comfort: Comfort): String? = when (direction(text)) {
+        -1 -> "The user asked for everything closer: the reach is ${comfort.reach} now, so any set_comfort reach must be below it (${nearer(comfort.reach)} is a good step)."
+        1 -> "The user asked for everything further away: the reach is ${comfort.reach} now, so any set_comfort reach must be above it (${further(comfort.reach)} is a good step)."
+        else -> null
+    }
+
+    /** [current]: the space as it is, so "closer" is closer than now (from the layout as designed, 0.75). */
+    fun of(text: String?, current: Comfort? = null): List<Need> {
         val said = fold(text.orEmpty())
         val has = { pattern: String -> says(said, pattern) }
         // Tiredness alone is not the eyes: "estoy cansada" (I'm tired) leaves the distance to what else is said.
@@ -217,7 +264,7 @@ object ComfortNeeds {
             }
             if (eyes) add(Need("scale", JsonPrimitive(1.4), "Larger panels: text that is easier to read", "larger text"))
             when {
-                near -> add(Need("reach", JsonPrimitive(0.75), "Within easy reach of your hand", "everything closer"))
+                near -> add(Need("reach", JsonPrimitive(current?.let { nearer(it.reach) } ?: 0.75), "Within easy reach of your hand", "everything closer"))
                 eyes -> add(Need("reach", JsonPrimitive(1.4), "Further away: easier on tired eyes", "easier on the eyes", required = false))
             }
             if (has("lying|in bed|en la cama|tumbad|recost|reclin")) add(Need("tiltDeg", JsonPrimitive(20.0), "Higher, where your eyes rest lying back", "lying back"))
