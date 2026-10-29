@@ -5,7 +5,7 @@ export type Win = Window & Record<string, any>;
 /** Opens the app and waits until the first board's cards are laid out. Returns the page errors seen. */
 export async function openWorkspace(page: Page, query = ''): Promise<string[]> {
   const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(String(e.stack ?? e.message).split(String.fromCharCode(10)).slice(0, 8).join(' | ')));
   await page.goto(`/${query}`);
   await page.waitForFunction(() => {
     const w = (window as Win).__world;
@@ -40,7 +40,7 @@ export async function screenPoint(page: Page, name: string, u = 0, v = 0): Promi
 /** Opens the app with the IWER Quest 3 emulator and enters the immersive session, as the "Enter XR" button does. */
 export async function enterXR(page: Page, query = ''): Promise<string[]> {
   const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(String(e.stack ?? e.message).split(String.fromCharCode(10)).slice(0, 8).join(' | ')));
   await page.goto(`/?emulate${query}`);
   await page.waitForFunction(() => (window as Win).__world && (window as Win).__xrDevice, null, { timeout: 60_000 });
   await page.evaluate(() => (window as Win).__world.launchXR());

@@ -109,7 +109,7 @@ export class RimSystem extends createSystem({}) {
   private lastMs = 0;
   private breathFrom = 0;
   /** Read by the Playwright tests. */
-  readonly state = { visible: false, key: null as string | null, by: null as 'pointer' | 'eyes' | null, level: 0, opacity: 0, width: 0, height: 0 };
+  readonly state = { visible: false, key: null as string | null, by: null as 'pointer' | 'eyes' | null, level: 0, opacity: 0, width: 0, height: 0, eyeTicks: 0 };
 
   init(): void {
     this.material = new ShaderMaterial({
@@ -154,7 +154,10 @@ export class RimSystem extends createSystem({}) {
       return;
     }
     this.place();
-    if (eyesTick && target === underEyes) hoverTick(this.mesh.position);
+    if (eyesTick && target === underEyes) {
+      this.state.eyeTicks++;
+      hoverTick(this.mesh.position);
+    }
     eyesTick = false;
     const breath = accessPreferences.reducedMotion ? 1 : LOW + (1 - LOW) * (0.5 + 0.5 * Math.cos((2 * Math.PI * (now - this.breathFrom)) / BREATH_MS));
     const opacity = PEAK * this.level * breath;

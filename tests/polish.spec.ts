@@ -83,16 +83,16 @@ test('a card under a ray wears a slowly breathing rim; it leaves with the ray, a
   await aim(page, null, 'left'); // the left ray rests on the board where the emulator starts it
   await aim(page, 'b1:card-0-1');
   await page.waitForFunction(() => (window as Win).__rim.state.key === 'card-0-1' && (window as Win).__rim.state.level === 1, null, { timeout: 3_000 });
-  const lit = await rim(page);
-  expect(lit).toMatchObject({ key: 'card-0-1', by: 'pointer' });
-  // Round the card itself: its size, lifted with it.
-  const card = await page.evaluate(() => {
+  expect(await rim(page)).toMatchObject({ key: 'card-0-1', by: 'pointer' });
+  // Round the card itself: its size, lifted with it (both read in the same frame, once the card has finished rising).
+  await page.waitForTimeout(400);
+  const { lit, card } = await page.evaluate(() => {
     let el: any = null;
     (window as Win).__world.scene.traverse((o: any) => {
       if (o.name === 'b1:card-0-1') el = o;
     });
     const e = el.matrixWorld.elements;
-    return { width: Math.hypot(e[0], e[1], e[2]), height: Math.hypot(e[4], e[5], e[6]) };
+    return { lit: { ...(window as Win).__rim.state }, card: { width: Math.hypot(e[0], e[1], e[2]), height: Math.hypot(e[4], e[5], e[6]) } };
   });
   expect(lit.width).toBeCloseTo(card.width, 3);
   expect(lit.height).toBeCloseTo(card.height, 3);
@@ -109,13 +109,13 @@ test('a card under a ray wears a slowly breathing rim; it leaves with the ray, a
   await page.waitForFunction(() => !(window as Win).__rim.state.visible, null, { timeout: 2_000 });
 
   // The eyes: nothing at first, the rim after a second's rest, and one faint tick from the card.
-  const ticks = await page.evaluate(() => (window as Win).__sound.ticks().played as number);
+  const eyeTicks = await page.evaluate(() => (window as Win).__rim.state.eyeTicks as number);
   await lookAt(page, 'b1:card-0-2');
   await page.waitForTimeout(500);
   expect((await rim(page)).visible).toBe(false);
   await page.waitForFunction(() => (window as Win).__rim.state.visible && (window as Win).__rim.state.by === 'eyes', null, { timeout: 3_000 });
   expect((await rim(page)).key).toBe('card-0-2');
-  expect(await page.evaluate(() => (window as Win).__sound.ticks().played as number)).toBe(ticks + 1);
+  expect(await page.evaluate(() => (window as Win).__rim.state.eyeTicks as number)).toBe(eyeTicks + 1); // other pointers may tick meanwhile
 
   // With reduced motion the rim holds still.
   await page.evaluate(() => (window as Win).__access.set('reducedMotion', true));
