@@ -9,7 +9,7 @@
     "nova": "en_GB-jenny_dioco-medium"
   },
   "metrics": [
-    ["198", "automated tests passing"],
+    ["199", "automated tests passing"],
     ["24.6 ms", "frame time at the 95th percentile, CPU throttled 3x (Meta's IWSDK starter scene: 29.4 ms)"],
     ["78", "draw calls, under a budget of 80"],
     ["Offline", "the network drops: one calm line, and the cards still move by hand"]
@@ -79,7 +79,7 @@
     {
       "id": "end",
       "voice": "narrator",
-      "text": "Every claim in this video is an automated test. One hundred ninety-eight of them pass. A twenty-four millisecond frame, seventy-eight draw calls, and when the network drops, it keeps working by hand. SpatialDesk: a workspace that adapts to you."
+      "text": "Every claim in this video is an automated test. One hundred ninety-nine of them pass. A twenty-four millisecond frame, seventy-eight draw calls, and when the network drops, it keeps working by hand. SpatialDesk: a workspace that adapts to you."
     }
   ]
 }

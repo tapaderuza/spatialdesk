@@ -661,9 +661,10 @@ space fitting her; the gaze rim, "move this to done" and a poke; the carer's pho
     "Your space is ready" page (Start); the orb is pinched at a comfortable arm's length (the profile's reach 0.85, board
     53 cm) so "closer" has somewhere to go; a 62-degree vertical view instead of the emulator's 90 (whose 120-degree
     frame stretched the panels).
-- **The cut** (take 7): `.video/SpatialDesk_Demo_2026.mp4`, copied to `dist/SpatialDesk_Demo_2026.mp4`: **123.0 s**,
-  1920x1080, 60/1, 7,381 frames (exactly 123.0 x 60), no decoding errors, AAC 48 kHz stereo, -16.2 LUFS integrated, true
-  peak -1.5 dBFS. Live in the take: Transcribe heard her line exactly; Nova answered twice ("I can bring the workspace
+- **The cut** (take 7, edited again once the new carer test made the count 199): `.video/SpatialDesk_Demo_2026.mp4`, copied
+  to `dist/SpatialDesk_Demo_2026.mp4`: **123.1 s**, 1920x1080, 60/1, 7,384 frames (exactly 123.07 x 60), no decoding
+  errors, AAC 48 kHz stereo, -16.1 LUFS integrated, true peak -1.5 dBFS. The full CI with the fix: 199 passed, 6
+  skipped, 0 failed; whole frame p95 24.3 ms, app systems 2.2 ms, 78 draw calls, 2.32 MB. Live in the take: Transcribe heard her line exactly; Nova answered twice ("I can bring the workspace
   closer to you..." and "Bring the card to the Done column..."); the rim lit card "Tap a column to drop it there" for
   her eyes, which then went to Done by a poke on Apply; the carer's code, Allow, the board on the phone and Help
   reopening the setup all ran against the deployed helper service; no page errors.
