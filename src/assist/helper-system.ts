@@ -31,6 +31,7 @@ import { play } from '../ui/sounds.js';
 import { HelperPanel } from '../workspace/components.js';
 import { panelText } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
+import { aheadOfBoards } from '../workspace/viewer.js';
 import { assistApi } from './api.js';
 import { helperState, onInviteRequested } from './helper-state.js';
 import { Pairing, type PairingStage } from './pairing.js';
@@ -285,7 +286,8 @@ export class HelperSystem extends createSystem({ ready: { required: [HelperPanel
     const anchor = workspace.state.anchor;
     const panel = this.entity?.object3D;
     if (!panel) return;
-    panel.position.set(anchor.x - Math.sin(anchor.yaw) * AHEAD, anchor.y + LIFT, anchor.z - Math.cos(anchor.yaw) * AHEAD);
+    const ahead = aheadOfBoards(AHEAD); // in front of a board brought close, so Allow takes the ray before the board
+    panel.position.set(anchor.x - Math.sin(anchor.yaw) * ahead, anchor.y + LIFT, anchor.z - Math.cos(anchor.yaw) * ahead);
     panel.rotation.set(0, anchor.yaw, 0);
     panel.scale.setScalar(workspace.panelScale);
   }

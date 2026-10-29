@@ -6,7 +6,7 @@
  */
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { FakeAssist } from './assist-fake.js';
-import { enterXR, pressXR, type Win } from './helpers.js';
+import { enterXR, pressXR, settled, type Win } from './helpers.js';
 
 test.beforeEach(async ({ context }) => {
   await context.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1')); // no first-run coach in the way
@@ -100,6 +100,53 @@ test('the whole story: invite by voice, the code, Allow, the board follows, Help
   expect(fake.rooms.size).toBe(0);
   expect(errors).toEqual([]);
   expect(carerErrors).toEqual([]);
+});
+
+test('brought close, the helper and the setup still stand in front of the work board: Allow and Sofa/Bed take the ray', async ({ context, page }) => {
+  test.setTimeout(120_000);
+  const fake = new FakeAssist();
+  await fake.install(context);
+  const errors = await enterXR(page, '&fast');
+  // "Bring it closer": the work board comes to 0.62 m x 0.8, nearer than the 0.55 m these panels were designed at.
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'set_comfort', reach: 0.8 }));
+  await settled(page);
+  /** How much nearer the eyes a panel's control is than the work board, along the view (metres). */
+  const ahead = (name: string) =>
+    page.evaluate((name) => {
+      const w = (window as Win).__world;
+      const find = (n: string) => {
+        let el: any = null;
+        w.scene.traverse((o: any) => {
+          if (o.name === n) el = o;
+        });
+        el.updateWorldMatrix(true, false);
+        return el;
+      };
+      const V = w.camera.position.constructor;
+      const eye = w.camera.getWorldPosition(new V());
+      const forward = w.camera.getWorldDirection(new V());
+      const depth = (n: string) => new V().setFromMatrixPosition(find(n).matrixWorld).sub(eye).dot(forward) as number;
+      return depth('b1:card-0-0') - depth(name);
+    }, name);
+
+  await page.evaluate(() => (window as Win).__voice.say('invite a helper'));
+  await helperStage(page, 'inviting');
+  const code = await page.evaluate(() => (window as Win).__helper.state.code as string);
+  const { page: carer } = await companion(context);
+  await carer.locator('#code').fill(code);
+  await carer.locator('#connect').click();
+  await helperStage(page, 'asking');
+  expect(await ahead('helper:a')).toBeGreaterThan(0.05);
+  await press(page, 'helper:a'); // Allow: the ray reaches it before the board behind
+  await helperStage(page, 'sharing');
+
+  // Help / Recalibrate opens the setup, in front of the board as well.
+  await carer.locator('#help').click();
+  await page.waitForFunction(() => (window as Win).__setup.view.stage === 'where', null, { timeout: 12_000 });
+  expect(await ahead('setup:setup-b')).toBeGreaterThan(0.05);
+  await press(page, 'setup:setup-b'); // Sofa/Bed
+  await page.waitForFunction(() => (window as Win).__setup.view.stage === 'reach', null, { timeout: 8_000 });
+  expect(errors).toEqual([]);
 });
 
 test('"No" refuses: the carer never sees a card and the code stops working', async ({ context, page }) => {

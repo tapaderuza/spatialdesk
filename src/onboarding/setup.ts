@@ -36,7 +36,7 @@ import { play } from '../ui/sounds.js';
 import { SetupPanel } from '../workspace/components.js';
 import { panelText, type Op } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
-import { deskPose } from '../workspace/viewer.js';
+import { aheadOfBoards, deskPose } from '../workspace/viewer.js';
 import { calibrated, markCalibrated, notifySetupClosed, onSetupRequested, setSeat, setupState, type Seat } from './setup-state.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/setup.uikitml`;
@@ -355,7 +355,8 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     const cos = Math.cos(anchor.yaw);
     const panel = this.entity?.object3D;
     if (panel) {
-      panel.position.set(anchor.x - sin * AHEAD, anchor.y + LIFT, anchor.z - cos * AHEAD);
+      const ahead = aheadOfBoards(AHEAD); // in front of a board brought close, so it takes the ray before the board
+      panel.position.set(anchor.x - sin * ahead, anchor.y + LIFT, anchor.z - cos * ahead);
       panel.rotation.set(0, anchor.yaw, 0);
       panel.scale.setScalar(workspace.panelScale);
     }
