@@ -943,6 +943,7 @@ moved by hand; show it before it replaces anything. The application code stays f
 - **Published:** https://youtu.be/A8d5FKF0C-I (2:09, public, not made for kids, "no" to the AI-use question as before;
   the description adds that the last rooms are the emulator's synthetic rooms shown as passthrough); oEmbed 200 without
   signing in. Devpost: both video fields (the public page and the entry's form) set to it, the story unchanged (SHA-256
-  `0ac9cff8a3ae`), the entry still SUBMITTED. The previous video, https://youtu.be/6N9PWPoEBKU, stays on the channel.
+  `0ac9cff8a3ae`), the entry still SUBMITTED. The previous video, https://youtu.be/6N9PWPoEBKU, was then set to unlisted at the
+  owner's request: its link still plays, but the channel no longer lists it.
 - **Known detail:** during the failure the command panel's small status still reads "Command server online", because
   only the agent's requests were cut, not its health check.

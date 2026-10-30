@@ -70,8 +70,8 @@ Emulator results are not physical-headset measurements; the README and the submi
 ## Submission (2026-10-30)
 
 - **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/A8d5FKF0C-I (2:09,
-  the second version, which replaced https://youtu.be/6N9PWPoEBKU in both of Devpost's video fields the same day; not
-  made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
+  the second version, which replaced https://youtu.be/6N9PWPoEBKU, now unlisted, in both of Devpost's video fields the
+  same day; not made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
   generic synthetic voice, not a real person, and the footage of the family member is real and unaltered). Viewable
   without signing in.
 - **Repository:** made public at the owner's request, after a scan of its whole history: the only credential-shaped
