@@ -44,10 +44,13 @@ CROSSFADE_S = 0.5  # into the phone, out of it, into the end card
 END_LEAD_S = 0.6  # the end card's line, once the cut has crossed into it
 # Sound effects, under the voices: assets/audio/<name>.mp3 or .wav when there, else made here from ffmpeg's own sources.
 SFX = {
-    # Air swelling and opening as the panels glide closer: pink noise, a brighter band coming in, a soft rising tone.
-    "whoosh": "anoisesrc=d=1.4:c=pink:r=48000:a=0.9:seed=7,highpass=f=220,lowpass=f=1900,afade=t=in:d=0.5:curve=qsin,afade=t=out:st=0.5:d=0.9:curve=exp[lo];"
-              "anoisesrc=d=1.4:c=white:r=48000:a=0.35:seed=11,highpass=f=2600,lowpass=f=7500,afade=t=in:st=0.15:d=0.45:curve=qsin,afade=t=out:st=0.6:d=0.7:curve=exp[hi];"
-              "aevalsrc='0.16*sin(2*PI*420*(pow(2,1.2*t)-1)/(1.2*log(2)))':d=1.4:s=48000,afade=t=in:d=0.45,afade=t=out:st=0.55:d=0.8[tone];"
+    # Air swelling and opening as the panels glide closer: pink noise, a brighter band coming in (each different in each ear,
+    # so the sound can be as wide as the panels around her), a soft rising tone in the middle.
+    "whoosh": "anoisesrc=d=1.4:c=pink:r=48000:a=0.9:seed=7[lol];anoisesrc=d=1.4:c=pink:r=48000:a=0.9:seed=8[lor];"
+              "[lol][lor]join=inputs=2:channel_layout=stereo,highpass=f=220,lowpass=f=1900,afade=t=in:d=0.5:curve=qsin,afade=t=out:st=0.5:d=0.9:curve=exp[lo];"
+              "anoisesrc=d=1.4:c=white:r=48000:a=0.35:seed=11[hil];anoisesrc=d=1.4:c=white:r=48000:a=0.35:seed=12[hir];"
+              "[hil][hir]join=inputs=2:channel_layout=stereo,highpass=f=2600,lowpass=f=7500,afade=t=in:st=0.15:d=0.45:curve=qsin,afade=t=out:st=0.6:d=0.7:curve=exp[hi];"
+              "aevalsrc='0.16*sin(2*PI*420*(pow(2,1.2*t)-1)/(1.2*log(2)))':d=1.4:s=48000,aformat=channel_layouts=stereo,afade=t=in:d=0.45,afade=t=out:st=0.55:d=0.8[tone];"
               "[lo][hi][tone]amix=inputs=3:normalize=0,aecho=0.8:0.5:70|140:0.2|0.1",
     # A soft landing: a low knock, a short fall in pitch, a glassy tick on top, a small room.
     "drop": "aevalsrc='0.6*sin(2*PI*150*t)*exp(-10*t)+0.3*lt(t,0.2)*sin(2*PI*(700*t-1500*t*t))*exp(-28*t)+0.12*sin(2*PI*2600*t)*exp(-90*t)':d=0.8:s=48000,"
@@ -151,7 +154,7 @@ def sfx():
         if given:
             run(["ffmpeg", "-v", "error", "-y", "-i", str(given), "-ac", "2", "-ar", "48000", str(raw)])
         else:
-            run(["ffmpeg", "-v", "error", "-y", "-filter_complex", f"{source},pan=stereo|c0=c0|c1=c0,aresample=48000[out]", "-map", "[out]", str(raw)])
+            run(["ffmpeg", "-v", "error", "-y", "-filter_complex", f"{source},aformat=channel_layouts=stereo,aresample=48000[out]", "-map", "[out]", str(raw)])
         detected = subprocess.run(["ffmpeg", "-i", str(raw), "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True).stderr
         peak = float(re.search(r"max_volume: (-?[\d.]+) dB", detected).group(1))
         run(["ffmpeg", "-v", "error", "-y", "-i", str(raw), "-af", f"volume={-1 - peak:.2f}dB", str(out)])
@@ -198,6 +201,18 @@ def balanced(text, width=34):
         lines = textwrap.wrap(text, w, break_long_words=False)
         if len(lines) == count:
             return "\n".join(lines)
+
+
+def spatial(space):
+    """Puts an effect where its panels are on screen: an equal-power pan from pan[0] to pan[1] (-1 the left edge, 1 the
+    right) and a stereo width from width[0] to width[1] (0 a point, 1 as made), over [over] seconds."""
+    (p0, p1), (w0, w1), over = space["pan"], space.get("width", [1, 1]), space.get("over", 1)
+    ramp = f"clip(t/{over},0,1)"
+    pan, width = f"({p0}+({p1 - p0:.3f})*{ramp})", f"({w0}+({w1 - w0:.3f})*{ramp})"
+    mid, side = "0.5*(val(0)+val(1))", "0.5*(val(0)-val(1))"
+    # aeval leaves its two channels without a layout, which the AAC encoder refuses: pan names them stereo again.
+    return (f"aeval='({mid}+{width}*{side})*cos(({pan}+1)*PI/4)*sqrt(2)|({mid}-{width}*{side})*sin(({pan}+1)*PI/4)*sqrt(2)':c=stereo,"
+            "pan=stereo|c0=c0|c1=c1")
 
 
 def heard(audio, start, end, threshold=-40.0):
@@ -419,7 +434,9 @@ def edit(directory):
         f"afade=t=in:d={CROSSFADE_S},adelay={round(o_c2 * 1000)}:all=1[a2]",
     ]
     graph += [f"[{index}:a]aresample=48000,adelay={round(start * 1000)}:all=1[v{k}]" for k, (index, start) in enumerate(voice_in)]
-    graph += [f"[{index}:a]aresample=48000,volume={SFX_DB[name] + 1}dB,adelay={round(at * 1000)}:all=1[f{k}]" for k, (index, name, at) in enumerate(sfx_in)]
+    # Each effect sounds where its panels are on screen (sfx_space): the glide's air travels and narrows onto the card.
+    graph += [f"[{index}:a]aresample=48000,aformat=channel_layouts=stereo,{spatial(SCRIPT['sfx_space'][name])},volume={SFX_DB[name] + 1}dB,"
+              f"adelay={round(at * 1000)}:all=1[f{k}]" for k, (index, name, at) in enumerate(sfx_in)]
     mix = "[ha][a1][a2]" + "".join(f"[v{k}]" for k in range(len(voice_in))) + "".join(f"[f{k}]" for k in range(len(sfx_in)))
     graph.append(f"{mix}amix=inputs={3 + len(voice_in) + len(sfx_in)}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
 

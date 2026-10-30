@@ -4,6 +4,12 @@
   "subtitle": "A workspace that adapts to your body, in mixed reality.",
   "disclosure": "The interface is the real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script, with live Amazon Nova and Amazon Transcribe. The hand gestures were filmed separately; the carer's phone is the real companion page, captured at iPhone 13 size.",
   "pip_label": "Real gesture, filmed separately",
+  "_sfx_space": "Where on screen each effect's panels are, read off the cut's frames: pan from -1 (left edge) to 1 (right edge), width from 0 (a point) to 1 (as made), over seconds. The glide's air starts wide at Apply's key as every panel comes in and closes on the agent's card; the landing is the Done column as the view reaches it; the tap is the phone's key.",
+  "sfx_space": {
+    "whoosh": {"pan": [-0.15, 0.1], "width": [1.0, 0.25], "over": 0.9},
+    "drop": {"pan": [0.05, 0.05]},
+    "tap": {"pan": [0.04, 0.04]}
+  },
   "voices": {
     "narrator": "en_US-lessac-medium",
     "person": "en_US-amy-medium",

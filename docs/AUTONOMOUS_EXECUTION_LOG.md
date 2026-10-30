@@ -856,3 +856,22 @@ architecture and a judge's guide; `docs/META_SUBMISSION.md` with the form's text
   guardrail now prevents, Nova's 3.3 s cold and 1.7 s warm), `docs/RELEASE_READINESS.md` (final status).
 - **Committed:** the video pipeline that made the Gold Master (unchanged since it rendered it) and the documents. No
   deployment.
+
+## Block 35: the effects placed where their panels are (2026-10-30)
+
+Asked, as the one exception to the freeze: pan the swoosh and the click with the panels on screen, then one last render
+and the new file's hash.
+
+- **Where, read off the cut's frames:** at the glide, Apply's key is pressed at about 45 % of the width and the agent's
+  card settles at about 55 % while every panel comes in; at 01:24 the view reaches the Done column at the centre; the
+  phone's key is at about 52 %. `sfx_space` in `docs/video/pitch-2026.json` holds them (pan -1 to 1, width 0 to 1).
+- **How** (`spatial()` in `scripts/build_pitch_video.py`): an equal-power pan and a mid/side width, both able to travel
+  over time, by `aeval`. The swoosh's noise is now different in each ear, so it can be wide: it starts wide at the key as
+  every panel comes in and closes onto the card (left 1.6 dB louder to right 1.4 dB louder; left-right correlation 0.26
+  to 0.99, measured on the effect alone). The landing and the tap sit a touch right of centre, where their panels are. In
+  the cut the swoosh's side signal rises from about -53 to -37 dB. `aeval` leaves its two channels without a layout, which
+  the AAC encoder refused on the first try; `pan=stereo` names them again.
+- **The new Gold Master:** `.video/SpatialDesk_Final_Pitch.mp4`, 100.07 s, 6,004 frames, no decoding errors, -15.8 LUFS,
+  29,296,132 bytes, SHA-256 `a9b5b5309d6bd1b0e5a22889c518651786b71aab23bcf3925a8fd4308bae8fd6`. Its frames match the
+  previous master's except the end card, rendered again (PSNR 50.7 dB or more: encoding noise). The take was brought back
+  for the render and moved to the holding folder again, with the previous master in its `superseded/` folder.

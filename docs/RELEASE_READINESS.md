@@ -7,7 +7,8 @@ submitting the form.
 ## Freeze
 
 The application (`src/`, `public/`, `server/`, configuration, dependencies, tests) and the video pipeline (`scripts/`,
-`docs/video/`) are under an absolute freeze. Release preparation changed documentation only: this report, the
+`docs/video/`) are under an absolute freeze. The owner reopened the video pipeline once, for one change: the sound effects
+now sit where their panels are on screen. Otherwise release preparation changed documentation only: this report, the
 [README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. No deployment
 was made; production keeps serving the build it served before.
 
@@ -17,14 +18,15 @@ was made; production keeps serving the build it served before.
 | --- | --- |
 | File | `.video/SpatialDesk_Final_Pitch.mp4` (local; `.video/` is never committed) |
 | Length, format | 100.07 s, 1920x1080 at 60 fps, 6,004 frames, H.264 High + AAC 48 kHz, -15.8 LUFS integrated |
-| Size | 29,289,781 bytes |
-| SHA-256 | `402a8213b26d09ed12106a54c354da6aca5fe22e6de02c27dfbe1e8c3e69267f` |
+| Size | 29,296,132 bytes |
+| SHA-256 | `a9b5b5309d6bd1b0e5a22889c518651786b71aab23bcf3925a8fd4308bae8fd6` |
 | Made by | `python scripts/build_pitch_video.py` (the phone by `scripts/capture_mobile_ui.ts`, the end card by `scripts/end_card.ts`) |
 
-The approval named the file `SpatialDesk_Final_Pitch_2026_6.mp4`. No file of that name exists on this machine; the
-approved video is the last render delivered before the approval, the only final render that exists, renamed here with
-its bytes unchanged (SHA-256 checked before and after). The video shows a family member filmed at home: it is never
-committed, and its source clips stay in the ignored `inputs/`.
+It replaces the master approved earlier the same day (SHA-256 `402a8213…267f`, kept in the holding folder below), and
+differs from it only in its sound: the glide's air starts wide at Apply's key and closes onto the agent's card, and the
+landing and the tap sit at the Done column and the phone's key (`sfx_space` in `docs/video/pitch-2026.json`). Its frames
+are the same except the end card, rendered again and within encoding noise of the old one (PSNR 50.7 dB or more). The
+video shows a family member filmed at home: it is never committed, and its source clips stay in the ignored `inputs/`.
 
 ## Media cleanup
 
@@ -32,7 +34,8 @@ Every intermediate and obsolete media file was moved out of the repository into 
 (34 items, 2.96 GB, with a `MANIFEST.txt` of where each came from): the 15 recording takes and their voice cache, the
 pitch's intermediates (phone shot, end card, effects, masks, captions), the earlier pipeline's runs and renders, their
 thumbnails and sheets, the discarded carer clip (`IMG_2089.MOV` and its duplicate), the copy in `dist/`, and a
-superseded, unfinished jury package. Deleting that folder permanently is left to the owner. Kept: the Gold Master, the
+superseded, unfinished jury package; its `superseded/` folder holds the earlier master. Deleting that folder permanently
+is left to the owner. Kept: the Gold Master, the
 three source clips it is made from, and the local voice tooling.
 
 ## Verification

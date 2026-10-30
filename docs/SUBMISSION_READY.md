@@ -1,6 +1,6 @@
 # SpatialDesk: submission status (2026-10-29)
 
-> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `402a8213…267f`), and the media workspace is cleaned.
+> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `a9b5b530…8fd6`), and the media workspace is cleaned.
 
 ## Official Feature Freeze (2026-10-29)
 
