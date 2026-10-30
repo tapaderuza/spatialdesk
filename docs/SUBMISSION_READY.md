@@ -1,6 +1,6 @@
 # SpatialDesk: submission status (2026-10-29)
 
-> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `a9b5b530…8fd6`), and the media workspace is cleaned.
+> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `a9b5b530…8fd6`), and the media workspace is cleaned. It is published at https://youtu.be/6N9PWPoEBKU, the repository is public, and the Devpost entry was updated with both on 2026-10-30 (details in [release readiness](RELEASE_READINESS.md)).
 
 ## Official Feature Freeze (2026-10-29)
 
@@ -142,6 +142,9 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 ## Devpost (project 1254068, shown as SUBMITTED, 5/5 steps)
 
+- **2026-10-30:** renamed SpatialDesk; the tagline, the story (`docs/META_SUBMISSION.md`, with the target launch date),
+  the links (GitHub added), 20 tags and the video (https://youtu.be/6N9PWPoEBKU, in the entry and on the public page)
+  updated. The declarations and the additional answers were left as they were.
 - Saved: new tagline and story, the new video link (the public page embeds the new video and not the old one), the 9
   old stills removed and the 11 new ones in story order with the cover first, and the Additional info texts
   (capabilities used, hand interactions, future of VR).

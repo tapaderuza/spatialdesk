@@ -875,3 +875,24 @@ and the new file's hash.
   29,296,132 bytes, SHA-256 `a9b5b5309d6bd1b0e5a22889c518651786b71aab23bcf3925a8fd4308bae8fd6`. Its frames match the
   previous master's except the end card, rendered again (PSNR 50.7 dB or more: encoding noise). The take was brought back
   for the render and moved to the holding folder again, with the previous master in its `superseded/` folder.
+
+## Block 36: the video published, the repository public, the Devpost entry updated (2026-10-30)
+
+Asked: host the video and fill in Devpost, in the owner's Edge, where YouTube and Devpost were signed in.
+
+- **First, without the session:** a fresh Playwright browser met Cloudflare's bot check on Devpost before any login, so
+  that path stopped there (a bot check is never bypassed), and the texts were given ready to paste.
+- **YouTube** (Claude in Chrome, the owner's Edge): the browser bridge carries at most 10 MB per file and the master is
+  29.3 MB, so the owner chose the file in the upload dialog; title, description (the approved tagline, the README's
+  pitch, the video's own disclosure), "not made for kids", "no" to the AI-use question (none of its four cases applies)
+  and Public were set here. https://youtu.be/6N9PWPoEBKU, viewable without signing in (oEmbed 200).
+- **The rules, read before writing:** the description must give a target launch date (the entry's own "March 2027, on
+  the Meta Horizon Store" was kept), and WebXR entries must link their GitHub page. The repository was private; after a
+  scan of its whole history (only AWS's documented example key, in the SigV4 test; noreply addresses on every commit) the
+  owner chose to make it public.
+- **Devpost:** the existing entry (1254068, SUBMITTED) updated, not duplicated: name, tagline, story (checked by SHA-256
+  in the page), 20 tags, four links with GitHub, and the video in both places that hold one (the entry's form and the
+  public page, which had kept an older video). Additional answers, track, division and declarations untouched. The
+  previous texts are kept in the holding folder's `devpost-backup/`.
+- **Docs:** the README links the video; `docs/META_SUBMISSION.md` carries the launch date, the code and the video link
+  as submitted; `docs/RELEASE_READINESS.md` records the submission.

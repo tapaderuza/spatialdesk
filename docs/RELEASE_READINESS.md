@@ -1,8 +1,8 @@
 # Release readiness — 2026-10-30
 
-**Status: ready for the jury.** The code is frozen and verified, the documentation is final, the demo video's Gold Master
-is identified and kept, and the media workspace is cleaned. What remains is the entrant's own: publishing the video and
-submitting the form.
+**Status: submitted.** The code is frozen and verified, the documentation is final, the demo video's Gold Master is
+published at https://youtu.be/6N9PWPoEBKU, the repository is public, and the Devpost entry carries all of it (see
+Submission, below).
 
 ## Freeze
 
@@ -64,12 +64,21 @@ Emulator results are not physical-headset measurements; the README and the submi
   documented where it is defined. They are how the 199 Playwright scenarios and the video pipeline drive the real app;
   removing them would break the test suite and break the freeze, so they stay.
 
-## Handoff
+## Submission (2026-10-30)
 
-The jury gets the repository's `main` branch and the video. Left to the entrant:
-
-1. Upload `.video/SpatialDesk_Final_Pitch.mp4` to the video host the competition rules require, and keep its link.
-2. Paste the sections of [META_SUBMISSION.md](META_SUBMISSION.md) into the form, add the video link and the repository
-   link, and complete the form's own declarations.
-3. Submit before the deadline, 18 November 2026 at 12:00 PT. The [official rules](https://start-developer-competition-26.devpost.com/rules)
-   govern the entry.
+- **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/6N9PWPoEBKU (1:41,
+  not made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
+  generic synthetic voice, not a real person, and the footage of the family member is real and unaltered). Viewable
+  without signing in.
+- **Repository:** made public at the owner's request, after a scan of its whole history: the only credential-shaped
+  strings are AWS's documented example key in the SigV4 test, and every commit uses a GitHub noreply address. The
+  [official rules](https://start-developer-competition-26.devpost.com/rules) ask WebXR entries for a link to it.
+- **Devpost:** the existing entry (project 1254068, still SUBMITTED, 5 of 5 steps) was updated rather than duplicated:
+  named SpatialDesk, with the tagline, story, links (the app, the emulator, the companion and GitHub), 20 technology
+  tags and the new video, both in the entry and on its public page
+  (https://devpost.com/software/spatialdesk-command-center). The story is [META_SUBMISSION.md](META_SUBMISSION.md)'s,
+  with the target launch date the rules require. The form's additional answers, track, division and the four
+  declarations were left as the entrant set them.
+- The entry's previous texts, links, tags and video are kept in
+  `D:\d\spatialdesk-media-2026-10-30\devpost-backup\project-details-before-2026-10-30.md`.
+- The entry can still be edited until the deadline, 18 November 2026 at 12:00 PT.

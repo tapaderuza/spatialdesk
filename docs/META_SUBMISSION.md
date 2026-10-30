@@ -127,6 +127,8 @@ argue with.
 
 ## What's next for SpatialDesk
 
+**Target launch date: March 2027**, on the Meta Horizon Store as an installable web app, free during the launch period.
+
 - **Testing with the people it is for:** structured sessions with disabled users and carers, measuring time to a
   comfortable setup, task completion, unwanted actions, recovery through Undo, and comfort over a whole session.
 - **On-headset performance work** on Meta Quest 3 and 3S, alongside the emulator gate.
@@ -150,4 +152,9 @@ Fargate, Elastic Load Balancing.
 - SpatialDesk: https://d2p3027seoreck.cloudfront.net/
 - Without a headset (Meta's IWER emulator): https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US
 - The companion, on a phone: https://d2p3027seoreck.cloudfront.net/companion.html
+- The code: https://github.com/tapaderuza/spatialdesk
 - Step-by-step judge's guide and local setup: `README.md` in the repository.
+
+## Video demo link
+
+https://youtu.be/6N9PWPoEBKU
