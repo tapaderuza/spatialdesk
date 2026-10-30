@@ -829,3 +829,30 @@ card in Done), from `assets/audio/` or synthesised; the end card's figures appea
   frames, no decoding errors, -15.8 LUFS. `IMG_2089.MOV` is no longer read; `carer_clip` and its blur track are gone
   from `docs/video/pitch-2026.json`.
 - Video tooling only: the Feature Freeze on the product stays.
+
+## Block 34: the Gold Master, the clean-up, the release documents (2026-10-30)
+
+Asked: the video is approved as the Gold Master and the freeze is now absolute for the app and the video scripts; keep
+only the final video, as `SpatialDesk_Final_Pitch.mp4`, and remove intermediates, old renders and discarded clips; run
+the configured linters and formatters; no debug logs or test comments on `main`; a README with the pitch, the
+architecture and a judge's guide; `docs/META_SUBMISSION.md` with the form's texts; confirm when ready.
+
+- **Gold Master:** `.video/SpatialDesk_Final_Pitch.mp4`, the last render delivered (100.07 s, SHA-256 `402a8213…267f`),
+  renamed with its bytes checked before and after. The approval's `..._2026_6.mp4` name exists nowhere on this machine;
+  this is the only final render there is. Never committed (a family member filmed at home).
+- **Clean-up:** 34 items, 2.96 GB (every take, the pitch's intermediates, the earlier pipeline's runs and renders, the
+  discarded `IMG_2089.MOV` and its duplicate, the `dist/` copy, a superseded unfinished package) moved to
+  `D:\d\spatialdesk-media-2026-10-30\` with a manifest, for the owner to delete; nothing deleted permanently. The three
+  source clips of the Gold Master stay in `inputs/`.
+- **Checks:** no formatter or linter is configured, and adding one would rewrite frozen code, so the configured gates
+  ran: TypeScript strict (0 errors), a forced fresh Kotlin compile (0 warnings), `gradlew build`, 86 server and
+  shared-engine tests run fresh (0 failures), and the full CI in the pre-push hook. The code scan found no
+  `console.log`, `debugger`, `TODO` or test notes; the five `console.warn` calls and the server's SLF4J lines are
+  operational, and the `window.__*` hooks are the documented automation surface of the 199 scenarios, kept.
+- **Documents:** another agent had drafted a README, the submission text and a release report at 00:10 (uncommitted,
+  waiting on the Gold Master). They were built on: `README.md` (the pitch, at a glance, the judge's guide, how a request
+  flows, the architecture, running locally, verification), `docs/META_SUBMISSION.md` (every form field, each figure
+  checked against the code or the logs: the 7 cm and 28 cm clearances, the 70° glance, the 53 to 62 cm proposal the
+  guardrail now prevents, Nova's 3.3 s cold and 1.7 s warm), `docs/RELEASE_READINESS.md` (final status).
+- **Committed:** the video pipeline that made the Gold Master (unchanged since it rendered it) and the documents. No
+  deployment.
