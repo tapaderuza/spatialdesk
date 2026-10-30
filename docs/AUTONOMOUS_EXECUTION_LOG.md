@@ -767,3 +767,65 @@ Nova's card whole with its buttons and the card landing in Done, re-render with 
 - **The cut:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: 111.6 s, 1920x1080, 60/1, no decoding
   errors, -16 LUFS.
 - **The Feature Freeze is back.**
+
+## Block 32: the carer clip's earlier cards blurred, a short end card, Nova captioned in both languages
+
+Asked: `IMG_2089.MOV` will not be re-recorded, so hide its continuity error in post (blur the top half, the Help /
+Recalibrate button and the finger sharp); an end card of 5 s at most without "Every claim here is an automated test";
+the lone "right?" merged; Nova's answers captioned in Spanish and English, clear of the approval buttons; render it,
+check the blur, give the path.
+
+- **The blur follows the phone** (`scripts/build_pitch_video.py`, `carer_clip.blur` in `docs/video/pitch-2026.json`).
+  In that clip the phone moves the whole time: the button's top goes from 42 % to 93 % of the frame's height, and the
+  finger reaches over the cards from the lower right, so a fixed top half cut through the "Help /" label and the
+  fingertip. Instead, a mask keyframed from the clip at 3 to 6 fps: everything above the button's top (less 4.5 %),
+  except a wedge on the finger from its tip and the hand beyond the phone's edge, feathered, over a `gblur` of sigma 30.
+  Checked with the mask drawn in red over the unblurred clip, then on the cut from 01:27 to 01:33: the earlier take's
+  cards ("Press Focus 25...", "Lost? Bring everything to me", "Doing 2 cards") unreadable, the button and the finger
+  sharp in every frame looked at. It blurs above the button rather than exactly the top half: the cards reach down to
+  78 % of the frame at the start, and the button rises to 42 % at times.
+- **End card:** 4.3 s (0.4 s, its line, 1 s; capped at 5 s), its line now "SpatialDesk: a workspace that adapts to you."
+  The card itself never carried "Every claim..."; the narration and its caption did.
+- **Captions:** the lone "right?" was the tail of Nova's English caption, cut into 84-character pieces. Her captions now
+  keep their own line breaks, and a last piece under 24 characters joins the one before. Nova's answers: her Spanish
+  (italic) over the English, small, top left, lines balanced so no word is left alone. ffmpeg's SRT reader drops
+  `{\an7\fs11}` but keeps a lone `{\an7}` and turns `<font size>` into its own tag: the first render, with the combined
+  tag, had them bottom left over "Aplicar".
+- **Also fixed:** the setup part ran 0.75 s past the end of the capture, so the end card came in ahead of its line; it
+  now stops where the capture does, and the cut is as long as planned.
+- **The cut:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: 102.25 s, 1920x1080, 60/1, 6,135
+  frames, no decoding errors, -15.8 LUFS.
+- Video tooling only: the Feature Freeze on the product stays.
+
+## Block 33: the carer's phone captured digitally, cross-fades, sound effects, an end card that counts up (2026-10-30)
+
+Asked: the blur reads as a patch, so drop `IMG_2089.MOV` altogether and capture the companion page digitally in an iPhone
+13 viewport at the state with "Llamar a Rocío" in Done, tapping Help / Recalibrate, framed as a device; 0.5 s cross-fades
+between the headset and the phone; a soft whoosh at 00:54 (the glide from 53 to 43 cm) and a click or drop at 01:24 (the
+card in Done), from `assets/audio/` or synthesised; the end card's figures appearing one after another; render it.
+
+- **The phone** (`scripts/capture_mobile_ui.ts`): the production build served here, `/api` to the deployed helper
+  service as in the take. A headset in IWER (headless Edge, the tests' `/?emulate` and `launchXR`) gets the pitch's
+  workspace with the gaze card moved to Hecho by `move_card`, says "invita a un ayudante" and Allows (`__helper.choose`);
+  the companion page, at 390x844 points and 3x in its dark scheme, types the live code (`UQE6 P8GV`), follows the board
+  and taps Help / Recalibrate; the headset opened the guided setup in answer. Its two states (the board; "Sent. Waiting
+  for their headset...", the key dimmed) are full-page PNGs 1170 px wide. The shot is rendered frame by frame from an
+  HTML timeline (`scripts/html-timeline.ts`: `window.render(t)`, a PNG a frame piped to ffmpeg, so nothing is dropped):
+  the phone in a device frame turns in and settles, the page scrolls from the board to the button, the camera closes in,
+  a touch comes near and presses, the key gives way (the page's own :active), a ripple, the answer, an amber glow.
+- **Cross-fades:** the app into the phone, the phone into the headset's setup and the setup into the end card, 0.5 s
+  each (`xfade`); voices, captions and the app's sound follow the overlaps (the app's sound fades across them).
+- **Effects** (`SFX` in `scripts/build_pitch_video.py`): `assets/audio/whoosh`, `drop` and `tap` (`.mp3` or `.wav`)
+  when they are there, else made from ffmpeg's own sources: pink noise opening into a brighter band with a soft rising
+  tone; a low knock falling in pitch with a glassy tick; a fingertip on glass. Each levelled to a -1 dB peak, then mixed
+  14 to 18 dB under the voices. Placed by the take's events, not by fixed times: the whoosh at Apply's press heard in the
+  app's own sound (53.86 s), the landing as the view reaches Done (`done-shown`, 84.04 s), the tap at the phone's touch
+  (88.40 s). Measured in the cut: heard between the narrator's words, about 12 dB under them.
+- **End card** (`scripts/end_card.ts`, the same look as before): the name and its line rise in, an accent draws under
+  them, the four tiles arrive 0.3 s apart out of a blur, each number counting up to its value (199, 24.6 ms, 78;
+  "Offline" wiped in), its edge lighting as it lands; then the address and how the video was made. 5 s. The disclosure
+  now also says the carer's phone is the real companion page, captured at iPhone 13 size.
+- **The cut:** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`, copied to `dist/`: 100.07 s, 1920x1080, 60/1, 6,004
+  frames, no decoding errors, -15.8 LUFS. `IMG_2089.MOV` is no longer read; `carer_clip` and its blur track are gone
+  from `docs/video/pitch-2026.json`.
+- Video tooling only: the Feature Freeze on the product stays.

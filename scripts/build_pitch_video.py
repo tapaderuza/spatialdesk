@@ -4,20 +4,27 @@
   then  the app (a take of scripts/make-cinematic-video.mjs on a dark neutral background): the guided setup, her request
         heard in her own voice by Amazon Transcribe and answered by Amazon Nova, the gaze rim, a poke; a picture-in-picture
         corner plays her real pinch while the setup's orb is up, and her real poke while a hand pushes a control
-  then  the carer's phone, filmed: Help / Recalibrate; back to the app as the setup opens in response
-  end   the card with the project's measured figures
-Narration (Piper, local), the app's own 3D sound, the clips' sound, captions; H.264 1080p60 + AAC, -16 LUFS.
+  then  the carer's phone: the real companion page captured live at iPhone 13 size, in a device frame, Help / Recalibrate
+        tapped (scripts/capture_mobile_ui.ts); back to the app as the setup opens in response
+  end   the card with the project's measured figures, one after another (scripts/end_card.ts)
+Into the phone and out of it, and into the end card, the parts cross-fade. Narration (Piper, local), the app's own 3D
+sound, her sound, effects (the glide, the card landing in Done, the tap: assets/audio/<name>.mp3 or .wav if there, else
+synthesised), captions; H.264 1080p60 + AAC, -16 LUFS.
 
-  python scripts/build_pitch_video.py                 clips (downloaded if missing), a new take, the edit
-  python scripts/build_pitch_video.py --edit          the edit again from the last take
-  python scripts/build_pitch_video.py --skip-build    a new take without rebuilding the app first
-Needs ffmpeg/ffprobe with zscale, Node and Edge (the take), and .video/piper-venv (python -m venv, then pip install
-piper-tts==1.3.0 gdown). The clips live in inputs/, which git ignores: people filmed at home are never committed.
+  python scripts/build_pitch_video.py                 clips (downloaded if missing), a new take, the phone if not yet, the edit
+  python scripts/build_pitch_video.py --edit          the edit again from the last take (and the last phone)
+  python scripts/build_pitch_video.py --phone         the carer's phone captured again too
+  python scripts/build_pitch_video.py --skip-build    without rebuilding the app first
+Needs ffmpeg/ffprobe with zscale, Node and Edge (the take, the phone, the end card), and .video/piper-venv (python -m
+venv, then pip install piper-tts==1.3.0 gdown). The clips live in inputs/, which git ignores: people filmed at home are
+never committed.
 Output: .video/pitch/SpatialDesk_Final_Pitch_2026.mp4, copied to dist/ (which the next build empties and the next
 deploy uploads).
 """
 import json
+import textwrap
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -32,7 +39,23 @@ FOLDER = "https://drive.google.com/drive/folders/1BP9bPP3lDHVEBoQ6DN88qmMM-_YV2s
 W, H, FPS = 1920, 1080, 60
 MAX_S = 180
 LEAD_S = 0.5  # the app kept before its first line
-END_LEAD_S, END_HOLD_S = 0.4, 2.4  # the end card before and after its line
+PHONE = WORK / "phone"  # scripts/capture_mobile_ui.ts's
+CROSSFADE_S = 0.5  # into the phone, out of it, into the end card
+END_LEAD_S = 0.6  # the end card's line, once the cut has crossed into it
+# Sound effects, under the voices: assets/audio/<name>.mp3 or .wav when there, else made here from ffmpeg's own sources.
+SFX = {
+    # Air swelling and opening as the panels glide closer: pink noise, a brighter band coming in, a soft rising tone.
+    "whoosh": "anoisesrc=d=1.4:c=pink:r=48000:a=0.9:seed=7,highpass=f=220,lowpass=f=1900,afade=t=in:d=0.5:curve=qsin,afade=t=out:st=0.5:d=0.9:curve=exp[lo];"
+              "anoisesrc=d=1.4:c=white:r=48000:a=0.35:seed=11,highpass=f=2600,lowpass=f=7500,afade=t=in:st=0.15:d=0.45:curve=qsin,afade=t=out:st=0.6:d=0.7:curve=exp[hi];"
+              "aevalsrc='0.16*sin(2*PI*420*(pow(2,1.2*t)-1)/(1.2*log(2)))':d=1.4:s=48000,afade=t=in:d=0.45,afade=t=out:st=0.55:d=0.8[tone];"
+              "[lo][hi][tone]amix=inputs=3:normalize=0,aecho=0.8:0.5:70|140:0.2|0.1",
+    # A soft landing: a low knock, a short fall in pitch, a glassy tick on top, a small room.
+    "drop": "aevalsrc='0.6*sin(2*PI*150*t)*exp(-10*t)+0.3*lt(t,0.2)*sin(2*PI*(700*t-1500*t*t))*exp(-28*t)+0.12*sin(2*PI*2600*t)*exp(-90*t)':d=0.8:s=48000,"
+            "lowpass=f=6000,aecho=0.8:0.4:45|90:0.18|0.08",
+    # A fingertip on glass.
+    "tap": "aevalsrc='0.4*sin(2*PI*1700*t)*exp(-120*t)+0.3*sin(2*PI*340*t)*exp(-50*t)':d=0.3:s=48000",
+}
+SFX_DB = {"whoosh": -17, "drop": -14, "tap": -18}  # each one's peak in the mix: well under the voices, which reach about 0 dB
 PIP_W, PIP_H, PIP_MARGIN, PIP_RADIUS = 576, 324, 56, 26
 # iPhone HDR (HLG, BT.2020) to the video's SDR (BT.709), tone-mapped rather than clipped.
 TONEMAP = ("zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
@@ -63,7 +86,7 @@ def hdr(path):
 
 def clips():
     """The real footage, downloaded from the shared Drive folder when any of it is missing."""
-    paths = [ROOT / SCRIPT[k]["clip"] for k in ("hook", "pinch", "poke", "carer_clip")]
+    paths = [ROOT / SCRIPT[k]["clip"] for k in ("hook", "pinch", "poke")]
     if all(p.exists() for p in paths):
         return
     step("Downloading the clips into inputs/")
@@ -104,6 +127,39 @@ def take(dark, wav, skip_build):
     return directory
 
 
+def phone(again, skip_build):
+    """The carer's phone: the real companion page, captured live at iPhone 13 size and framed (scripts/capture_mobile_ui.ts)."""
+    if (PHONE / "phone.mp4").exists() and not again:
+        return
+    step("The carer's phone (the companion page, live, at iPhone 13 size)")
+    run(["node", "scripts/capture_mobile_ui.ts"], cwd=ROOT, env={**os.environ, **({"SKIP_BUILD": "1"} if skip_build else {})})
+
+
+def end_card():
+    """The end card, its figures one after another (scripts/end_card.ts), from this script's words and figures."""
+    step("The end card")
+    run(["node", "scripts/end_card.ts"], cwd=ROOT)
+
+
+def sfx():
+    """The sound effects as WAVs peaking at -1 dB (the mix sets their level): assets/audio/<name>.mp3 or .wav when there,
+    else made from SFX's sources."""
+    made = {}
+    for name, source in SFX.items():
+        given = next((p for p in (ROOT / "assets" / "audio" / f"{name}{ext}" for ext in (".mp3", ".wav")) if p.exists()), None)
+        raw, out = WORK / f"sfx-{name}-raw.wav", WORK / f"sfx-{name}.wav"
+        if given:
+            run(["ffmpeg", "-v", "error", "-y", "-i", str(given), "-ac", "2", "-ar", "48000", str(raw)])
+        else:
+            run(["ffmpeg", "-v", "error", "-y", "-filter_complex", f"{source},pan=stereo|c0=c0|c1=c0,aresample=48000[out]", "-map", "[out]", str(raw)])
+        detected = subprocess.run(["ffmpeg", "-i", str(raw), "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True).stderr
+        peak = float(re.search(r"max_volume: (-?[\d.]+) dB", detected).group(1))
+        run(["ffmpeg", "-v", "error", "-y", "-i", str(raw), "-af", f"volume={-1 - peak:.2f}dB", str(out)])
+        made[name] = out
+        print(f"  {name}: {given.relative_to(ROOT) if given else 'synthesised'}")
+    return made
+
+
 def flash_in(capture):
     """Where the take's magenta sync mark first shows in its screen capture (seconds)."""
     raw = subprocess.run(["ffmpeg", "-v", "error", "-t", "20", "-i", str(capture), "-vf", "crop=16:16:20:20,scale=1:1", "-pix_fmt", "rgb24", "-f", "rawvideo", "-"],
@@ -135,6 +191,27 @@ def srt_time(t):
     return f"{ms // 3600000:02}:{ms // 60000 % 60:02}:{ms // 1000 % 60:02},{ms % 1000:03}"
 
 
+def balanced(text, width=34):
+    """Wrapped in as few lines as `width` allows, each about as long as the others: no word left alone at the end."""
+    count = len(textwrap.wrap(text, width, break_long_words=False))
+    for w in range(len(text) // count, width + 1):
+        lines = textwrap.wrap(text, w, break_long_words=False)
+        if len(lines) == count:
+            return "\n".join(lines)
+
+
+def heard(audio, start, end, threshold=-40.0):
+    """The first moment in [start, end) seconds of [audio] louder than [threshold] dB (in 50 ms steps): a press the app
+    played its sound for. None if nothing is."""
+    stats = subprocess.run(["ffmpeg", "-v", "error", "-i", str(audio), "-af",
+                            "aresample=48000,asetnsamples=2400,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-",
+                            "-f", "null", "-"], check=True, capture_output=True, text=True).stdout
+    for t, level in re.findall(r"pts_time:([\d.]+)\s+lavfi\.astats\.Overall\.RMS_level=(\S+)", stats):
+        if start <= float(t) < end and level not in ("-inf", "inf") and float(level) >= threshold:
+            return float(t)
+    return None
+
+
 def two_lines(text, width=46):
     if len(text) <= width or "\n" in text:
         return text
@@ -158,6 +235,9 @@ def captions(entries):
                 else:
                     current = f"{current} {word}".strip()
             pieces.append(current)
+        if len(pieces) > 1 and len(pieces[-1]) < 24:
+            last = pieces.pop()
+            pieces[-1] += " " + last  # never a word or two alone on screen
         total = sum(len(p) for p in pieces)
         t = start
         for piece in pieces:
@@ -183,16 +263,20 @@ def edit(directory):
     b0 = cap(beats["intro"]["at"]) - LEAD_S
     b1 = cap(beats["helper"]["at"])
     t_b = b1 - b0
-    carer = SCRIPT["carer_clip"]
-    t_c1 = carer["out"] - carer["in"]
+    shot = json.loads((PHONE / "phone.json").read_text(encoding="utf-8"))
+    t_c1 = seconds(PHONE / "phone.mp4")
     help_at = next(e["at"] for e in events if e["kind"] == "help")
     opened_at = next(e["at"] for e in events if e["kind"] == "setup-reopened")
-    c2a, c2b = cap(help_at) - 0.3, cap(opened_at) + 3.5
+    # No further than the capture goes: a part that runs out early pulls the end card ahead of its line.
+    c2a, c2b = cap(help_at) - 0.5, min(cap(opened_at) + 3.5, seconds(directory / "capture.mp4"))
     t_c2 = c2b - c2a
-    t_d = END_LEAD_S + seconds(narration("end")) + END_HOLD_S
-    o_b, o_c1 = t_a, t_a + t_b
-    o_c2 = o_c1 + t_c1
-    o_d = o_c2 + t_c2
+    t_d = seconds(WORK / "end-card.mp4")
+    # The hook dips to the app through black; the app, the phone, the setup and the end card cross-fade, each part starting
+    # half a second before the one before it ends.
+    o_b = t_a
+    o_c1 = o_b + t_b - CROSSFADE_S
+    o_c2 = o_c1 + t_c1 - CROSSFADE_S
+    o_d = o_c2 + t_c2 - CROSSFADE_S
     total = o_d + t_d
     if total >= MAX_S:
         sys.exit(f"The cut would be {total:.1f} s; the limit is {MAX_S} s.")
@@ -223,8 +307,8 @@ def edit(directory):
 
     hook_in = add("-ss", str(hook["in"]), "-t", str(t_a), "-i", str(ROOT / hook["clip"]))
     capture_in = add("-i", str(directory / "capture.mp4"))
-    carer_in = add("-ss", str(carer["in"]), "-t", str(t_c1), "-i", str(ROOT / carer["clip"]))
-    end_in = add("-loop", "1", "-t", str(t_d), "-i", str(directory / "end.png"))
+    phone_in = add("-i", str(PHONE / "phone.mp4"))
+    end_in = add("-i", str(WORK / "end-card.mp4"))
     app_in = add("-i", str(directory / "app-audio.webm"))
     # Finite, like every input here: an endless one keeps its whole branch, and the cut, from ever ending.
     mask_in = add("-loop", "1", "-t", str(t_b), "-i", "pip-mask.pgm")
@@ -255,10 +339,13 @@ def edit(directory):
         english = SCRIPT.get("nova_captions", {}).get(n["text"])
         if not english:
             print(f"  Nova's answer has no English caption yet (add it to nova_captions, then --edit): {n['text']}")
-        # Her Spanish is on the card itself: the caption carries the English only, short enough to stay clear of its buttons.
-        lines.append((start, seconds(file), f"Nova: {english}" if english else f"Nova: {n['text']}"))
-    voices.append((narration("carer"), o_c1 + 0.3))
-    lines.append((o_c1 + 0.3, seconds(narration("carer")), next(b["text"] for b in SCRIPT["beats"] if b["id"] == "carer")))
+        # Bilingual, small and top left: clear of the card's buttons below and of the card itself to the right. The SRT reader
+        # keeps a lone {\an7} and turns <font size> into its own tag; it drops any other {\...} override.
+        spanish = balanced(f"Nova: {n['text']}")
+        caption = f'<font size="11"><i>{spanish}</i>' + (f"\n{balanced(english)}" if english else "") + "</font>"
+        lines.append((start, seconds(file), r"{\an7}" + caption))
+    voices.append((narration("carer"), o_c1 + CROSSFADE_S))
+    lines.append((o_c1 + CROSSFADE_S, seconds(narration("carer")), next(b["text"] for b in SCRIPT["beats"] if b["id"] == "carer")))
     voices.append((narration("end"), o_d + END_LEAD_S))
     lines.append((o_d + END_LEAD_S, seconds(narration("end")), next(b["text"] for b in SCRIPT["beats"] if b["id"] == "end")))
     for c in hook["captions"]:
@@ -266,10 +353,21 @@ def edit(directory):
     (WORK / "captions.srt").write_text(captions(sorted(lines)), encoding="utf-8")
     voice_in = [(add("-i", str(f)), start) for f, start in voices]
 
+    # Effects: air as the panels glide closer (from Apply's press, heard in the app's own sound, or else mid-poke), a soft
+    # landing as the view reaches the Done column with the card in it, a fingertip on the phone's glass.
+    app_start = cap(markers["audioStartedAt"])
+    poke = next(i for i, e in enumerate(events) if e["kind"] == "poke-start" and e["at"] > beats["apply"]["at"])
+    poke_from, poke_to = cap(events[poke]["at"]), cap(next(e["at"] for e in events[poke:] if e["kind"] == "poke-end"))
+    press = heard(directory / "app-audio.webm", poke_from - app_start, poke_to - app_start)
+    press = app_start + press if press is not None else (poke_from + poke_to) / 2
+    done_at = next(e["at"] for e in events if e["kind"] == "done-shown")
+    cues = {"whoosh": o_b + press - b0 + 0.05, "drop": in_b(done_at) - 0.1, "tap": o_c1 + shot["tapAt"]}
+    sounds = sfx()
+    sfx_in = [(add("-i", str(sounds[name])), name, at) for name, at in cues.items()]
+
     # Video.
     fit = f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=0x1a1a1a,fps={FPS},format=yuv420p,setsar=1"
     hook_tm = TONEMAP if hdr(ROOT / hook["clip"]) else ""
-    carer_tm = TONEMAP if hdr(ROOT / carer["clip"]) else ""
     x, y = W - PIP_W - PIP_MARGIN, H - PIP_H - PIP_MARGIN - 70
     label = SCRIPT["pip_label"].replace(":", r"\:").replace("'", "")
     disclosure = "The real app in Meta's IWER emulator, driven by a script. Gestures filmed separately.".replace("'", "")
@@ -299,26 +397,31 @@ def edit(directory):
     graph += [
         f"[{base}]drawtext=fontfile=segoeui.ttf:text='{disclosure}':fontsize=24:fontcolor=white@0.85:box=1:boxcolor=black@0.45:boxborderw=12:"
         f"x=48:y=44:enable='between(t,0.4,7)',fade=t=in:st=0:d=0.3,trim=duration={t_b},setpts=PTS-STARTPTS[vb]",
-        f"[{carer_in}:v]{carer_tm}{fit},fade=t=in:st=0:d=0.25,trim=duration={t_c1},setpts=PTS-STARTPTS[vc1]",
-        f"[capc]trim=start={c2a}:duration={t_c2},setpts=PTS-STARTPTS,fps={FPS},format=yuv420p,setsar=1[vc2]",
-        f"[{end_in}:v]fps={FPS},format=yuv420p,setsar=1,fade=t=in:st=0:d=0.4,trim=duration={t_d},setpts=PTS-STARTPTS[vd]",
+        f"[{phone_in}:v]fps={FPS},format=yuv420p,setsar=1,trim=duration={t_c1},setpts=PTS-STARTPTS,settb=1/{FPS}[vc1]",
+        f"[capc]trim=start={c2a}:duration={t_c2},setpts=PTS-STARTPTS,fps={FPS},format=yuv420p,setsar=1,settb=1/{FPS}[vc2]",
+        f"[{end_in}:v]fps={FPS},format=yuv420p,setsar=1,trim=duration={t_d},setpts=PTS-STARTPTS,settb=1/{FPS}[vd]",
+        f"[va][vb]concat=n=2:v=1:a=0,fps={FPS},settb=1/{FPS}[vab]",
+        f"[vab][vc1]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_c1:.4f}[x1]",
+        f"[x1][vc2]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_c2:.4f}[x2]",
         # Captions bottom left, clear of the picture-in-picture in the bottom right corner.
-        "[va][vb][vc1][vc2][vd]concat=n=5:v=1:a=0,subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,PrimaryColour=&H00FFFFFF,"
-        "BorderStyle=3,OutlineColour=&H40000000,Outline=6,Shadow=0,Alignment=1,MarginL=20,MarginV=14'[v]",
+        f"[x2][vd]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_d:.4f},subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,"
+        "PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H40000000,Outline=6,Shadow=0,Alignment=1,MarginL=20,MarginV=14'[v]",
     ]
 
-    # Sound: hers and the carer's clip, the app's (cues and whooshes, louder: they are quiet by design), the voices.
-    app_start = cap(markers["audioStartedAt"])
+    # Sound: hers, the app's (cues and whooshes, louder: they are quiet by design) faded across the cross-fades, the voices,
+    # the effects.
     graph += [
         f"[{hook_in}:a:0]aresample=48000,afade=t=out:st={t_a - 0.3}:d=0.3[ha]",
-        f"[{carer_in}:a:0]aresample=48000,volume=0.35,adelay={round(o_c1 * 1000)}:all=1[ca]",
         f"[{app_in}:a]aresample=48000,asplit=2[ap1][ap2]",
-        f"[ap1]atrim=start={max(0, b0 - app_start)}:duration={t_b},asetpts=PTS-STARTPTS,volume=2.2,adelay={round(o_b * 1000)}:all=1[a1]",
-        f"[ap2]atrim=start={max(0, c2a - app_start)}:duration={t_c2},asetpts=PTS-STARTPTS,volume=2.2,adelay={round(o_c2 * 1000)}:all=1[a2]",
+        f"[ap1]atrim=start={max(0, b0 - app_start)}:duration={t_b},asetpts=PTS-STARTPTS,volume=2.2,"
+        f"afade=t=out:st={t_b - CROSSFADE_S}:d={CROSSFADE_S},adelay={round(o_b * 1000)}:all=1[a1]",
+        f"[ap2]atrim=start={max(0, c2a - app_start)}:duration={t_c2},asetpts=PTS-STARTPTS,volume=2.2,"
+        f"afade=t=in:d={CROSSFADE_S},adelay={round(o_c2 * 1000)}:all=1[a2]",
     ]
     graph += [f"[{index}:a]aresample=48000,adelay={round(start * 1000)}:all=1[v{k}]" for k, (index, start) in enumerate(voice_in)]
-    mix = "[ha][ca][a1][a2]" + "".join(f"[v{k}]" for k in range(len(voice_in)))
-    graph.append(f"{mix}amix=inputs={4 + len(voice_in)}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
+    graph += [f"[{index}:a]aresample=48000,volume={SFX_DB[name] + 1}dB,adelay={round(at * 1000)}:all=1[f{k}]" for k, (index, name, at) in enumerate(sfx_in)]
+    mix = "[ha][a1][a2]" + "".join(f"[v{k}]" for k in range(len(voice_in))) + "".join(f"[f{k}]" for k in range(len(sfx_in)))
+    graph.append(f"{mix}amix=inputs={3 + len(voice_in) + len(sfx_in)}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
 
     step(f"Rendering {total:.1f} s")
     run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", ";".join(graph), "-map", "[v]", "-map", "[a]", "-t", f"{total}",
@@ -326,8 +429,8 @@ def edit(directory):
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", OUTPUT.name], cwd=WORK)
     (ROOT / "dist").mkdir(exist_ok=True)
     shutil.copyfile(OUTPUT, ROOT / "dist" / OUTPUT.name)
-    (WORK / "edit.json").write_text(json.dumps({"take": str(directory), "parts": {"hook": t_a, "app": t_b, "carer": t_c1, "setup": t_c2, "end": t_d},
-                                                "pip": windows}, indent=2), encoding="utf-8")
+    (WORK / "edit.json").write_text(json.dumps({"take": str(directory), "parts": {"hook": t_a, "app": t_b, "phone": t_c1, "setup": t_c2, "end": t_d},
+                                                "crossfade": CROSSFADE_S, "sfx": cues, "pip": windows}, indent=2), encoding="utf-8")
     return verify(markers)
 
 
@@ -367,5 +470,8 @@ if __name__ == "__main__":
         directory = Path((WORK / "last-take.txt").read_text(encoding="utf-8").strip())
     else:
         directory = take(dark, wav, "--skip-build" in arguments)
+    # A new take has just built the app: the phone serves that build.
+    phone("--phone" in arguments, "--skip-build" in arguments or "--edit" not in arguments)
+    end_card()
     report = edit(directory)
     print(f"\n{OUTPUT}: {report['seconds']:.1f} s, {report['width']}x{report['height']} at {report['rate']}; copied to dist/")

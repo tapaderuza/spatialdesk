@@ -1,5 +1,7 @@
 # SpatialDesk: submission status (2026-10-29)
 
+> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `402a8213…267f`), and the media workspace is cleaned.
+
 ## Official Feature Freeze (2026-10-29)
 
 **The product is finished.** From `30244e5` on, not one more line of code, feature or fix goes in, unless it is a
@@ -114,12 +116,16 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 ## Video
 
-- **Pitch cut with her real footage (2026-10-29, local file, not uploaded):** `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`,
-  copied to `dist/SpatialDesk_Final_Pitch_2026.mp4`: 106 s, 1920x1080 at 60 fps. Her request on the sofa ("Hoy es un mal
+- **Pitch cut with her real footage, the Gold Master (2026-10-30, local file, not uploaded):**
+  `.video/SpatialDesk_Final_Pitch.mp4` (rendered as `.video/pitch/SpatialDesk_Final_Pitch_2026.mp4`): 100 s, 1920x1080 at 60 fps. Her request on the sofa ("Hoy es un mal
   día, acércalo todo", captioned), then the app on a dark background, her own voice heard by the real Transcribe and
-  answered by the real Nova in Spanish (captioned in English), a corner showing her real pinch and poke (labelled as
-  filmed separately), the carer's phone pressing Help / Recalibrate and the setup opening in the headset, the figures.
-  Made by `python scripts/build_pitch_video.py` (log block 29); the clips stay in `inputs/`, never committed.
+  answered by the real Nova in Spanish (captioned in Spanish and English, top left), a corner showing her real pinch and
+  poke (labelled as filmed separately), a soft whoosh as the panels glide closer and a landing as the card reaches Done;
+  cross-fading in, the carer's phone: the real companion page captured live at iPhone 13 size in a device frame, the
+  board with "Llamar a Rocío" in Hecho, Help / Recalibrate tapped; cross-fading back, the setup opening in the headset;
+  a 5 s end card whose figures count up one after another. Made by `python scripts/build_pitch_video.py` (log blocks 29
+  to 33), the phone by `scripts/capture_mobile_ui.ts`, the end card by `scripts/end_card.ts`; the clips stay in
+  `inputs/`, never committed.
 - **New cut (2026-10-29, local file, not uploaded):** `.video/SpatialDesk_Demo_2026.mp4`, copied to
   `dist/SpatialDesk_Demo_2026.mp4` (the next `npm run build` empties `dist/`, and the next deploy would publish what is
   there: keep the `.video/` copy). 123 s, 1920x1080 at 60 fps (52 captured frames a second, the rest repeated), H.264 +

@@ -1,8 +1,8 @@
 {
-  "_comment": "The hybrid pitch cut (scripts/build_pitch_video.py): real iPhone footage (inputs/, never committed) around the app recorded in the emulator. The beats are the take's, as in cinematic-2026.json (scripts/make-cinematic-video.mjs paces the take by these lines); 'hook', 'pinch', 'poke' and 'carer_clip' are the real clips with their in and out points (seconds); the hook's captions are her own words in English. Her request in the take is her own voice from the hook (mic), heard by the real Amazon Transcribe in Spanish (lang=es-ES); Nova answers in Spanish, in a Spanish voice; nova_captions maps each answer Nova gave (her exact Spanish) to its English; the edit lists any answer still without one. 'seed' is the take's workspace, ops dispatched before it starts (real tasks, not the first-run tutorial); the gaze beat's 'target' is the card the head rests on.",
+  "_comment": "The hybrid pitch cut (scripts/build_pitch_video.py): real iPhone footage (inputs/, never committed) around the app recorded in the emulator. The beats are the take's, as in cinematic-2026.json (scripts/make-cinematic-video.mjs paces the take by these lines); 'hook', 'pinch' and 'poke' are the real clips with their in and out points (seconds); the carer's phone is the real companion page, captured at iPhone 13 size by scripts/capture_mobile_ui.ts; the hook's captions are her own words in English. Her request in the take is her own voice from the hook (mic), heard by the real Amazon Transcribe in Spanish (lang=es-ES); Nova answers in Spanish, in a Spanish voice; nova_captions maps each answer Nova gave (her exact Spanish) to its English; the edit lists any answer still without one. 'seed' is the take's workspace, ops dispatched before it starts (real tasks, not the first-run tutorial); the gaze beat's 'target' is the card the head rests on.",
   "title": "SpatialDesk",
   "subtitle": "A workspace that adapts to your body, in mixed reality.",
-  "disclosure": "The interface is the real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script, with live Amazon Nova and Amazon Transcribe. The hand gestures were filmed separately.",
+  "disclosure": "The interface is the real app, recorded in Meta's IWER emulator (Quest 3) and driven by a script, with live Amazon Nova and Amazon Transcribe. The hand gestures were filmed separately; the carer's phone is the real companion page, captured at iPhone 13 size.",
   "pip_label": "Real gesture, filmed separately",
   "voices": {
     "narrator": "en_US-lessac-medium",
@@ -47,11 +47,6 @@
   "poke": {
     "clip": "inputs/IMG_2088.MOV",
     "in": 0
-  },
-  "carer_clip": {
-    "clip": "inputs/IMG_2089.MOV",
-    "in": 13.0,
-    "out": 19.6
   },
   "beats": [
     {
@@ -126,7 +121,7 @@
     {
       "id": "end",
       "voice": "narrator",
-      "text": "Every claim here is an automated test. One hundred ninety-nine of them pass. A twenty-four millisecond frame, seventy-eight draw calls, and when the network drops, it keeps working by hand."
+      "text": "SpatialDesk: a workspace that adapts to you."
     }
   ],
   "mic": {

@@ -1,246 +1,214 @@
 # SpatialDesk
 
-**A workspace that adapts to your body, not the other way round.** On Meta Quest and Meta VR Glasses, delivered as
-WebXR: no install, no account.
+**Accessibility should not be a settings menu you dig through on a bad day. It should be an environment that adapts to you.**
 
-Spatial computing quietly assumes a body that turns its head, reaches out and pinches the air. About 1.3 billion people,
-one in six, live with a significant disability (WHO, 2023), and many more have days when the neck, the hands or the eyes
-are not up to it. In SpatialDesk you say what is hard, in your own words and language ("my neck hurts and I'm tired:
-bring everything closer, on the right, and the text bigger"), and an AI agent reshapes the space around your body. Each
-change comes with its reason and its own undo. A family member or carer can help from their phone without ever putting
-the headset on.
+On a hard day, the same person reaches less far, turns less comfortably and can take on less. SpatialDesk is a mixed-reality
+workspace for seated productivity that turns those changing needs into space: panels come closer, text grows, the layout
+favours a comfortable side, and the next step stays manageable. You say what you need in your own words; Amazon Nova
+proposes the change; you review it, apply it, and can undo it. A family member or carer can help from an ordinary phone,
+while the person in the headset stays in control.
 
-**Live:** https://d2p3027seoreck.cloudfront.net  ·  **Video:** https://youtu.be/jtqAi3gl-os
+**[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
-SpatialDesk is a productivity tool, not a medical device.
+## At a glance
 
----
+| | |
+| --- | --- |
+| **For** | People whose reach, posture or energy changes from day to day, and the people who help them |
+| **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
+| **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
+| **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
+| **Automated checks** | 199 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Performance gate** | Whole-frame p95 24.6 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5) |
 
-## Try it in 60 seconds
+Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
+accessibility-focused productivity prototype: it does not diagnose, prescribe treatment or claim clinical validation.
 
-| Where | What to do |
-|---|---|
-| **Meta Quest** | Open the link in Meta Quest Browser and press **Enter VR** (or **In my room** for passthrough). A three-question setup greets you: where you sit, pinch the orb, steady aim. Then say **"Plan my day"**. |
-| **A desktop, no headset** | Open `/?emulate` (https://d2p3027seoreck.cloudfront.net/?emulate) and press **Enter VR**: Meta's IWER emulator stands in for the headset. |
-| **The carer's view** | In the headset say **"Invite a helper"**. On a phone or a second tab open `/companion.html`, type the code, press **Allow** in the headset, and try the big **Help / Recalibrate** button. |
+## Judge's guide
 
-More: `?fast` (timers in seconds), `?handsfree` (eyes only), `?steady` (tremor), `?switch` (one switch),
-`?lang=es-ES` (Spanish everywhere), `?emulate&glasses` (Meta VR Glasses' view).
+### On Meta Quest
 
----
+1. Open the production link in Meta Quest Browser. Before entering, add a few tasks under **Describe your day**, for
+   example: **"Review the proposal, reply to Ana, prepare tomorrow's meeting."** Choose **Enter VR** for an immersive
+   session, or **In my room** when the browser supports passthrough.
+2. Complete the short comfort setup: where you sit, a comfortable reach (pinch where your hand rests), and steady aim.
+   Any step can be skipped.
+3. Select **Talk**, allow microphone access, and say: **"Bring everything closer and make the text bigger."** Review the
+   proposal, select **Apply**, and watch the panels glide into reach. **Undo** restores the previous layout.
+4. Select **Plan my day** to review a proposed plan. It stays a proposal until you apply it. Manual controls such as
+   **Focus 25** work without any AI request.
+5. Invite a helper and try the phone flow below.
 
-## Innovation
+For Spanish, open [the Spanish version](https://d2p3027seoreck.cloudfront.net/?lang=es-ES). Speech needs microphone
+permission, a connection and an available voice service. If it is unavailable, carry on with the visible controls; a
+labelled local fallback answer is not a Nova answer.
 
-**Adaptive accessibility: the space bends to the body.** A `Comfort` profile (reach, scale, side, allowed head turn,
-tilt) lives in the workspace engine itself, and every panel is laid out from it. The agent changes it in plain words
-("I can't turn my neck", "only my right hand", "I'm lying down"), one validated step per need, each with its ergonomic
-reason. The body can also be measured directly: **"Fit to my reach"** turns one pinch into distance, height and side, and
-**"I'm on the sofa"** lets the room fit accept a sofa seat or a bed as the surface.
+### On a computer, without a headset
 
-**An asymmetric interface: help without a headset.** The person in VR can invite someone outside it. On any phone, the
-carer types a short code; nothing is shown until the owner presses **Allow** in the headset. They then follow the Today
-board live and have one very large button, **Help / Recalibrate**, that opens the guided calibration (and its orb) in the
-headset, where the owner can skip any step. Consent first and the least that is enough: only card titles travel, the
-carer can look and call but never configure, the sharing lasts at most 15 minutes, and **Stop** revokes it at once.
+Open [the emulator link](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US) in a current Chromium-based browser
+and select **Enter VR**. **IWER** is Meta's browser-based headset emulator: it supplies a simulated Quest 3 headset and
+controllers, so the whole workspace can be explored with a mouse and keyboard. **WebXR** is the browser interface that
+starts and manages the immersive session. Emulator results show browser behaviour, not comfort or performance on a
+physical headset; see Meta's [testing guide](https://iwsdk.dev/guides/02-testing-experience.html).
 
-**An agent that acts on space, not in a chat.** Amazon Nova 2 Lite answers with a short plan of real operations (create
-a board, move a card, start a timer, adapt the comfort zone), each with a *why*. Every plan is validated by the same
-engine the headset runs before you see it, nothing changes until **Apply**, and the **AI log** undoes any step, even
-after later changes.
+### The companion, with a second screen
 
-**Spatial AI: it knows what "this" is.** Rest your eyes on a card for a second and say *"move this to Done"* or *"help me
-start this"*. A ray from the centre of the view (the eyes, where the headset tracks them), tested five times a second,
-remembers the card, column, board or timer you looked at; words that point send it to Nova as an id, which the server
-marks in its own copy of the workspace. No text from the headset ever reaches the model's rules, and a request that
-names its own task sends nothing.
+1. In SpatialDesk, say **"Invite a helper"**, or use **Invite a family member or carer** on the start screen.
+2. On a phone or a second browser tab, open the [companion](https://d2p3027seoreck.cloudfront.net/companion.html) and
+   type the eight-character code. It expires after two minutes.
+3. In SpatialDesk, select **Allow**. Until then the helper sees nothing.
+4. The phone follows the Today board's task titles and column labels (up to 12 cards), refreshed about every two
+   seconds.
+5. Press **Help / Recalibrate** on the phone: the guided setup opens in the headset, where its wearer decides what to do
+   and can skip any step. The helper cannot change comfort settings remotely.
+6. Select **Stop sharing** in SpatialDesk. Sharing also ends by itself after 15 minutes.
 
-**Every input, for every body.** Hands, controllers, look-and-pinch (Meta VR Glasses' input), the eyes alone (hold a
-gaze), voice in your language, one switch (every control reachable with a single button), and **steady aim** for hands
-that shake (the control aimed at for most of the last half second is the one pressed: 100 % correct presses at a 5 cm
-synthetic tremor, against 59 % without it).
+## How a request flows
 
-## User Experience
-
-**Zero friction, from the first second.** No install, no account, no sign-in: each visitor gets an anonymous session and
-the workspace lives on the device. The page opens on a dark splash, never a white flash; the start card says what this is
-and offers **Enter VR** only where there is VR. In the headset, a newcomer is greeted by a guided calibration of three big
-questions: where you sit, **pinch the orb** (your hand's own reach becomes your comfort zone), and whether you need pointer
-stabilization. Someone coming back gets one quiet line above the board: *"Welcome back. Say 'Plan my day', or pinch it on
-your panel."* It leaves as soon as they act.
-
-**Calibration by voice or by hand.** "Recalibrate", "fit to my reach", "I'm on the sofa", "invite a helper": every
-adjustment is one sentence away, in English or Spanish, and also a button.
-
-**Push it with a finger.** The work board sits at arm's length, so a fingertip simply presses what it touches: from 5
-cm the control lights and a ring on its surface shows where the finger will land, closing as it nears, and the control
-gives way like a real key: a few millimetres back into its panel as the finger comes, then with the finger, springing
-back as it leaves. Touching presses at once, however slowly. That matters for a careful hand or one with a tremor, which IWSDK's own poke would drop (it
-counts a press only if the finger leaves within 800 ms). A finger that arrives from behind or slides along a panel
-presses nothing.
-
-**Sound from where things happen.** Every cue is an HRTF source at its own place: a faint tick from each new control a
-pointer comes onto (never two within 120 ms, however fast it sweeps), the click from the button pushed, the alarm from
-the timer, and a panel gliding to its place breathes a soft whoosh that follows it as it moves.
-Every cue stays put in the room as the head turns.
-
-**Nothing jumps, everything answers.** When the space adapts, panels glide to their new place in under a second (a
-critically damped spring, no overshoot) instead of teleporting, and they take no pointer while moving, so a hand they
-pass through presses nothing. The space confirms it has settled with an amber glow round the work board and a faint
-controller pulse. Cards rise a little under the pointer, and hover follows Meta's eye-tracking guidance: the control
-itself brightens, and a card under a ray, or rested on by the gaze for a second (the head's direction on Quest 3, the eyes where a headset tracks them; it is then "this" for the agent), wears
-a soft rim of light outside its edge that breathes slowly, leaving the centre the eyes aim at alone. While Nova thinks,
-an orb breathes beside its words instead of a counter. In passthrough every board casts a soft shadow on the real wall behind it. Reduced
-motion turns the movement off.
-
-**Gentle on attention.** A small companion works beside your board (body doubling), the world beyond arm's reach dims
-during a focus block, *Start small* turns a task into a five-minute first step, and the day has a start (a plan from
-yesterday's open work) and an end (a wrap-up that sets up tomorrow).
-
-## Technical Execution
-
-**Performance, measured as a gate.** The build fails if the app is heavier than Meta's own IWSDK starter scene, measured
-in the IWER Quest 3 emulator on the production build with the CPU throttled 3x: whole frame p95 ≤ 29.4 ms, our own
-systems ≤ 3 ms p95, ≤ 80 draw calls, ≤ 4 KB allocated per frame, bundle ≤ 2.5 MB gzipped. Recent runs on a cool laptop:
-**25.8 ms p95** for the whole frame, **1.4 to 1.7 ms p95** for our systems, 78 draw calls, about 70 bytes per frame,
-2.31 MB. The carer's page is 17 KB and loads none of the XR app.
-
-**Meta platform capabilities, used for what they are for.**
-- **Passthrough** (`immersive-ar`): *In my room* puts the workspace in your real room.
-- **Scene understanding through WebXR plane detection:** *Fit room* stands the work board on your real desk and hangs
-  the other boards on your walls, clear of doors and windows. Tested in all 13 rooms of Meta's Synthetic Environment
-  Module, none tuned for.
-- **Persistent spatial anchors:** the fitted layout is kept relative to an anchor and comes back to the same place next
-  time.
-- **Hand tracking** and **controllers**, with pinch, ray and direct touch (the index fingertip, or a controller's tip);
-  **eye tracking** for hands-free use, look-and-pinch and telling the agent what you look at; **haptics** when the space
-  settles; **spatial audio** (HRTF) for every cue.
-- **Meta VR Glasses:** the app measures the view the device actually renders and fits the layout into its comfortable
-  part (Meta's 58 x 54 degree perceived view).
-
-**Graceful degradation.** The workspace is local-first (IndexedDB) and never waits for the network. If the AI or the
-voice takes more than 7 seconds, or the network drops, "thinking" ends with one calm line (*Network issue. Switched to
-manual mode.*) and every card keeps working by hand. If Nova is slow, the server's built-in planner answers within the
-headset's patience and says so. The carer's view shows *Reconnecting* and keeps the last board until the network returns.
-
-**Engineering.** One Kotlin Multiplatform engine runs in both places: compiled to JS in the headset, on the JVM on the
-server, where it validates every AI plan before the headset sees it. Spring Boot on Fargate calls Amazon Nova 2 Lite
-through Bedrock with a single forced tool; Amazon Transcribe streams speech over a URL the server presigns (no credentials
-in the browser, no audio through the server); quotas bound the bill; AWS CDK deploys it all. Every quality claim below is
-an automated check that fails the build.
-
-## The future of VR
-
-Headsets have earned their place as game consoles. The next step is a device you reach for because it makes your day
-possible: one that **adapts to your body**, works on the day your neck or hands or eyes are not up to it, and **brings in
-the people who help you** without asking them to wear anything. SpatialDesk shows the pattern: a comfort profile the whole
-space obeys, an agent that changes the world rather than chatting about it, every control reachable by any input, and a
-carer who can lend a hand from a phone. On all-day glasses, that becomes a tool for **human autonomy**: the same person,
-on a good day and a bad one, working, planning and finishing what they started.
-
----
-
-## How it was verified without a headset
-
-Every claim is an automated check that fails the build, run in Meta's IWER Quest 3 emulator on the production build:
-
-| Claim | Check |
-|---|---|
-| Runs smoothly on a Quest | Worst-case workspace, CPU throttled 3x, hands-free on (our heaviest mode). App systems ≤ 3 ms p95; the whole frame no heavier than Meta's IWSDK starter scene under the same conditions (p95 29.4 ms); ≤ 80 draw calls; bundle ≤ 2.5 MB gzipped. |
-| The first seconds | A dark splash covers the load and is gone once the world draws; the start card offers Enter VR only where VR exists and its Enter VR enters it; a newcomer's setup opens with a welcome, someone back gets a banner above the board that leaves as soon as they act. |
-| Physical presence | In passthrough each board and timer casts a soft shadow that follows it (one instanced mesh, one draw call); in VR none is drawn. A card under the pointer brightens and rises 2.5 to 5 % and settles back when the pointer leaves; it wears a rim of its own size that breathes (dimmer and brighter, never out, never a jump) and leaves with the ray; the gaze (the head on Quest 3) lights it after a second's rest, not before; reduced motion holds it still. |
-| Usable with hands | Every interactive target is ≥ 6 x 6 cm and within arm's reach of a seated user, and is hit by ≥ 95 % of 400 rays jittered like hand tracking (±1 cm origin, 3° cone). |
-| Comfortable seated | Focus board at 0.55-0.65 m, no overlapping near panels, parked boards ≥ 1.3 m away; looking at a side panel to tap it never moves the desk. |
-| Adapts to the body | Engine tests for nine bodies and three postures; in the emulator a spoken request gathers everything on the right with the console by the right hand, and one undo takes it back. |
-| Panels glide | A comfort change moves a board 27 cm with no frame carrying more than ~6 % of the way and arrives within 1 mm in under a second; the undo glides back; a sliding panel takes no pointer; a move under 4 cm, a flat screen or reduced motion places at once. |
-| A carer outside the headset | Two pages of one browser, and the same story against the real server: invite, code, nothing shown before Allow, only card titles travel, the board follows the headset, Help / Recalibrate opens the setup and the carer learns how it ended, a lost network is shown and recovered, titles are text and never markup. |
-| Nova's second or two | While the agent thinks, an orb breathes beside "Thinking..." on its card (the core swells and settles, a ring of light rises and fades), in conversation too, and is gone when the answer comes. |
-| Fails gracefully | An AI or a voice slower than 7 s, a gateway error or no network ends "thinking" and "listening" with one calm line, and a card is still moved by hand afterwards; a spent quota is explained. |
-| The agent is useful and safe | Planner tests on the server (normaliser, guardrails, retry, fallback). End-to-end against production: a plan applied in under 4 s (typically 2-3 s). |
-| Guided calibration | Where you sit, the pinch's own reach, height and side, steady aim; applied in one undo; Skip at any step; "recalibrate" brings it back. |
-| Steady aim | Synthetic tremor on the real button grid (3,000 presses per strength): at 3.5 cm, 81.2 % correct without tremor mode and 100 % with it; at 5 cm, 59.0 % and 100 %. A model of selection, not a clinical measure. |
-| One switch | The space bar or any pinch chooses the control lit; the agent's card takes over the scan while open; a tap elsewhere presses nothing. |
-| Knows what "this" is | A second's look at a card makes it "this" (tested about five times a second, not every frame); "move this to done" sends the card's id and nothing else about it, "plan my day: ..." sends nothing, "help me start this" starts that card, a removed card is no longer "this", the command panel never becomes it. On the server, the item is marked in the workspace and the rule for "this" is added only when the id exists. |
-| Direct touch | A controller's tip and a tracked index fingertip: from 5 cm the control is lit and a ring closes in; touching presses once, at once; a press held 1.5 s is still one press; drawing back 1 cm does not re-arm, 2 cm does; a finger from behind presses nothing. The button really moves back in proportion to the finger's nearness from 5 cm (within a quarter of a millimetre), goes with the finger once touched (up to 12 mm, still one press) and is back in its place within 0.2 s. |
-| Sound from its place | A sweep across six cards in six frames ticks no more than once every 120 ms, and a pointer onto a new card ticks from that card (within 2 cm); the click is sounded from the pushed button (within 2 mm); a glide's whoosh follows its board as it moves and, after a quarter turn of the head, is heard from the side. |
-| Hands-free | With the head or eyes as the only input: a held gaze presses, a glance does not, a press never repeats, cards move by gaze alone. |
-| Voice | The command grammar, the AWS event-stream framing (CRC-32 check value), the capture path against a stand-in Transcribe, and the real Transcribe hearing a spoken "plan my day". |
-| Ready for Meta VR Glasses | In the glasses profile the measured view is 58 x 54 degrees and the board, its timer and the agent's card lie inside it; look-and-pinch picks a card up and drops it. |
-| Holds up in rooms never tested | *Fit room* in all 13 rooms of Meta's Synthetic Environment Module: the board stands 3 cm above the surface at 0.62 m and never through a wall; boards hang clear of doors and windows. |
-
-`npm run ci` runs the typecheck, every Playwright gate and the size check; `server/gradlew test` runs the engine, layout,
-server and infrastructure tests.
-
-## How it is built
-
-```mermaid
-flowchart LR
-  subgraph Quest["Meta Quest Browser (WebXR)"]
-    App["IWSDK app (TypeScript)<br/>boards, timers, agent card, panels"]
-    Engine1["Workspace engine<br/>(Kotlin compiled to JS)"]
-    App --> Engine1
-  end
-  Phone["Carer's phone<br/>companion.html (17 KB)"]
-  subgraph AWS["AWS (us-east-1, CDK)"]
-    CF["CloudFront + S3<br/>static app"]
-    API["Spring Boot on Fargate<br/>agent, voice, sessions,<br/>helper sharing, WebSocket"]
-    Engine2["Workspace engine<br/>(same Kotlin, JVM)"]
-    Bedrock["Amazon Bedrock<br/>Nova 2 Lite, forced tool use"]
-    Transcribe["Amazon Transcribe<br/>streaming"]
-    API --> Engine2
-    API --> Bedrock
-  end
-  Quest -- HTTPS --> CF
-  Phone -- HTTPS --> CF
-  CF -- "/api, /ws" --> API
-  Quest -- "microphone, presigned WSS" --> Transcribe
+```text
+"Hoy es un mal día, acércalo todo."  (Today is a bad day. Bring everything closer.)
+   |
+   | microphone -> 16 kHz PCM, streamed straight from the browser to Amazon Transcribe (URL signed by the server)
+   v
+transcript + workspace context (comfort profile, the card the head rests on)
+   |
+   | Spring Boot -> Amazon Bedrock Converse -> Amazon Nova 2 Lite, answering through a typed tool
+   v
+proposed operations  --> guardrails (the shared workspace engine: e.g. "closer" must end nearer than now)
+   |
+   v
+a proposal card in the headset: what changes and why  -->  Apply  -->  panels glide to their new pose  -->  Undo
 ```
 
-- **Client:** Meta Immersive Web SDK 1.0 (TypeScript, three.js, UIKit panels); the IWER emulator loads only with
-  `?emulate`. State in IndexedDB.
-- **The agent:** Bedrock Converse with one forced tool, `submit_plan`, whose steps are the engine's own operations. The
-  server normalises the model's usual slips, checks guardrails computed from the workspace, validates the plan on the
-  engine, retries once with the exact error, and falls back to a built-in planner that says so. 20 plans per session per
-  hour, 300 per day.
-- **Voice:** an AudioWorklet turns the microphone into 16 kHz PCM framed as AWS event-stream messages, sent to a
-  Transcribe URL the server presigns with hand-written SigV4.
-- **The carer's sharing:** a short-lived room on the server (two-minute code, 15-minute room, owner approval, at most
-  twelve card titles, help calls with a cooldown and a ceiling); the headset and the phone poll it every two seconds.
-- **Motion and presence:** a critically damped spring for panel moves, one instanced mesh for every shadow, one shader
-  ring for the gaze, a single mesh for the amber frame and its glow; nothing allocated per frame.
-- **Infrastructure:** AWS CDK in Kotlin: S3 + CloudFront; an ALB reachable only from CloudFront; Fargate. The task role
-  may invoke one Nova model and stream to Transcribe, nothing else.
+Nothing changes until the person agrees. If Nova is slow or unavailable, a bounded timeout hands over to a clearly
+labelled built-in planner, so a service failure is never presented as a model answer.
 
-## Run it locally
+## Architecture
 
-You need Node 20 or later, JDK 17 and Microsoft Edge (the tests use the installed Edge).
+```text
+Meta Quest Browser / desktop browser
+  TypeScript + Vite
+  Meta IWSDK: ECS world, spatial UI, hand/controller and poke interaction
+  WebXR: immersive session, passthrough, tracked input
+  Shared Kotlin Multiplatform workspace engine, compiled to JavaScript
+       |
+       | HTTPS: commands, plans, helper pairing          WebSocket: command-server connection
+       v
+  Spring Boot 3 + Kotlin, JVM 17  (ECS Fargate behind an Application Load Balancer)
+  The same workspace engine on the JVM: every proposal is validated before the client sees it
+       |                                  |
+       | Bedrock Converse                 | short-lived signed streaming URL
+       v                                  v
+  Amazon Nova 2 Lite                  browser microphone -> Amazon Transcribe (audio never passes the server)
 
-```bash
-npm install
-npm run dev:runtime            # the app at http://localhost:8081 (add ?emulate for the emulator)
+Phone browser: companion.html  --HTTPS polling, approved snapshot, help requests-->  helper service (Spring Boot)
+
+Hosting: S3 + CloudFront (web), ALB + ECS Fargate (API); infrastructure as code with AWS CDK in Kotlin
+Testing: Playwright drives Meta's IWER emulator in Edge; Gradle runs the JVM tests
 ```
 
-The agent needs the server. To run it with the built-in planner and no AWS:
+**One engine, two places.** The workspace rules and the layout live in a Kotlin Multiplatform module
+(`server/shared/`). The browser runs it as JavaScript to place panels; the server runs it on the JVM to validate what the
+model proposes. A plan the browser could not apply is never sent to it.
 
-```bash
-cd server && ./gradlew :app:bootJar && cd ..
-SPATIALDESK_AGENT_MODE=built-in npm run server:run
+**Comfort is geometry.** Each panel's distance scales with the measured comfort reach, its angular width is kept inside
+the allowed head turn, a preferred side and tilt shift the arrangement, and panels that need an answer always stand in
+front of the boards. When something moves, it glides: a critically damped spring on position, yaw, pitch and scale that
+never overshoots, settles within 2% in 0.75 s, carries its speed into a new target, and allocates nothing per frame.
+
+**IWSDK and IWER have different jobs.** IWSDK runs the spatial experience; IWER supplies simulated devices during
+development and testing. `iwsdk.config.json` is the scene and runtime configuration authority; `vite.config.ts` wires the
+plugin, the proxy and the build.
+
+**Speech has its own path.** The browser converts microphone input to streaming PCM. Spring Boot signs a short-lived
+Amazon Transcribe connection and the audio goes straight from the browser to Transcribe. AWS credentials stay on the
+server, never in the browser.
+
+**Data sharing is explicit.** Workspace state is saved in browser storage. AI requests send the request and relevant
+workspace context to the backend and the model. Approved helper snapshots contain card identifiers, titles and column
+labels only: no notes, timers or comfort profile. Browser storage is not an encrypted clinical record.
+
+## Run locally
+
+Prerequisites: **Node.js 22.12+** (see `.nvmrc`; 24 also works), npm, and **JDK 17** with `JAVA_HOME` set. The Gradle
+wrapper supplies Gradle. The shared engine's JavaScript build is committed under `vendor/spatialdesk-shared`.
+
+### Windows PowerShell
+
+From the repository root:
+
+```powershell
+npm ci
+.\server\gradlew.bat -p server :app:bootJar
+$env:SPATIALDESK_AGENT_MODE = 'built-in'
+$env:SPATIALDESK_VOICE_ENABLED = 'false'
+npm run server:run
 ```
 
-With Bedrock, use your own AWS credentials and the default mode.
+Keep that terminal running. In a second terminal at the repository root:
 
-```bash
-npm run ci                     # all gates (builds the production bundle first)
-node scripts/deploy.mjs        # your AWS account: CDK deploy, then the end-to-end tests against it
+```powershell
+npm run typecheck
+npx @iwsdk/cli dev up --no-open
+npx @iwsdk/cli dev status
 ```
 
-## Repository
+Open **http://localhost:8081/?emulate&lang=en-US** and **http://localhost:8081/companion.html**. The backend listens on
+**8080**, and the development server proxies `/api` and `/ws` to it; **http://localhost:8080/actuator/health** answers
+when it is up. If 8081 is taken, use the URL that `dev status` reports. `--no-open` uses your own browser; `npm run dev`
+opens the SDK-managed one instead, and `npm run dev:down` stops it.
 
-| Path | What |
-|---|---|
-| `src/` | The WebXR app: `workspace/` (boards, timers, undo journal), `agent/`, `voice/`, `room/` (passthrough fit and persistent anchor), `assist/` (the carer's sharing, headset side), `companion/` (the carer's page), `onboarding/` (guided calibration, coach, welcome), `studio/`, `ui/` (glide, shadows, hover, gaze, field of view, sounds) |
-| `public/ui/*.uikitml` | Panel layouts |
-| `server/shared` | The Kotlin Multiplatform workspace engine, layout and protocol |
-| `server/app` | Spring Boot: sessions, WebSocket, the planning agent, voice streams, the helper sharing |
-| `server/infra` | AWS CDK stack |
-| `tests/` | Playwright gates in the IWER emulator |
-| `docs/` | Submission texts, status report and the execution log |
+### macOS / Linux
+
+The same npm commands; start the backend with:
+
+```sh
+./server/gradlew -p server :app:bootJar
+SPATIALDESK_AGENT_MODE=built-in SPATIALDESK_VOICE_ENABLED=false npm run server:run
+```
+
+### With Amazon Nova and Amazon Transcribe
+
+The steps above use the **built-in planner with voice off**, so the workspace, the setup and the helper flow need no AWS
+account. That is a deterministic fallback, not Nova. For the full path, give the server AWS credentials through the
+standard credential chain with access to Bedrock (the inference profile `us.amazon.nova-2-lite-v1:0` in `us-east-1` by
+default) and Transcribe streaming, set `SPATIALDESK_AGENT_MODE=bedrock` and `SPATIALDESK_VOICE_ENABLED=true`, and restart
+the backend. AWS usage may incur charges.
+
+Plain HTTP is fine for `localhost`. On a physical headset, use the production HTTPS URL: a LAN address over HTTP is not
+an equivalent WebXR setup.
+
+## Verification
+
+```powershell
+npm run typecheck
+npm run build
+npm run check:size
+.\server\gradlew.bat -p server build
+npm run test:xr
+```
+
+`npm run ci` runs the type check, the 199 Playwright scenarios (including the performance gate) and the size budget; a
+pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
+(free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
+Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.
+
+TypeScript runs in strict mode and Kotlin with strict null interop; no separate formatter or linter (ESLint, Prettier,
+ktlint, Detekt) is configured. Emulator runs are not a substitute for testing on a physical headset or with users.
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| `src/` | The spatial app: workspace, assistant, comfort setup, accessibility input, companion client |
+| `public/scenes/`, `public/ui/` | Scene composition and spatial UI documents |
+| `server/app/` | Spring Boot API: Nova planning and guardrails, Transcribe signing, helper service |
+| `server/shared/`, `vendor/spatialdesk-shared/` | The Kotlin Multiplatform workspace engine and its JavaScript build |
+| `server/infra/` | AWS CDK infrastructure in Kotlin |
+| `tests/` | Playwright scenarios in IWER, and their fixtures |
+| `scripts/`, `docs/video/` | Build, size and deploy scripts; the demo video's reproducible pipeline |
+| `docs/META_SUBMISSION.md` | The submission text |
+| `docs/RELEASE_READINESS.md` | What was checked for this release, and how |
+
+The application and the video pipeline are under feature freeze for judging. People filmed for the demo video, media
+files, credentials and generated outputs are never committed.
