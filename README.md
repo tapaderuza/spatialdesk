@@ -8,7 +8,7 @@ favours a comfortable side, and the next step stays manageable. You say what you
 proposes the change; you review it, apply it, and can undo it. A family member or carer can help from an ordinary phone,
 while the person in the headset stays in control.
 
-**[Watch the 100-second demo](https://youtu.be/6N9PWPoEBKU)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
+**[Watch the two-minute demo](https://youtu.be/A8d5FKF0C-I)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
 ## At a glance
 

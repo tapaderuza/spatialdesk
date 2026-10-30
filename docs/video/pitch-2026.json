@@ -135,6 +135,18 @@
     "in": 1.2,
     "out": 5.0
   },
+  "_extra": "The second take (scripts/capture_extra_take.mjs), cut in after the setup reopens: the same real app in two of Meta's synthetic rooms (IWER's Synthetic Environment Module, shown as passthrough), Fit room in each, then one switch undoing the last change, then the network failing and a card moved by hand. Each beat waits for its line, like the first take. 'callouts' are the app's own words for an event of the take, shown large because on its panel they are too small to read (the network's notice comes from the take itself).",
+  "extra": {
+    "rooms": ["home_office", "kitchen"],
+    "beats": [
+      {"id": "rooms", "room": "home_office", "text": "In her real room, Fit room finds the desk and the walls: the board lands on the desk, and an anchor keeps it there tomorrow."},
+      {"id": "switch", "room": "home_office", "text": "One switch is enough: the controls light up in turn, and one press undoes the last change."},
+      {"id": "offline", "room": "home_office", "text": "When the network drops, she is told once, calmly, and her board still works by hand."},
+      {"id": "rooms2", "room": "kitchen", "text": "Another room, another desk: the same words, a different place."}
+    ],
+    "before_after": "Board: 53 cm → 43 cm",
+    "callouts": {"switch-undo": "“Undone: fit to room”"}
+  },
   "nova_captions": {
     "Entiendo que hoy es un día difícil y quieres acercar todo. Puedo ajustar la distancia para que todo esté más cerca. ¿Te parece bien?": "I understand today is a hard day and you want everything closer. I can adjust the distance so it is all nearer. Is that all right?",
     "Puedo mover la tarjeta seleccionada a la columna Hecho. ¿Quieres que lo haga ahora?": "I can move the selected card to the Done column. Shall I do it now?",

@@ -913,3 +913,36 @@ story in the 500 words the form suggests, then put it on Devpost.
   public page shows it, with the video, the GitHub link and the launch date; the entry stays SUBMITTED, 5 of 5 steps.
   The 1,600-word version is in `D:\d\spatialdesk-media-2026-10-30\devpost-backup\`.
 - **Repo:** `docs/META_SUBMISSION.md` carries the same words as the submitted story.
+
+## Block 38: the second version of the video, with Meta's synthetic rooms (2026-10-30)
+
+Asked, after an outside proposal was weighed (a demo journey, before and after figures, more of the platform on screen):
+build a new cut on the Gold Master, with the glide's before and after in numbers and a second take in two of Meta's
+synthetic rooms, Fit room in each, one switch undoing the change, and the network failing with its calm line and a card
+moved by hand; show it before it replaces anything. The application code stays frozen.
+
+- **The second take** (`scripts/capture_extra_take.mjs`): the real app in recording mode with `?room=`, so IWER's
+  Synthetic Environment Module shows the room as passthrough behind the panels (the recording backdrop hidden), seated
+  beside the desk as `tests/rooms.spec.ts` seats it; headed Edge in fullscreen, captured at 60 fps with the magenta sync
+  flash and the app's sound tap, like the first take. Each beat waits for its line (narrator voice, `scripts/tts.py`).
+  Home office: "fit room" (desk found, 2 walls), switch mode by voice, a real pinch arms the scan (700 ms) and a second
+  press on Undo gives "Undone: fit to room"; then every `/api/agent/` request aborted, "plan my day", and the app's
+  notice "Network issue. Switched to manual mode."; "Pagar la factura de la luz" picked and dropped in Hecho by
+  look-and-select. Kitchen: "fit room" puts the board on the counter. 0 page errors.
+- **The first try was not usable:** Edge's fullscreen notice covered the top after the second room loaded, and in the
+  kitchen Fit room put the command panel on a far wall. The switch, the failure and the move went to the home office, the
+  kitchen keeps Fit room only after a 4.5 s wait, and the scan runs at 700 ms instead of 900.
+- **The edit** (`scripts/build_pitch_video.py`, `extra` in `docs/video/pitch-2026.json`): the first take unchanged, with
+  "Board: 53 cm → 43 cm" over the glide; after the setup reopens, the two rooms cross-fade in (0.5 s), with their lines
+  captioned and their own app sound; the app's undo and failure lines also shown large at the top, quoted, as on its
+  panel they are too small to read in the cut.
+- **The new Gold Master:** `.video/SpatialDesk_Final_Pitch.mp4`, 128.98 s, 7,739 frames, no decoding errors, -15.9 LUFS
+  (each part within 0.5 LU), 40,440,362 bytes, SHA-256
+  `18e90b82fc4751419d7b93e8210fea449efb3aeb0ea374b5ff5d3dfb9a4cbaf2`. Approved by the owner; the previous one
+  (`a9b5b530…`) is in the holding folder's `superseded/`.
+- **Published:** https://youtu.be/A8d5FKF0C-I (2:09, public, not made for kids, "no" to the AI-use question as before;
+  the description adds that the last rooms are the emulator's synthetic rooms shown as passthrough); oEmbed 200 without
+  signing in. Devpost: both video fields (the public page and the entry's form) set to it, the story unchanged (SHA-256
+  `0ac9cff8a3ae`), the entry still SUBMITTED. The previous video, https://youtu.be/6N9PWPoEBKU, stays on the channel.
+- **Known detail:** during the failure the command panel's small status still reads "Command server online", because
+  only the agent's requests were cut, not its health check.

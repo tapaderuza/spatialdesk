@@ -1,14 +1,15 @@
 # Release readiness — 2026-10-30
 
 **Status: submitted.** The code is frozen and verified, the documentation is final, the demo video's Gold Master is
-published at https://youtu.be/6N9PWPoEBKU, the repository is public, and the Devpost entry carries all of it (see
+published at https://youtu.be/A8d5FKF0C-I, the repository is public, and the Devpost entry carries all of it (see
 Submission, below).
 
 ## Freeze
 
 The application (`src/`, `public/`, `server/`, configuration, dependencies, tests) and the video pipeline (`scripts/`,
-`docs/video/`) are under an absolute freeze. The owner reopened the video pipeline once, for one change: the sound effects
-now sit where their panels are on screen. Otherwise release preparation changed documentation only: this report, the
+`docs/video/`) are under an absolute freeze. The owner reopened the video pipeline twice: once so the sound effects sit
+where their panels are on screen, and once for the second version of the video (two of Meta's synthetic rooms, the
+glide's before and after). Otherwise release preparation changed documentation only: this report, the
 [README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. No deployment
 was made; production keeps serving the build it served before.
 
@@ -17,16 +18,17 @@ was made; production keeps serving the build it served before.
 | | |
 | --- | --- |
 | File | `.video/SpatialDesk_Final_Pitch.mp4` (local; `.video/` is never committed) |
-| Length, format | 100.07 s, 1920x1080 at 60 fps, 6,004 frames, H.264 High + AAC 48 kHz, -15.8 LUFS integrated |
-| Size | 29,296,132 bytes |
-| SHA-256 | `a9b5b5309d6bd1b0e5a22889c518651786b71aab23bcf3925a8fd4308bae8fd6` |
-| Made by | `python scripts/build_pitch_video.py` (the phone by `scripts/capture_mobile_ui.ts`, the end card by `scripts/end_card.ts`) |
+| Length, format | 128.98 s, 1920x1080 at 60 fps, 7,739 frames, H.264 High + AAC 48 kHz, -15.9 LUFS integrated |
+| Size | 40,440,362 bytes |
+| SHA-256 | `18e90b82fc4751419d7b93e8210fea449efb3aeb0ea374b5ff5d3dfb9a4cbaf2` |
+| Made by | `python scripts/build_pitch_video.py` (the phone by `scripts/capture_mobile_ui.ts`, the end card by `scripts/end_card.ts`, the rooms by `scripts/capture_extra_take.mjs`) |
 
-It replaces the master approved earlier the same day (SHA-256 `402a8213…267f`, kept in the holding folder below), and
-differs from it only in its sound: the glide's air starts wide at Apply's key and closes onto the agent's card, and the
-landing and the tap sit at the Done column and the phone's key (`sfx_space` in `docs/video/pitch-2026.json`). Its frames
-are the same except the end card, rendered again and within encoding noise of the old one (PSNR 50.7 dB or more). The
-video shows a family member filmed at home: it is never committed, and its source clips stay in the ignored `inputs/`.
+It is the second version, approved by the owner on 2026-10-30. It keeps the previous master's cut
+(SHA-256 `a9b5b530…8fd6`, kept in the holding folder below) and adds "Board: 53 cm → 43 cm" over the glide, then, after
+the setup reopens, a second take in two of Meta's synthetic rooms (IWER's Synthetic Environment Module, shown as
+passthrough): Fit room in a home office, one switch undoing it, the network failing with the app's calm notice and a card
+moved by hand; then Fit room in a kitchen (log block 38). The video shows a family member filmed at home: it is never
+committed, and its source clips stay in the ignored `inputs/`.
 
 ## Media cleanup
 
@@ -34,9 +36,10 @@ Every intermediate and obsolete media file was moved out of the repository into 
 (34 items, 2.96 GB, with a `MANIFEST.txt` of where each came from): the 15 recording takes and their voice cache, the
 pitch's intermediates (phone shot, end card, effects, masks, captions), the earlier pipeline's runs and renders, their
 thumbnails and sheets, the discarded carer clip (`IMG_2089.MOV` and its duplicate), the copy in `dist/`, and a
-superseded, unfinished jury package; its `superseded/` folder holds the earlier master. Deleting that folder permanently
-is left to the owner. Kept: the Gold Master, the
-three source clips it is made from, and the local voice tooling.
+superseded, unfinished jury package; its `superseded/` folder holds the earlier masters. The second version's takes (the
+one used and an unusable first try), its intermediates and its `dist/` copy went to the same folder, listed in the same
+manifest. Deleting that folder permanently is left to the owner. Kept: the Gold Master, the three source clips it is made
+from, and the local voice tooling.
 
 ## Verification
 
@@ -66,8 +69,9 @@ Emulator results are not physical-headset measurements; the README and the submi
 
 ## Submission (2026-10-30)
 
-- **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/6N9PWPoEBKU (1:41,
-  not made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
+- **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/A8d5FKF0C-I (2:09,
+  the second version, which replaced https://youtu.be/6N9PWPoEBKU in both of Devpost's video fields the same day; not
+  made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
   generic synthetic voice, not a real person, and the footage of the family member is real and unaltered). Viewable
   without signing in.
 - **Repository:** made public at the owner's request, after a scan of its whole history: the only credential-shaped

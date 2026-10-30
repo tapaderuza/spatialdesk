@@ -6,8 +6,10 @@
         corner plays her real pinch while the setup's orb is up, and her real poke while a hand pushes a control
   then  the carer's phone: the real companion page captured live at iPhone 13 size, in a device frame, Help / Recalibrate
         tapped (scripts/capture_mobile_ui.ts); back to the app as the setup opens in response
+  then  if a second take was recorded (scripts/capture_extra_take.mjs, path in .video/pitch/last-extra.txt): the app in
+        two of Meta's synthetic rooms, Fit room, one switch undoing it, the network failing and a card moved by hand
   end   the card with the project's measured figures, one after another (scripts/end_card.ts)
-Into the phone and out of it, and into the end card, the parts cross-fade. Narration (Piper, local), the app's own 3D
+Into the phone and out of it, into each room and into the end card, the parts cross-fade. Narration (Piper, local), the app's own 3D
 sound, her sound, effects (the glide, the card landing in Done, the tap: assets/audio/<name>.mp3 or .wav if there, else
 synthesised), captions; H.264 1080p60 + AAC, -16 LUFS.
 
@@ -286,12 +288,26 @@ def edit(directory):
     c2a, c2b = cap(help_at) - 0.5, min(cap(opened_at) + 3.5, seconds(directory / "capture.mp4"))
     t_c2 = c2b - c2a
     t_d = seconds(WORK / "end-card.mp4")
+    # The second take (scripts/capture_extra_take.mjs), cut in after the setup: its segments, each from a little before its
+    # first line, in the order they were filmed. Without one, the cut is as before.
+    extra_file = WORK / "last-extra.txt"
+    extra_dir = Path(extra_file.read_text(encoding="utf-8").strip()) if extra_file.exists() else None
+    segments = []
+    if extra_dir:
+        em = json.loads((extra_dir / "markers.json").read_text(encoding="utf-8"))
+        e_flash = flash_in(extra_dir / "capture.mp4")
+        ecap = lambda at: e_flash + (at - em["flashAt"]) / 1000
+        segments = [(ecap(s["from"]) - 0.3, (s["to"] - s["from"]) / 1000 + 0.3, s) for s in em["segments"]]
     # The hook dips to the app through black; the app, the phone, the setup and the end card cross-fade, each part starting
     # half a second before the one before it ends.
     o_b = t_a
     o_c1 = o_b + t_b - CROSSFADE_S
     o_c2 = o_c1 + t_c1 - CROSSFADE_S
-    o_d = o_c2 + t_c2 - CROSSFADE_S
+    o_e, at = [], o_c2 + t_c2 - CROSSFADE_S
+    for _, length, _ in segments:
+        o_e.append(at)
+        at += length - CROSSFADE_S
+    o_d = at
     total = o_d + t_d
     if total >= MAX_S:
         sys.exit(f"The cut would be {total:.1f} s; the limit is {MAX_S} s.")
@@ -324,6 +340,8 @@ def edit(directory):
     capture_in = add("-i", str(directory / "capture.mp4"))
     phone_in = add("-i", str(PHONE / "phone.mp4"))
     end_in = add("-i", str(WORK / "end-card.mp4"))
+    extra_in = add("-i", str(extra_dir / "capture.mp4")) if segments else None
+    extra_audio = [(add("-i", str(extra_dir / a["file"])), a["startedAt"]) for a in em["audio"]] if segments else []
     app_in = add("-i", str(directory / "app-audio.webm"))
     # Finite, like every input here: an endless one keeps its whole branch, and the cut, from ever ending.
     mask_in = add("-loop", "1", "-t", str(t_b), "-i", "pip-mask.pgm")
@@ -365,6 +383,14 @@ def edit(directory):
     lines.append((o_d + END_LEAD_S, seconds(narration("end")), next(b["text"] for b in SCRIPT["beats"] if b["id"] == "end")))
     for c in hook["captions"]:
         lines.append((c["at"], c["to"] - c["at"], c["text"]))
+    if segments:
+        texts = {b["id"]: b["text"] for b in SCRIPT["extra"]["beats"]}
+        for b in em["beats"]:
+            k = next(i for i, (_, _, s) in enumerate(segments) if s["from"] <= b["at"] <= s["to"])
+            start = o_e[k] + ecap(b["at"]) - segments[k][0]
+            file = Path(em["voiceDir"]) / f"{b['id']}.wav"
+            voices.append((file, start))
+            lines.append((start, seconds(file), texts[b["id"]]))
     (WORK / "captions.srt").write_text(captions(sorted(lines)), encoding="utf-8")
     voice_in = [(add("-i", str(f)), start) for f, start in voices]
 
@@ -409,9 +435,39 @@ def edit(directory):
             f"drawtext=fontfile=segoeui.ttf:text='{label}':fontsize=24:fontcolor=white@0.92:x={x + 14}:y={y + PIP_H + 14}:enable='between(t,{s},{e})'[w{i}]",
         ]
         base = f"w{i}"
+    def note(text, a, b, row=0):
+        """One line of large text in a dark box, top centre (row 0, then below), faded in and out between a and b."""
+        alpha = f"if(lt(t,{a:.3f}),0,if(lt(t,{a + 0.3:.3f}),(t-{a:.3f})/0.3,if(lt(t,{b - 0.3:.3f}),1,if(lt(t,{b:.3f}),({b:.3f}-t)/0.3,0))))"
+        text = text.replace(":", r"\:").replace("'", "")
+        return (f"drawtext=fontfile=segoeui.ttf:text='{text}':fontsize=44:fontcolor=white:box=1:boxcolor=0x0b0f14@0.72:boxborderw=18:"
+                f"x=(w-text_w)/2:y={64 + 92 * row}:alpha='{alpha}':enable='between(t,{a:.3f},{b:.3f})',")
+
+    # Before and after, as the app measures it, over the glide; then the second take's segments, cross-faded.
+    before_after = SCRIPT.get("extra", {}).get("before_after", "")
+    overlay = note(before_after, press - b0 + 0.4, press - b0 + 3.8) if segments and before_after else ""
+    chain, last = [], "x2"
+    if segments:
+        chain.append(f"[{extra_in}:v]split={len(segments)}" + "".join(f"[es{i}]" for i in range(len(segments))))
+        for i, (s0, length, _) in enumerate(segments):
+            chain.append(f"[es{i}]trim=start={s0:.4f}:duration={length:.4f},setpts=PTS-STARTPTS,fps={FPS},format=yuv420p,setsar=1,settb=1/{FPS}[ve{i}]")
+            chain.append(f"[{last}][ve{i}]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_e[i]:.4f}[xe{i}]")
+            last = f"xe{i}"
+    # The app's own words as the switch undoes and as the network fails, large: on its panel they are too small to read
+    # here. A line that comes while another is up goes below it, and both leave together.
+    shown = []
+    for e in em["events"] if segments else []:
+        text = f"“{e['notice']}”" if e.get("notice") else SCRIPT["extra"].get("callouts", {}).get(e["kind"])
+        k = next((i for i, (_, _, s) in enumerate(segments) if s["from"] <= e["at"] <= s["to"]), None)
+        if text and k is not None:
+            a = o_e[k] + ecap(e["at"]) - segments[k][0] + 0.2
+            up = [n for n in shown if n[2] > a]
+            for n in up:
+                n[2] = a + 3
+            shown.append([text, a, a + 3, len(up)])
+    notes = "".join(note(*n) for n in shown)
     graph += [
         f"[{base}]drawtext=fontfile=segoeui.ttf:text='{disclosure}':fontsize=24:fontcolor=white@0.85:box=1:boxcolor=black@0.45:boxborderw=12:"
-        f"x=48:y=44:enable='between(t,0.4,7)',fade=t=in:st=0:d=0.3,trim=duration={t_b},setpts=PTS-STARTPTS[vb]",
+        f"x=48:y=44:enable='between(t,0.4,7)',{overlay}fade=t=in:st=0:d=0.3,trim=duration={t_b},setpts=PTS-STARTPTS[vb]",
         f"[{phone_in}:v]fps={FPS},format=yuv420p,setsar=1,trim=duration={t_c1},setpts=PTS-STARTPTS,settb=1/{FPS}[vc1]",
         f"[capc]trim=start={c2a}:duration={t_c2},setpts=PTS-STARTPTS,fps={FPS},format=yuv420p,setsar=1,settb=1/{FPS}[vc2]",
         f"[{end_in}:v]fps={FPS},format=yuv420p,setsar=1,trim=duration={t_d},setpts=PTS-STARTPTS,settb=1/{FPS}[vd]",
@@ -419,7 +475,8 @@ def edit(directory):
         f"[vab][vc1]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_c1:.4f}[x1]",
         f"[x1][vc2]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_c2:.4f}[x2]",
         # Captions bottom left, clear of the picture-in-picture in the bottom right corner.
-        f"[x2][vd]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_d:.4f},subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,"
+        *chain,
+        f"[{last}][vd]xfade=transition=fade:duration={CROSSFADE_S}:offset={o_d:.4f},{notes}subtitles=captions.srt:force_style='FontName=Segoe UI,FontSize=15,"
         "PrimaryColour=&H00FFFFFF,BorderStyle=3,OutlineColour=&H40000000,Outline=6,Shadow=0,Alignment=1,MarginL=20,MarginV=14'[v]",
     ]
 
@@ -437,8 +494,12 @@ def edit(directory):
     # Each effect sounds where its panels are on screen (sfx_space): the glide's air travels and narrows onto the card.
     graph += [f"[{index}:a]aresample=48000,aformat=channel_layouts=stereo,{spatial(SCRIPT['sfx_space'][name])},volume={SFX_DB[name] + 1}dB,"
               f"adelay={round(at * 1000)}:all=1[f{k}]" for k, (index, name, at) in enumerate(sfx_in)]
-    mix = "[ha][a1][a2]" + "".join(f"[v{k}]" for k in range(len(voice_in))) + "".join(f"[f{k}]" for k in range(len(sfx_in)))
-    graph.append(f"{mix}amix=inputs={3 + len(voice_in) + len(sfx_in)}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
+    for i, (s0, length, s) in enumerate(segments):
+        index, started = extra_audio[i]
+        graph.append(f"[{index}:a]aresample=48000,atrim=start={max(0, (s['from'] - 300 - started) / 1000):.3f}:duration={length:.3f},asetpts=PTS-STARTPTS,"
+                     f"volume=2.2,afade=t=in:d={CROSSFADE_S},afade=t=out:st={length - CROSSFADE_S:.3f}:d={CROSSFADE_S},adelay={round(o_e[i] * 1000)}:all=1[ea{i}]")
+    mix = "[ha][a1][a2]" + "".join(f"[v{k}]" for k in range(len(voice_in))) + "".join(f"[f{k}]" for k in range(len(sfx_in))) + "".join(f"[ea{i}]" for i in range(len(segments)))
+    graph.append(f"{mix}amix=inputs={3 + len(voice_in) + len(sfx_in) + len(segments)}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]")
 
     step(f"Rendering {total:.1f} s")
     run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", ";".join(graph), "-map", "[v]", "-map", "[a]", "-t", f"{total}",
@@ -446,7 +507,7 @@ def edit(directory):
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", OUTPUT.name], cwd=WORK)
     (ROOT / "dist").mkdir(exist_ok=True)
     shutil.copyfile(OUTPUT, ROOT / "dist" / OUTPUT.name)
-    (WORK / "edit.json").write_text(json.dumps({"take": str(directory), "parts": {"hook": t_a, "app": t_b, "phone": t_c1, "setup": t_c2, "end": t_d},
+    (WORK / "edit.json").write_text(json.dumps({"take": str(directory), "parts": {"hook": t_a, "app": t_b, "phone": t_c1, "setup": t_c2, "extra": [round(x[1], 3) for x in segments], "end": t_d},
                                                 "crossfade": CROSSFADE_S, "sfx": cues, "pip": windows}, indent=2), encoding="utf-8")
     return verify(markers)
 

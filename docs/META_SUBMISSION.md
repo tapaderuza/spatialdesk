@@ -77,4 +77,4 @@ Fargate, Elastic Load Balancing.
 
 ## Video demo link
 
-https://youtu.be/6N9PWPoEBKU
+https://youtu.be/A8d5FKF0C-I
