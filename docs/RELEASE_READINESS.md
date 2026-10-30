@@ -76,8 +76,10 @@ Emulator results are not physical-headset measurements; the README and the submi
 - **Devpost:** the existing entry (project 1254068, still SUBMITTED, 5 of 5 steps) was updated rather than duplicated:
   named SpatialDesk, with the tagline, story, links (the app, the emulator, the companion and GitHub), 20 technology
   tags and the new video, both in the entry and on its public page
-  (https://devpost.com/software/spatialdesk-command-center). The story is [META_SUBMISSION.md](META_SUBMISSION.md)'s,
-  with the target launch date the rules require. The form's additional answers, track, division and the four
+  (https://devpost.com/software/spatialdesk-command-center). The story is [META_SUBMISSION.md](META_SUBMISSION.md)'s:
+  under the 500 words the form suggests, naming the device features the judging criteria score (hands-first input, gaze,
+  passthrough with scene understanding and persistent anchors, field-of-view-aware layout), with the target launch date
+  the rules require. The earlier 1,600-word version is kept in the same backup folder. The form's additional answers, track, division and the four
   declarations were left as the entrant set them.
 - The entry's previous texts, links, tags and video are kept in
   `D:\d\spatialdesk-media-2026-10-30\devpost-backup\project-details-before-2026-10-30.md`.

@@ -896,3 +896,20 @@ Asked: host the video and fill in Devpost, in the owner's Edge, where YouTube an
   previous texts are kept in the holding folder's `devpost-backup/`.
 - **Docs:** the README links the video; `docs/META_SUBMISSION.md` carries the launch date, the code and the video link
   as submitted; `docs/RELEASE_READINESS.md` records the submission.
+
+## Block 37: the submitted story cut to 500 words and aimed at the judging criteria (2026-10-30)
+
+Asked: after an analysis of the prizes (one prize per entry; SpatialDesk is in Productivity, New Experience: $70,000 at
+most, or a $25,000 special award such as Best Accessibility Forward Experience or Best Agentic Interaction), write the
+story in the 500 words the form suggests, then put it on Devpost.
+
+- **Why:** the submitted story was 1,600 words, and it named the device features the four equally weighted criteria
+  score (hands-first input, gaze, passthrough with scene understanding, persistent anchors, field-of-view-aware design)
+  only once; the entry's earlier story named them seven times.
+- **The text:** 496 words, each platform claim checked in the code first (the 13 rooms in `tests/rooms.spec.ts`, the
+  persistent anchor in `src/room/room-system.ts`, gaze by the eyes where tracked or the head in `src/ui/gaze.ts`, the
+  58° x 54° glasses view and its 0.85 scale, the focus plant). Approved by the owner before it went up.
+- **Devpost:** set in the entry's form and checked by SHA-256 in the page (`0ac9cff8a3ae`) before and after saving; the
+  public page shows it, with the video, the GitHub link and the launch date; the entry stays SUBMITTED, 5 of 5 steps.
+  The 1,600-word version is in `D:\d\spatialdesk-media-2026-10-30\devpost-backup\`.
+- **Repo:** `docs/META_SUBMISSION.md` carries the same words as the submitted story.
