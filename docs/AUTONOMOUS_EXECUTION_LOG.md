@@ -20,7 +20,7 @@ One short entry per block, newest last. Dates are 2026-10-27 (local time).
 ## Block 2: Devpost
 
 - Video link switched from the previous cut to the new one; saved, and the public page embeds the new video.
-- Gallery: the 9 old stills removed, the 11 new ones kept in story order (the cover with the user's mum first). Devpost
+- Gallery: the 9 old stills removed, the 11 new ones kept in story order (the cover, a photo on the sofa, first). Devpost
   keeps the order of the form's `photo_ids[]`, which is only changed by its own drag handler; it was driven with
   synthetic mouse events and read back from a fresh page load.
 - Additional info: capabilities, hand interactions and "future of VR" replaced with the texts in `docs/SUBMISSION.md`.
@@ -947,3 +947,31 @@ moved by hand; show it before it replaces anything. The application code stays f
   owner's request: its link still plays, but the channel no longer lists it.
 - **Known detail:** during the failure the command panel's small status still reads "Command server online", because
   only the agent's requests were cut, not its health check.
+
+## Block 39: no identifiable person other than the entrant (2026-10-30)
+
+Asked whether to say in the entry who the woman in the video is, and that she does not develop. The
+official rules (https://start-developer-competition-26.devpost.com/rules) say: "Projects may not mention or depict any
+identifiable person other than Entrants." Saying who she is would not have helped: it would confirm it. The owner chose
+to make her unidentifiable everywhere, and to say instead, truthfully, that someone close to them lives with a
+disability.
+
+- **The video:** `veil()` in `scripts/build_pitch_video.py` blurs an oval over her face (solid in its inner four fifths,
+  fading out over the rest, a Gaussian blur of a fiftieth of the frame's width) in the opening clip and in both gesture
+  clips of the corner; where it sits is `veil` in `docs/video/pitch-2026.json`, read off frames every half second with
+  a margin. Her hands, her sofa and her voice stay. Checked on every half second of the three clips and on the cut (the
+  opening, and 14 moments of the corner), at full resolution too: nothing recognisable.
+- **The new Gold Master:** `.video/SpatialDesk_Final_Pitch.mp4`, 128.98 s, 7,739 frames, no decoding errors,
+  -15.9 LUFS, 39,838,635 bytes, SHA-256 `b058e1d730429553de43932398c6d98a8cc373a682cb74ccf046d0bd36ba4cae`; the previous
+  one (`18e90b82…`) is in the holding folder's `superseded/`.
+- **YouTube:** https://youtu.be/FWbl6vpkiH4, public, with the same title, description and answers; its own preview
+  checked blurred before publishing. The three uploads that showed or named her (A8d5FKF0C-I, 6N9PWPoEBKU and the
+  27 October cut jtqAi3gl-os, whose description named her) are now private; the emulator-only demos stay.
+- **Devpost:** both video fields set to the new video; the story's opening is now "Someone I love, who lives with a
+  disability, said that from her sofa." (two words cut elsewhere, "still" and "exactly", to keep the count; SHA-256
+  `9d2c20b6338c`); the additional answer on the future of VR says "Someone close to me lives with a disability and
+  works lying on the sofa on bad days"; the gallery's first image, a photo of her on the sofa with a laptop, removed
+  (a copy is in the holding folder's `devpost-backup/`). The entry is still SUBMITTED; the declarations untouched.
+- **Repository:** the same words in `docs/META_SUBMISSION.md`, and every other public text that named her
+  (`docs/SUBMISSION.md`, `docs/DEMO_SCRIPT.md`, a caption in `docs/video/narration.json`, this log) made
+  non-identifying. The git history keeps the older wording; rewriting a public history would take a force push.

@@ -217,6 +217,23 @@ def spatial(space):
             "pan=stereo|c0=c0|c1=c1")
 
 
+def veil(src, out, width, height, spec):
+    """[src] with the face in spec blurred beyond recognition, as [out]: an oval at spec's centre and radii (fractions of
+    the frame), solid in its inner four fifths and fading out over the rest. The contest allows no identifiable person
+    other than the entrant; her hands, her sofa and her voice stay. Without a spec, [src] as it is."""
+    if not spec:
+        return [f"[{src}]null[{out}]"]
+    (cx, cy), (rx, ry) = spec["center"], spec["radius"]
+    ex, ey, ax, ay = cx * width, cy * height, rx * width, ry * height
+    x0, y0 = max(0, int(ex - ax)) & ~1, max(0, int(ey - ay)) & ~1
+    w, h = (min(width, int(ex + ax) + 2) - x0) & ~1, (min(height, int(ey + ay) + 2) - y0) & ~1
+    alpha = f"255*clip((1-hypot((X-{ex - x0:.1f})/{ax:.1f},(Y-{ey - y0:.1f})/{ay:.1f}))/0.2,0,1)"
+    return [f"[{src}]split[{out}a][{out}b]",
+            f"[{out}b]crop={w}:{h}:{x0}:{y0},gblur=sigma={width / 50:.1f}:steps=3,format=yuva420p,"
+            f"geq=lum='lum(X,Y)':cb='cb(X,Y)':cr='cr(X,Y)':a='{alpha}'[{out}c]",
+            f"[{out}a][{out}c]overlay={x0}:{y0}[{out}]"]
+
+
 def heard(audio, start, end, threshold=-40.0):
     """The first moment in [start, end) seconds of [audio] louder than [threshold] dB (in 50 ms steps): a press the app
     played its sound for. None if nothing is."""
@@ -414,7 +431,9 @@ def edit(directory):
     disclosure = "The real app in Meta's IWER emulator, driven by a script. Gestures filmed separately.".replace("'", "")
     count = max(1, len(windows))
     graph = [
-        f"[{hook_in}:v]{hook_tm}{fit},fade=t=in:st=0:d=0.3,fade=t=out:st={t_a - 0.3}:d=0.3,trim=duration={t_a},setpts=PTS-STARTPTS[va]",
+        f"[{hook_in}:v]{hook_tm}{fit}[hk]",
+        *veil("hk", "hkv", W, H, hook.get("veil")),
+        f"[hkv]fade=t=in:st=0:d=0.3,fade=t=out:st={t_a - 0.3}:d=0.3,trim=duration={t_a},setpts=PTS-STARTPTS[va]",
         f"[{capture_in}:v]split=2[capb][capc]",
         f"[capb]trim=start={b0}:duration={t_b},setpts=PTS-STARTPTS,fps={FPS},format=yuv420p,setsar=1[b0]",
         f"[{mask_in}:v]format=gray,split={count}" + "".join(f"[m{i}]" for i in range(count)),
@@ -426,7 +445,9 @@ def edit(directory):
     for i, (kind, s, e, index) in enumerate(windows):
         tm = TONEMAP if hdr(ROOT / SCRIPT[kind]["clip"]) else ""
         graph += [
-            f"[{index}:v]{tm}scale={PIP_W}:{PIP_H},fps={FPS},format=yuva420p[pc{i}]",
+            f"[{index}:v]{tm}scale={PIP_W}:{PIP_H},fps={FPS},format=yuv420p[pr{i}]",
+            *veil(f"pr{i}", f"pv{i}", PIP_W, PIP_H, SCRIPT[kind].get("veil")),
+            f"[pv{i}]format=yuva420p[pc{i}]",
             f"[pc{i}][m{i}]alphamerge,setpts=PTS-STARTPTS+{s}/TB,fade=t=in:st={s}:d=0.25:alpha=1,fade=t=out:st={e - 0.25}:d=0.25:alpha=1[p{i}]",
             f"color=c=0xe9eef5:s={PIP_W + 16}x{PIP_H + 16}:r={FPS}:d={t_b},format=yuva420p[gc{i}]",
             f"[gc{i}][g{i}]alphamerge,colorchannelmixer=aa=0.28[gl{i}]",

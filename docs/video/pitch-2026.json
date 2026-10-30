@@ -34,10 +34,12 @@
     ]
   ],
   "end_line": "A workspace that adapts to you.",
+  "_veil": "Where her face is in each clip, so the edit can blur it (scripts/build_pitch_video.py's veil()): an oval's centre and radii as fractions of the frame, read off frames every half second, with a margin. The contest's rules allow no identifiable person other than the entrant; her hands, her sofa and her voice stay.",
   "hook": {
     "clip": "inputs/IMG_2085.MOV",
     "in": 1.2,
     "out": 6.36,
+    "veil": {"center": [0.47, 0.17], "radius": [0.1375, 0.2375]},
     "captions": [
       {
         "at": 0.7,
@@ -48,11 +50,13 @@
   },
   "pinch": {
     "clip": "inputs/IMG_2087.MOV",
-    "in": 0
+    "in": 0,
+    "veil": {"center": [0.47, 0.35], "radius": [0.125, 0.2125]}
   },
   "poke": {
     "clip": "inputs/IMG_2088.MOV",
-    "in": 0
+    "in": 0,
+    "veil": {"center": [0.465, 0.195], "radius": [0.125, 0.23]}
   },
   "beats": [
     {

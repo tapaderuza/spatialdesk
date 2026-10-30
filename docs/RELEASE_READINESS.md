@@ -1,7 +1,7 @@
 # Release readiness — 2026-10-30
 
 **Status: submitted.** The code is frozen and verified, the documentation is final, the demo video's Gold Master is
-published at https://youtu.be/A8d5FKF0C-I, the repository is public, and the Devpost entry carries all of it (see
+published at https://youtu.be/FWbl6vpkiH4, the repository is public, and the Devpost entry carries all of it (see
 Submission, below).
 
 ## Freeze
@@ -19,16 +19,18 @@ was made; production keeps serving the build it served before.
 | --- | --- |
 | File | `.video/SpatialDesk_Final_Pitch.mp4` (local; `.video/` is never committed) |
 | Length, format | 128.98 s, 1920x1080 at 60 fps, 7,739 frames, H.264 High + AAC 48 kHz, -15.9 LUFS integrated |
-| Size | 40,440,362 bytes |
-| SHA-256 | `18e90b82fc4751419d7b93e8210fea449efb3aeb0ea374b5ff5d3dfb9a4cbaf2` |
+| Size | 39,838,635 bytes |
+| SHA-256 | `b058e1d730429553de43932398c6d98a8cc373a682cb74ccf046d0bd36ba4cae` |
 | Made by | `python scripts/build_pitch_video.py` (the phone by `scripts/capture_mobile_ui.ts`, the end card by `scripts/end_card.ts`, the rooms by `scripts/capture_extra_take.mjs`) |
 
 It is the second version, approved by the owner on 2026-10-30. It keeps the previous master's cut
 (SHA-256 `a9b5b530…8fd6`, kept in the holding folder below) and adds "Board: 53 cm → 43 cm" over the glide, then, after
 the setup reopens, a second take in two of Meta's synthetic rooms (IWER's Synthetic Environment Module, shown as
 passthrough): Fit room in a home office, one switch undoing it, the network failing with the app's calm notice and a card
-moved by hand; then Fit room in a kitchen (log block 38). The video shows a family member filmed at home: it is never
-committed, and its source clips stay in the ignored `inputs/`.
+moved by hand; then Fit room in a kitchen (log block 38). The person filmed at home has her face blurred wherever she
+appears (the opening and the gesture corner), as the contest's rules allow no identifiable person other than the
+entrant; her hands and her voice stay (log block 39). The footage is never committed, and its source clips stay in the
+ignored `inputs/`.
 
 ## Media cleanup
 
@@ -69,11 +71,11 @@ Emulator results are not physical-headset measurements; the README and the submi
 
 ## Submission (2026-10-30)
 
-- **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/A8d5FKF0C-I (2:09,
-  the second version, which replaced https://youtu.be/6N9PWPoEBKU, now unlisted, in both of Devpost's video fields the
-  same day; not made for kids; answered "no" to YouTube's AI-use question, as none of its four cases applies: the narrator is a
-  generic synthetic voice, not a real person, and the footage of the family member is real and unaltered). Viewable
-  without signing in.
+- **Video:** the Gold Master, uploaded to the project's YouTube channel and public: https://youtu.be/FWbl6vpkiH4 (2:09,
+  the second version with her face blurred; it replaced the earlier uploads in both of Devpost's video fields the same
+  day, and those that showed or named her are now private; not made for kids; answered "no" to YouTube's AI-use
+  question, as none of its four cases applies: the narrator is a generic synthetic voice, not a real person, and the
+  footage of the person filmed is real, with only her face blurred). Viewable without signing in.
 - **Repository:** made public at the owner's request, after a scan of its whole history: the only credential-shaped
   strings are AWS's documented example key in the SigV4 test, and every commit uses a GitHub noreply address. The
   [official rules](https://start-developer-competition-26.devpost.com/rules) ask WebXR entries for a link to it.

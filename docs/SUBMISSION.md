@@ -119,7 +119,7 @@ Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under
 - **Subtitles:** upload `.video/captions.srt` as English subtitles as well.
 - **Description:**
 
-  This is my mum. On a bad day her neck hurts and she is tired, so she asks SpatialDesk, in her own words and in
+  This is someone I love, who lives with a disability. On a bad day her neck hurts and she is tired, so she asks SpatialDesk, in her own words and in
   Spanish, to bring everything closer, on her right, with bigger text. Amazon Transcribe hears her, an AI agent (Amazon
   Nova 2 Lite on Amazon Bedrock) answers with changes to her space, each with its reason and its own undo, and the
   space adapts. Her companion asks how it feels, and she saves the setup that works. Then other ways in: her eyes
@@ -140,7 +140,7 @@ Built by `node scripts/make-video.mjs` into `.video/spatialdesk-demo.mp4` (under
 
 From `.video/gallery/`, all taken from the recording, without captions:
 
-0. `0-thumbnail.png`: the thumbnail (my mum, and the promise)
+0. `0-thumbnail.png`: the thumbnail (the sofa, and the promise)
 1. `1-her-request.png`: her spoken request as the agent's comfort plan, each change with its reason
 2. `2-space-adapted.png`: the space adapted: nearer, larger, on her right, within a small turn
 3. `3-plan-preview.png`: the agent's plan for her day
@@ -162,7 +162,7 @@ From `.video/gallery/`, all taken from the recording, without captions:
 
 ### Inspiration
 
-This started with my mum. On a bad day her neck hurts and she is tired, and she works lying on the sofa with a
+This started with someone I love, who lives with a disability. On a bad day her neck hurts and she is tired, and she works lying on the sofa with a
 laptop. Headsets could give her a desk anywhere, but spatial apps expect you to turn your head, reach out and pinch
 the air.
 
@@ -436,7 +436,7 @@ Everything is built for hands first, with no controller needed at any point:
 
 ## What makes you excited about the future of VR? (form field, 150 words or less)
 
-Hands, voice and gaze together make a headset usable by people a keyboard and mouse never served well. My mum works
-lying on the sofa on bad days; a space that comes to her body, measured by her own hand and set up in her own words,
+Hands, voice and gaze together make a headset usable by people a keyboard and mouse never served well. Someone close to
+me lives with a disability and works lying on the sofa on bad days; a space that comes to her body, measured by her own hand and set up in her own words,
 is the future I want: VR that adapts to people instead of asking people to adapt to it. And an agent that acts on the
 space, explains itself and can be undone turns "talk to your desk" into something you can trust.

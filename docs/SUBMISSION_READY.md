@@ -1,6 +1,6 @@
 # SpatialDesk: submission status (2026-10-29)
 
-> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `18e90b82…cbaf2`, the second version, with two of Meta's synthetic rooms), and the media workspace is cleaned. It is published at https://youtu.be/A8d5FKF0C-I, the repository is public, and the Devpost entry was updated with both on 2026-10-30 (details in [release readiness](RELEASE_READINESS.md)).
+> **Current handoff — 2026-10-30:** See [release readiness](RELEASE_READINESS.md), the updated [judge's guide](../README.md), and [Meta submission copy](META_SUBMISSION.md). The entries below are a historical execution record; their deployment identifiers, video links and readiness statements are not a certification of the current release. Application code and video scripts are now under an absolute freeze. The demo video's Gold Master is `.video/SpatialDesk_Final_Pitch.mp4` (local, never committed; SHA-256 `b058e1d7…4cae`, the second version, with two of Meta's synthetic rooms and the face of the person filmed blurred), and the media workspace is cleaned. It is published at https://youtu.be/FWbl6vpkiH4, the repository is public, and the Devpost entry was updated with both on 2026-10-30 (details in [release readiness](RELEASE_READINESS.md)).
 
 ## Official Feature Freeze (2026-10-29)
 
@@ -116,7 +116,7 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 ## Video
 
-- **Second version, the Gold Master (2026-10-30, https://youtu.be/A8d5FKF0C-I):** the cut below, with "Board: 53 cm →
+- **Second version, the Gold Master (2026-10-30, https://youtu.be/FWbl6vpkiH4, her face blurred; log block 39):** the cut below, with "Board: 53 cm →
   43 cm" over the glide and, after the setup, the real app in two of Meta's synthetic rooms (Fit room, one switch undoing
   it, the network failing and a card moved by hand, Fit room in a kitchen): 129 s (log block 38).
 - **Pitch cut with her real footage, the first Gold Master (2026-10-30, https://youtu.be/6N9PWPoEBKU):**
@@ -147,7 +147,9 @@ presses once; the real Nova answers English in English and Spanish in Spanish, a
 
 - **2026-10-30:** renamed SpatialDesk; the tagline, the story (`docs/META_SUBMISSION.md`, with the target launch date),
   the links (GitHub added), 20 tags and the video (https://youtu.be/6N9PWPoEBKU, in the entry and on the public page)
-  updated. Later the same day, both video fields set to the second version, https://youtu.be/A8d5FKF0C-I. The declarations and the additional answers were left as they were.
+  updated. Later the same day, both video fields set to the second version, then to its blurred cut,
+  https://youtu.be/FWbl6vpkiH4; the story's and an additional answer's mention of her made non-identifying, and the
+  sofa photo removed from the gallery (log block 39). The declarations were left as they were.
 - Saved: new tagline and story, the new video link (the public page embeds the new video and not the old one), the 9
   old stills removed and the 11 new ones in story order with the cover first, and the Additional info texts
   (capabilities used, hand interactions, future of VR).

@@ -17,9 +17,9 @@ The workspace that adapts to your body on a bad day, so you don't have to adapt 
 
 "Hoy es un mal día. Acércalo todo." Today is a bad day. Bring everything closer.
 
-My mum said that from her sofa. On a bad day her neck hurts, her arms tire and her aim shakes; spatial apps still expect
-you to turn, reach and pinch the air. Accessibility usually means a menu of toggles, changed on exactly the day you have
-least to spare. In a headset the room can move, so the room should adapt.
+Someone I love, who lives with a disability, said that from her sofa. On a bad day her neck hurts, her arms tire and her
+aim shakes; spatial apps expect you to turn, reach and pinch the air. Accessibility usually means a menu of toggles,
+changed on the day you have least to spare. In a headset the room can move, so the room should adapt.
 
 ## What it does
 
@@ -77,4 +77,4 @@ Fargate, Elastic Load Balancing.
 
 ## Video demo link
 
-https://youtu.be/A8d5FKF0C-I
+https://youtu.be/FWbl6vpkiH4

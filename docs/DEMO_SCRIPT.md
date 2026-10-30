@@ -49,7 +49,7 @@ server contains every local commit.
 `scripts/render-approved.py` incorporates the treatment from `work/render_v2.py`
 and `work/render_v3.py` in the previous chat. It reuses the first 10.9 seconds of
 `outputs/SpatialDesk-pantalla-v3.mp4`, preserving approved color and bilingual
-subtitles. The mother's actual approved audio continues through 13.7 seconds,
+subtitles. Her actual approved audio continues through 13.7 seconds,
 including her final words over the transition. Her voice is not synthesized.
 
 The 2.8-second perspective transition covers the laptop display from frame one
@@ -77,7 +77,7 @@ folder is read-only input; nothing is written back to it.
 |---|---|
 | enter | Workspace before adaptation |
 | talk | Talk, to request adaptation |
-| say | Mother's Spanish request enters the microphone |
+| say | Her Spanish request enters the microphone |
 | heard | Transcription and proposed comfort changes |
 | apply | Workspace comes closer, larger and to her right |
 | dialogue | Live Nova corrects the previous distance in response to her feedback |
