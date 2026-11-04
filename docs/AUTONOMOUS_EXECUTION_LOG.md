@@ -1000,3 +1000,25 @@ standards mapping for the README, and an assessment of next steps. No applicatio
 - **Docs:** `docs/JUDGE_GUIDE.md`; "Accessibility & Inclusivity Standards" in the README, its WCAG 2.2 and XAUR numbers checked
   against the W3C texts. Not on a physical headset, and not a conformance claim; both say so. The 22.2 ms is reported as a
   CPU figure under a 3x slowdown, and is not presented as evidence about motion sickness, which has not been measured.
+
+## Block 41: the session limit in production, failure modes, and the documents for a technical judge (2026-11-05)
+
+Asked: raise the per-network session limit to 200 in production and confirm the server reconnects; post a request for testers on Meta's
+Discord; and, with `src/` and `server/` frozen, write an executive summary, a hardware risk document and a FAQ, and extend the tests and audit
+the project. No application code changed.
+
+- **The limit: done, by another route than asked.** Docker Desktop would not start (a stale socket file it could not rename; removing it or
+  rebooting was not ours to do), so `scripts/deploy.mjs` could not run. Since nothing in `src/` or `server/` had changed since the last deploy, the
+  same image was registered as ECS task revision 16 with `SPATIALDESK_SESSIONS_PERIPPERHOUR=200`, and the service rolled to it (`COMPLETED`). This also
+  left `server/` untouched. To undo: update the service back to revision 15. A later deploy that changes the task definition returns it to 30, unless the variable
+  goes into `SpatialDeskStack.kt`. Verified: 40 more sessions from one address, none refused; connection and clock sync passing. Not verified: 200 exactly in production.
+- **Reconnection: a real defect found.** A production page was held open across the replacement. It looped on refused handshakes and never asked for a new session.
+  Reproduced on the real server with an id it never issued: the first Plan ends after 6.3 s in the calm line, the link returned 23 s after that press, and the next Plan took 1.6 s. Talk alone does not
+  recover it, and a reload does at once. Not fixed (frozen).
+- **The end-to-end test failed once:** the first plan after the new task started took 4,255 ms against a 4 s limit, because the warm-up call had timed out during start-up. Then 6 of 6 passed, in 1.8 to 2.3 s.
+- **`tests/failure-modes.spec.ts`, 14 scenarios, all passing.** They found two more defects, not fixed: removing a board keeps about 3.3 MB of JS heap and removing a timer about 0.4 MB and a geometry, linear over 85 rounds (`dispose()`
+  for `destroy()` in `src/workspace/pinned.ts` removes the geometry, shown by redirecting the call in memory; the heap retention is not explained); and each Fit room leaves a persistent anchor behind, so past Meta's documented 8, a layout is saved under the wrong
+  handle and comes back out by the change of seat (0.500 m when simulated).
+- **Found by reading the account:** no AI-services opt-out is in force for Amazon Transcribe, whose documentation says voice inputs are stored and used by default unless an account opts out. The FAQ says so. Bedrock invocation logging is off.
+- **Discord: not posted.** The owner's account is not in the Meta VR Start server, whose access comes through the Start program. The only invitation found is Devpost's own server, in its site footer, and joining a different server was not what was asked. No credential or token was looked for or used. The message is ready for the owner to post.
+- **Docs:** an executive summary at the top of the README; `docs/HARDWARE_MITIGATION.md`, `docs/JUDGE_FAQ.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/ENGINEERING_AUDIT.md`. The hardware document makes the strongest case the evidence supports, and does not state that the app is safe on a Quest 3 or that a thermal margin has been measured, because neither has been shown. Old clip paths in `docs/video/narration.json` were given neutral names.

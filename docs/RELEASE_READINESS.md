@@ -10,8 +10,14 @@ The application (`src/`, `public/`, `server/`, configuration, dependencies, test
 `docs/video/`) are under an absolute freeze. The owner reopened the video pipeline twice: once so the sound effects sit
 where their panels are on screen, and once for the second version of the video (two of Meta's synthetic rooms, the
 glide's before and after). Otherwise release preparation changed documentation only: this report, the
-[README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. No deployment
-was made; production keeps serving the build it served before.
+[README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. Production keeps
+serving the same build.
+
+**One production configuration change, 2026-11-05, on the owner's instruction:** the per-network session limit went from 30 to
+200 per hour, through the task's environment (ECS task revision 16, the same image), so that judges behind one shared address do
+not run into it. `src/` and `server/` are unchanged, so the repository's default is still 30; see
+[the audit](ENGINEERING_AUDIT.md), finding 9. The owner also opened the tests and the documentation to additions on that date
+(log block 41).
 
 ## Gold Master
 

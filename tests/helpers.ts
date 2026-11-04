@@ -212,6 +212,46 @@ export async function pinch(page: Page, side: 'left' | 'right' = 'right'): Promi
   await frames(page, 4);
 }
 
+/**
+ * Points the right hand's ray at a named element, or with null at the floor, where there is nothing to press. A hand's
+ * ray does not start at the hand or leave along its -Z: where it goes is measured from the ray itself, not assumed.
+ */
+export async function aimHand(page: Page, name: string | null): Promise<void> {
+  await page.evaluate(
+    async (name) => {
+      const w = (window as Win).__world;
+      const hand = (window as Win).__xrDevice.hands.right;
+      const raf = () => new Promise(requestAnimationFrame);
+      hand.position.set(0.18, 1.3, -0.25);
+      if (name === null) {
+        hand.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
+        return;
+      }
+      let el: any = null;
+      w.scene.traverse((o: any) => {
+        if (o.name === name) el = o;
+      });
+      if (!el) throw new Error(`no element ${name}`);
+      const V = w.camera.position.constructor;
+      const Q = w.camera.quaternion.constructor;
+      const ray = w.player.raySpaces.right;
+      for (let i = 0; i < 6; i++) {
+        await raf();
+        await raf();
+        el.updateWorldMatrix(true, false);
+        ray.updateWorldMatrix(true, false);
+        const handNow = new Q(hand.quaternion.x, hand.quaternion.y, hand.quaternion.z, hand.quaternion.w);
+        const offset = handNow.clone().invert().multiply(ray.getWorldQuaternion(new Q()));
+        const dir = new V().setFromMatrixPosition(el.matrixWorld).sub(ray.getWorldPosition(new V())).normalize();
+        const next = new Q().setFromUnitVectors(new V(0, 0, -1), dir).multiply(offset.invert());
+        hand.quaternion.set(next.x, next.y, next.z, next.w);
+      }
+    },
+    name,
+  );
+  await frames(page, 15);
+}
+
 /** Rests the emulated hands in the lap, rays toward the floor, so the eyes do the aiming. */
 export async function restHands(page: Page): Promise<void> {
   await page.evaluate(() => {

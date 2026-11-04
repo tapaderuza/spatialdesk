@@ -47,7 +47,8 @@ own storage (IndexedDB), and no card operation waits for a server.
 
 **Verified:** in the emulator with the browser's network really offline (`tests/edge-cases.spec.ts`, `tests/resilience.spec.ts`),
 and against production the same way (AI and voice requests each ended in about 0.5 s; the card move and re-entering worked; the
-AI came back after reconnecting). **Not verified:** the behaviour of the Quest's own Wi-Fi switch.
+AI came back after reconnecting). **Not verified:** the behaviour of the Quest's own Wi-Fi switch. A server restart is a different
+case: see Known limits.
 
 ## 2. Performance and comfort
 
@@ -133,15 +134,16 @@ The standards behind these, and their limits, are in the README's
 ```powershell
 npm ci
 npm run typecheck
-npx playwright test tests/edge-cases.spec.ts   # the edge cases cited in this guide
-npm run test:perf                              # the performance gate
+npx playwright test tests/edge-cases.spec.ts tests/failure-modes.spec.ts   # the edge and failure cases cited here
+npm run test:perf                                                          # the performance gate
 ```
 
 `npm run ci` runs everything. To run the real-service tests against production, set
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 204 browser scenarios, the 199 quoted in the video and the submission plus the five in `tests/edge-cases.spec.ts`.
+The suite has 218 browser scenarios: the 199 quoted in the video and the submission, plus five in `tests/edge-cases.spec.ts` and 14 in
+`tests/failure-modes.spec.ts`.
 
 ## 6. Known limits
 
@@ -150,4 +152,11 @@ The suite has 204 browser scenarios, the 199 quoted in the video and the submiss
 - **After a pinch that slides off a control into empty space, the next pinch is lost.** The one after it works.
 - **One-switch scanning covers the command panel and the agent's card**, not the cards on the boards.
 - **Voice and the AI need the network**, and listening starts from the **Talk** control: there is no wake word.
+- **A page open across a server restart does not reconnect by itself.** The cards keep working. The next **Plan my day** ends in the calm
+  line, the link returns within about 30 s, and the Plan after that answers. **Talk** alone does not recover it, and a reload does at once.
+- **Each network can open 200 new sessions per hour.** Past that, the link retries, the AI gives the calm line, and the cards keep working.
+- **The AI has 300 plans per day across all users, and voice 600 listens.** Past that, a plain line says so, and the cards keep working.
 - **No study with people, on any device, has been run yet.**
+
+Every finding, with its evidence and its fix, is in the [engineering audit](ENGINEERING_AUDIT.md). The hard questions are in the
+[FAQ](JUDGE_FAQ.md).

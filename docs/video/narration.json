@@ -11,7 +11,7 @@
   ],
   "end_line": "A workspace that remembers what works for you.",
   "open": {
-    "clip": ".video/source/mum-open.mp4",
+    "clip": ".video/source/open.mp4",
     "seconds": 6.6,
     "captions": [
       {
@@ -58,8 +58,8 @@
     },
     {
       "id": "say",
-      "audio": ".video/source/mum-say.wav",
-      "mic": ".video/source/mum-say-16k.wav",
+      "audio": ".video/source/say.wav",
+      "mic": ".video/source/say-16k.wav",
       "text": "Hoy me duele mucho el cuello, y estoy cansada. Acércalo todo por la derecha, y la letra más grande, por favor.",
       "captions": [
         {

@@ -8,7 +8,7 @@
  * Emulator results: they show the app's logic, not how a physical headset behaves.
  */
 import { expect, test, type Page, type WebSocketRoute } from '@playwright/test';
-import { enterXR, frames, lookAt, openWorkspace, pressXR, settled, tap, type Win } from './helpers.js';
+import { aimHand, enterXR, frames, lookAt, openWorkspace, pressXR, settled, tap, type Win } from './helpers.js';
 
 const MANUAL = 'Network issue. Switched to manual mode.';
 const SESSION = 'test-session-0000000000';
@@ -111,45 +111,6 @@ test('an answer later than the 7 s limit is dropped: one calm line, nothing chan
   expect(errors).toEqual([]);
 });
 
-/**
- * Points the right hand's ray at a named element, or with null at the floor, where there is nothing to press. A hand's
- * ray does not start at the hand or leave along its -Z: where it goes is measured from the ray itself, not assumed.
- */
-async function aimHand(page: Page, name: string | null): Promise<void> {
-  await page.evaluate(
-    async (name) => {
-      const w = (window as Win).__world;
-      const hand = (window as Win).__xrDevice.hands.right;
-      const raf = () => new Promise(requestAnimationFrame);
-      hand.position.set(0.18, 1.3, -0.25);
-      if (name === null) {
-        hand.quaternion.set(-Math.SQRT1_2, 0, 0, Math.SQRT1_2);
-        return;
-      }
-      let el: any = null;
-      w.scene.traverse((o: any) => {
-        if (o.name === name) el = o;
-      });
-      if (!el) throw new Error(`no element ${name}`);
-      const V = w.camera.position.constructor;
-      const Q = w.camera.quaternion.constructor;
-      const ray = w.player.raySpaces.right;
-      for (let i = 0; i < 6; i++) {
-        await raf();
-        await raf();
-        el.updateWorldMatrix(true, false);
-        ray.updateWorldMatrix(true, false);
-        const handNow = new Q(hand.quaternion.x, hand.quaternion.y, hand.quaternion.z, hand.quaternion.w);
-        const offset = handNow.clone().invert().multiply(ray.getWorldQuaternion(new Q()));
-        const dir = new V().setFromMatrixPosition(el.matrixWorld).sub(ray.getWorldPosition(new V())).normalize();
-        const next = new Q().setFromUnitVectors(new V(0, 0, -1), dir).multiply(offset.invert());
-        hand.quaternion.set(next.x, next.y, next.z, next.w);
-      }
-    },
-    name,
-  );
-  await frames(page, 15);
-}
 const closeHand = async (page: Page) => {
   await page.evaluate(() => (window as Win).__xrDevice.hands.right.updatePinchValue(1));
   await frames(page, 12);

@@ -2,11 +2,25 @@
 
 **Accessibility should not be a settings menu you dig through on a bad day. It should be an environment that adapts to you.**
 
-On a hard day, the same person reaches less far, turns less comfortably and can take on less. SpatialDesk is a mixed-reality
-workspace for seated productivity that turns those changing needs into space: panels come closer, text grows, the layout
-favours a comfortable side, and the next step stays manageable. You say what you need in your own words; Amazon Nova
-proposes the change; you review it, apply it, and can undo it. A family member or carer can help from an ordinary phone,
-while the person in the headset stays in control.
+**The problem.** Reach, posture and energy change from one day to the next, and productivity software assumes they don't. On a
+low-energy day the screen sits too far away, turning the head costs more, and accessibility settings ask for effort up front, in
+a menu, at the moment there is least of it to spend. This is a physical-ergonomics problem, and spatial computing is the first
+platform that can answer it with geometry instead of menus.
+
+**The product.** SpatialDesk is a seated mixed-reality workspace that reshapes itself around the person using it. Say *"Bring
+everything closer and make the text bigger"*: Amazon Transcribe streams the speech to text, Amazon Nova 2 Lite on Bedrock answers
+through a single forced, typed tool call, the same Kotlin engine the headset runs validates every proposed operation on the server,
+and Meta's Immersive Web SDK glides the panels into place once the person selects Apply. It opens from one URL in Meta Quest
+Browser, with no install and no account. Every change is reviewed first and can be undone, and a family member or carer can help
+from an ordinary phone while the person in the headset stays in control.
+
+**The engineering advantage.** The AI accelerates SpatialDesk, and the workspace never depends on it. Boards live in the browser
+and no card operation waits for a server, so losing the network in mid-session costs one calm line, and voice and AI return with the
+network, with no reload. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
+a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
+session. Every AI and speech call sits behind session and daily caps, and 218 browser scenarios, a performance gate and 13 synthetic
+rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
+headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
 
 **[Watch the two-minute demo](https://youtu.be/FWbl6vpkiH4)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
@@ -18,7 +32,7 @@ while the person in the headset stays in control.
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 204 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 218 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 24.6 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5) |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -26,8 +40,9 @@ accessibility-focused productivity prototype: it does not diagnose, prescribe tr
 
 ## Judge's guide
 
-For the engineering evaluation (network loss, performance, hardware tolerance), see the
-[technical judge's guide](docs/JUDGE_GUIDE.md).
+For the engineering evaluation: the [technical judge's guide](docs/JUDGE_GUIDE.md) (network loss, performance, hardware
+tolerance, in about 15 minutes), [hardware risk mitigation](docs/HARDWARE_MITIGATION.md) (no physical headset yet, and what that
+leaves open) and [five hard questions](docs/JUDGE_FAQ.md) (latency, Bedrock limits, anchors, voice data, abuse).
 
 ### On Meta Quest
 
@@ -175,8 +190,14 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
   and tested as stored preferences, but this build has no control for them. WCAG 2.2.1 Timing Adjustable and 2.3.3 Animation
   from Interactions and XAUR REQ 15b and 18a are therefore not claimed.
 - **Network.** Voice control and the AI need a connection, and listening starts from the Talk control, with no wake word.
+- **Server restart.** A page open across one does not reconnect by itself: the cards keep working, the AI returns after the next
+  Plan, and a reload recovers at once.
+- **Memory.** Removing a board or a timer retains some memory. It is harmless in a short session and matters for all-day use.
+- **Room memory.** Each Fit room leaves a persistent anchor behind. Past the limit a site is allowed, a later layout can come back
+  misplaced.
 
-Exact test instructions are in the [technical judge's guide](docs/JUDGE_GUIDE.md).
+Exact test instructions are in the [technical judge's guide](docs/JUDGE_GUIDE.md). Every finding, with its evidence, is in the
+[engineering audit](docs/ENGINEERING_AUDIT.md).
 
 ## Run locally
 
@@ -238,7 +259,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 204 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 218 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.
@@ -257,6 +278,8 @@ ktlint, Detekt) is configured. Emulator runs are not a substitute for testing on
 | `server/infra/` | AWS CDK infrastructure in Kotlin |
 | `tests/` | Playwright scenarios in IWER, and their fixtures |
 | `scripts/`, `docs/video/` | Build, size and deploy scripts; the demo video's reproducible pipeline |
+| `docs/JUDGE_GUIDE.md`, `docs/HARDWARE_MITIGATION.md`, `docs/JUDGE_FAQ.md` | For the technical evaluation |
+| `docs/ARCHITECTURE.md`, `docs/ENGINEERING_AUDIT.md`, `docs/ROADMAP.md` | How it is built, what we found wrong, what comes next |
 | `docs/META_SUBMISSION.md` | The submission text |
 | `docs/RELEASE_READINESS.md` | What was checked for this release, and how |
 
