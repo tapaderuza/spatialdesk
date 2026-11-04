@@ -975,3 +975,28 @@ disability.
 - **Repository:** the same words in `docs/META_SUBMISSION.md`, and every other public text that named her
   (`docs/SUBMISSION.md`, `docs/DEMO_SCRIPT.md`, a caption in `docs/video/narration.json`, this log) made
   non-identifying. The git history keeps the older wording; rewriting a public history would take a force push.
+
+## Block 40: edge cases, the judge's guide, and an accessibility mapping (2026-11-04)
+
+Asked, with no headset available and the production code frozen: a guide for the technical judge, five edge-case tests, a
+standards mapping for the README, and an assessment of next steps. No application code changed.
+
+- **`tests/edge-cases.spec.ts`, five tests, all passing:** a headset that grants no optional WebXR capability, in VR and in
+  the room (no request has a required feature); an answer later than the 7 s limit (dropped, and a second request while
+  waiting is not sent); a pinch on nothing and a pinch that slides off a control; eyes sweeping faster than the dwell; the
+  network really offline in mid-session, with re-entry and recovery. The suite is now 204 browser scenarios; the video and the
+  submission keep the 199 they were made with.
+- **Found by testing, not fixed (the code is frozen):** a ray pinch held longer than 800 ms presses nothing and gives no feedback
+  (`clickThresholdMs: 800` in IWSDK's ray pointer; 500 ms pressed, 1000 ms did not; same with a controller's trigger); and after
+  a pinch slides off a control into empty space, the next pinch is lost, whatever the wait. Neither affects direct touch,
+  dwell or the switch.
+- **Found by reading:** dwell time, scan interval, reduced motion, mono audio and reading scale have no control in the shipped
+  build, because the settings hub (`src/accessibility/hub-controller.ts`, `accessible-page.ts`) is not mounted; one-switch scanning
+  covers the command panel and the agent's card, not the boards. The mapping does not claim what these would have supported.
+- **Production, network really cut in the browser:** `Plan my day` and `Talk` each ended in about 0.5 s with the calm line, a card
+  moved, re-entry worked, and the AI answered after reconnecting. The status line stayed "online" for the 20 s measured, as it follows
+  the socket. Nova answered 4 of 5 direct requests in 1 to 1.7 s; the fifth failed validation twice and the labelled built-in
+  planner answered, as designed.
+- **Docs:** `docs/JUDGE_GUIDE.md`; "Accessibility & Inclusivity Standards" in the README, its WCAG 2.2 and XAUR numbers checked
+  against the W3C texts. Not on a physical headset, and not a conformance claim; both say so. The 22.2 ms is reported as a
+  CPU figure under a 3x slowdown, and is not presented as evidence about motion sickness, which has not been measured.
