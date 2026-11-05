@@ -1,6 +1,6 @@
 # Engineering audit
 
-A self-audit of the shipped build, made on 2026-11-05 with the production code frozen, so **findings are recorded and not fixed**. It is not a third-party audit and not a penetration test. Severity is
+A self-audit of the shipped build, made on 2026-11-05 with the production code frozen. **Findings 2, 3 and 4 were fixed the same day**, when the owner lifted the freeze for those three alone; **the others are recorded and not fixed**. It is not a third-party audit and not a penetration test. Severity is
 our own judgement of the effect on a person using the app during judging.
 
 ## Findings
@@ -8,9 +8,9 @@ our own judgement of the effect on a person using the app during judging.
 | # | Severity | Finding | Evidence | Trigger | Fix |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Medium | **AWS's default use of voice input is not opted out.** AWS documents that Transcribe stores and uses voice inputs to improve the service unless the account opts out through AWS Organizations. The account is in no organization. | `organizations` API, 2026-11-05 | Any use of Talk | Set the opt-out policy on the account |
-| 2 | Medium | **A page open across a server restart does not reconnect by itself.** A refused handshake reaches the browser as close code 1006, and `link.ts` drops its id only on 4404 or 1008. Plan recovers it; Talk does not. | Real server, 2026-11-05: first Plan 6.3 s and the calm line, link back 23 s later, next Plan 1.6 s. `tests/failure-modes.spec.ts` | A restart or crash with pages open | `link.ts`: a close before the hello means an unknown session. `listen.ts`: drop the session on a 401 |
-| 3 | Low to medium | **Removing a panel retains memory.** About 3.3 MB of JS heap per board, 0.4 MB and one geometry per timer. Linear over 85 rounds, with no plateau. Cards, comfort changes and idle time are flat. | 85 rounds of each kind, after forced collections. `tests/failure-modes.spec.ts` holds it from growing | Creating and removing boards or timers repeatedly. About 20 board cycles pass the 150 MB budget | `pinned.ts`: `dispose()` for `destroy()` removes the geometry, shown by redirecting the call in memory. The JS retention is **not yet explained**; it is not `livePanels` |
-| 4 | Low | **Persistent anchors are never deleted.** Meta's documentation allows a site 8. Past that, the fit stands for the visit, but the layout is saved relative to the new anchor under the old handle. | Refusal simulated in IWER, viewer moved 0.5 m: every board 0.500 m out on return. `tests/failure-modes.spec.ts` | Eight or more fits in one browser, then a change of seat | Delete the previous anchor; never save under a mismatched handle |
+| 2 | Fixed | **A page open across a server restart did not reconnect by itself.** A refused handshake reaches the browser as close code 1006, and `link.ts` kept offering its id. Plan recovered it; Talk did not. | Before, real server: first Plan 6.3 s and the calm line, link back 23 s later. After, production task replaced under an open page: link back 2.2 s after the socket dropped, no press. `tests/failure-modes.spec.ts` | A restart or crash with pages open | `a2768d0`: the link asks the socket's path over HTTP (401: new session; 400: keep it), a press wakes it, and Talk retries on a 401 |
+| 3 | Fixed | **Removing a panel retained memory.** About 3.3 MB of JS heap per board, 0.4 MB and one geometry per timer, linear. The cause: a UIKit component's `dispose()` stops only itself and IWSDK's document disposes only its root, so every other component kept its Yoga node, whose measure function kept the whole panel. | Heap snapshots gave the chain. After, over 85 rounds of each kind: about 0.02 MB per panel and levelling off; geometries and textures unchanged; WebAssembly memory flat at 16 MB over 160 panels. Desktop Chromium, not a headset. `tests/failure-modes.spec.ts` | Creating and removing boards or timers repeatedly | `a2768d0`: every component stops, children first, and the entities use `dispose()` (`pinned.ts`) |
+| 4 | Fixed | **Persistent anchors were never deleted.** Meta's documentation allows a site 8. Past that, the fit stood for the visit, but the layout was saved relative to the new anchor under the old handle. | Before, refusal simulated in IWER, viewer moved 0.5 m: every board 0.500 m out on return. After: 12 fits under a simulated limit never refused, and the last layout returned within 1 cm. Emulated. `tests/failure-modes.spec.ts` | Eight or more fits in one browser, then a change of seat | `a2768d0`: each fit deletes the earlier anchors first, keeps IWSDK's own, never asks for a ninth, and never saves under a mismatched handle |
 | 5 | Low | **A ray pinch held longer than 800 ms presses nothing,** with no feedback. This is the default of IWSDK's ray pointer. | `tests/edge-cases.spec.ts`; 500 ms pressed, 1,000 ms did not | Slow motor release | Raise `clickThresholdMs` |
 | 6 | Low | **After a pinch slides off a control, the next pinch is lost.** | `tests/edge-cases.spec.ts` | A changed mind | Report upstream |
 | 7 | Low | **Two Nova attempts can outlast the client's patience** (6 s each against 7 s), and the line then says "network". | `AgentApi.kt`, `Planner.kt`, `client.ts` | A late invalid plan and a slow retry | A shared deadline across attempts |
@@ -22,6 +22,7 @@ our own judgement of the effect on a person using the app during judging.
 | 13 | Low | **No alarms on this stack,** and the daily AI cap is shared and in memory. | `aws cloudwatch describe-alarms` | An outage goes unnoticed | Alarms on 5xx and unhealthy hosts |
 | 14 | Accepted | **One task, one region, state in memory.** Knowingly accepted for a competition. | `SpatialDeskStack.kt` | Task failure | See the [roadmap](ROADMAP.md) |
 | 15 | Accepted | **No offline first load.** The page must be open before the network goes. | `tests/edge-cases.spec.ts` | Opening with no connection | A service worker |
+| 16 | Low | **Two development notes are published with the site,** `ui/AGENTS.md` and `scenes/AGENTS.md`. They hold tooling guidance and no secrets. | HTTP 200, 2026-11-05 | Anyone who requests them | Keep them out of `public/` |
 
 The largest finding is one no test here can address: **it has not run on a physical headset**. See the [hardware document](HARDWARE_MITIGATION.md).
 
@@ -40,9 +41,10 @@ The largest finding is one no test here can address: **it has not run on a physi
 | Helper data | Strict JSON at the boundary; titles and columns only; nothing shared until the owner approves |
 | WebXR requests | `requiredFeatures` empty in both modes, by test |
 | Production after the change | Revision 16 on the same image, rollout `COMPLETED`, 40 more sessions from one network all accepted, connection and clock sync passing, and 6 of 6 real plans in 1.8 to 2.3 s |
+| Production after the fixes | Client from `a2768d0` live, task replaced on revision 16, rollout `COMPLETED`, connection and clock sync passing, a real plan in 1.7 s, and real speech through Transcribe reaching the agent |
 
 ## How the failure modes were tested
 
-`tests/failure-modes.spec.ts` adds 14 scenarios, run in the emulator: a server restart, the session limit, the headset coming off in mid-glide, a half-second stall, the system menu, a switch between
-controllers and hands, a refused session, a refused microphone, blocked storage, an erased anchor, an unreadable saved room, a refused anchor, unusable server answers, and a long sitting. They found findings 3 and 4 and
-confirmed finding 2 against the real server. Where a scenario pins a limit, its comment says so, so a fix will show up as a test to change.
+`tests/failure-modes.spec.ts` holds 20 scenarios, run in the emulator: a server restart, a press during the backoff, a dropped connection, Talk with a forgotten session, the session limit, the headset coming off in mid-glide, a half-second stall, the system menu, a switch between
+controllers and hands, a refused session, a refused microphone, blocked storage, an erased anchor, an unreadable saved room, twelve fits under the anchor limit, anchors left from before, no way to delete them, a refused anchor, unusable server answers, and a long sitting. They found findings 3 and 4 and
+confirmed finding 2 against the real server, and they now hold the fixes. They also stopped a first version of the anchor fix, which deleted IWSDK's own anchor and froze the render loop.

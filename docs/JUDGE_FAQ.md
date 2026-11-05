@@ -7,7 +7,7 @@ production service, as stated. Nothing here has run on a physical headset; the [
 ## 1. Every headset holds a WebSocket to one Fargate task. What does latency do to the frame loop, and what happens when that task dies?
 
 **Short answer: latency cannot reach the frame loop, because nothing in it touches the socket. When the task dies, the cards never
-notice, and the AI recovers within about 30 s of the next Plan.**
+notice, and an open page reconnects by itself: 2.2 s, when we replaced the production task under one.**
 
 The socket carries a hello, pings and keep-alives, and no workspace state. Workspace changes run through a local copy of the engine and persist
 to IndexedDB; AI requests are separate HTTPS calls. `src/backend/link.ts` has no per-frame code. The clock sampled over the socket is reported
@@ -17,25 +17,28 @@ by the link, and no feature depends on it today.
 | --- | --- |
 | Round trip, a development machine in Europe through CloudFront to `us-east-1` | 127 to 129 ms |
 | Server keep-alive | every 25 s (ALB idle timeout 300 s) |
-| Reconnection | Full jitter, 0.5 to 30 s |
+| Reconnection | Full jitter, 0.5 to 30 s; a press of Plan or Talk wakes it at once |
 | Plan my day, press to preview, 6 of 6 | 1.8 to 2.3 s, with Nova taking 1.6 to 2.1 s |
 | The first plan after a cold start | 4.3 s |
 
-Deployment is one 0.25 vCPU task, with a circuit breaker that rolls back a failed release. We replaced it live on 2026-11-05 with a
-production page held open: the new task served requests and a fresh page connected at once.
+Deployment is one 0.25 vCPU task, with a circuit breaker that rolls back a failed release. Sessions live in the server's memory, so a new task does not
+know the old ids, and a refused handshake reaches the browser as a plain close (1006), the same as a lost network. So before reconnecting, the link asks
+the socket's path over HTTP (`src/backend/link.ts`). A 401 means the server does not know the id, and the link takes a new session. A 400 means it does, and
+the link keeps it, so a dropped connection does not lose a helper pairing.
 
-**The limit, found by that same test.** The page held open did not reconnect by itself. Sessions live in the server's memory, so
-the new task refuses the old id; the refused handshake reaches the browser as a plain close (1006), and the link only drops its id on close codes 4404
-or 1008, so it keeps offering the old one. We then gave a page an id the real server had never issued, which is the same state, and measured the way back:
+We replaced the task live on 2026-11-05 with a production page held open, and nobody touched that page:
 
-- Before any press, the link loops. The cards do not use it, which is tested in the emulator.
-- The first **Plan** receives a 401, which drops the id, and ends after 6.3 s in *"Network issue. Switched to manual mode."*
-- The link was back 23 s after that press, and the next Plan answered in 1.6 s.
-- **Talk** alone does not recover it: its endpoint answers *"Your session expired. Reconnecting, try again in a moment."*, and only the agent's path drops the id.
-- A reload starts a new session at once.
+| After the socket dropped | Time |
+| --- | --- |
+| The link retries, finds its id unknown, and is issued a new session | 1.3 s |
+| Online again | 2.2 s |
+| The next Plan, answered by Nova, the new task's first | 3.6 s after that |
 
-The trigger is a restart while a page is open, and none is planned during judging. The fix is identified and small, and is not shipped because the
-code is frozen. It is pinned in `tests/failure-modes.spec.ts` and listed in the [audit](ENGINEERING_AUDIT.md).
+**A press does not wait for the backoff.** With 16 s of backoff still to run, Plan answered in 0.6 s in the emulator. **Talk** recovers the same way: on a 401 it
+takes a fresh session and asks again, in the same press (`tests/failure-modes.spec.ts`).
+
+**The limits.** That is one real replacement, measured once. The old and new tasks overlapped, so there was no outage to sit through. In a real outage the link retries with
+backoff of up to 30 s, and a press in the meantime ends in the calm line. A new session also starts its per-session quotas afresh, as a reload does.
 
 ## 2. What are your Bedrock limits, and what does a judge see when you hit one?
 
@@ -75,12 +78,15 @@ so its output is structured or it is rejected.
 
 ## 3. How do your spatial anchors persist, and what happens when they do not?
 
-**Short answer: one persistent anchor per fit, on the floor under the viewer, with every panel's pose stored relative to it in the browser. Each failure
-we could simulate ends in a plain line or a fit that lasts for the visit. One leaves the layout misplaced.**
+**Short answer: one persistent anchor of ours, replaced by each fit, on the floor under the viewer, with every panel's pose stored relative to it in the browser. Each failure
+we could simulate ends in a plain line or a fit that lasts for the visit, and none brings a layout back in the wrong place.**
 
-*Fit room* (`src/room/room-system.ts`) creates an anchor inside an XR frame, requests a persistent handle, and stores the handle with every board's and
+*Fit room* (`src/room/room-system.ts`) creates an anchor inside an XR frame, deletes the earlier ones, requests a persistent handle, and stores the handle with every board's and
 timer's pose relative to the anchor, in `localStorage`. On entering the room again it restores the anchor by handle and places everything once, relative to where the
 anchor now is. Only the anchor's pose is read per frame; planes are read only when fitting. Boards are not parented to the anchor.
+
+Meta's guide says a site can create 8 persistent anchors at a time. SpatialDesk's site holds two: ours, and one that IWSDK keeps for scene understanding. IWSDK reads its anchor every frame, so
+that one is never deleted. A ninth is never asked for, and nothing is saved under a handle it does not belong to.
 
 | Case | Behaviour | Test |
 | --- | --- | --- |
@@ -88,14 +94,17 @@ anchor now is. Only the anchor's pose is read per frame; planes are read only wh
 | The anchor is gone | *"I could not find your room layout here..."*; nothing applied; Fit room replaces the memory | `tests/failure-modes.spec.ts` |
 | The saved record is unreadable | Ignored; the room opens | `tests/failure-modes.spec.ts` |
 | Anchors unavailable | The fit holds for the visit | `tests/edge-cases.spec.ts` |
+| Twelve fits from twelve seats, under a simulated limit of 8 | Never refused; one anchor of ours throughout; the last layout returns within 1 cm | `tests/failure-modes.spec.ts` |
+| 8 anchors already held, and a deletion that never answers | The old ones go, IWSDK's stays, and the fit is remembered | `tests/failure-modes.spec.ts` |
+| A handle refused, or at the limit with no way to delete | *"Fitted for this visit: the headset could not remember this room."*; nothing saved | `tests/failure-modes.spec.ts` |
 
 **The limits.**
 
 - **All of this is emulated.** IWER's anchors are a model. Real relocalisation, and real drift, have never been tried.
-- **Old anchors are never deleted.** Each Fit room creates another persistent anchor, and Meta's documentation allows a site 8 at a time. Past that, the refusal
-  is caught, so the fit stands for the visit. But the layout is then saved relative to the new anchor under the *old* handle. We simulated the refusal after moving the
-  viewer 0.5 m: on the next visit every board was exactly 0.500 m out. It takes eight or more fits in one browser, plus a change of seat. The fix is
-  identified and is not shipped because the code is frozen.
+- **Deleting anchors is not in Meta's guide.** `deletePersistentAnchor` comes from the WebXR Anchors draft, and whether Quest Browser implements it has not been tried. If it does not, the
+  limit still holds, and the fit stops being remembered once 8 are held.
+- **A fit gives up the old memory first.** The earlier anchor goes before the new handle is confirmed, so if the headset then refuses the handle, the earlier layout is gone too, and the next fit starts it again.
+- **One room per browser profile.** A fit in another room replaces the last.
 - **No correction during a session.** Placement happens once on entry, so a relocalisation in mid-session is not followed.
 - **It belongs to one browser profile.** Per Meta's documentation, private mode does not persist anchors and clearing the site's history deletes them.
 

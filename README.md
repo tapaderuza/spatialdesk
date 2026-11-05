@@ -16,9 +16,10 @@ from an ordinary phone while the person in the headset stays in control.
 
 **The engineering advantage.** The AI accelerates SpatialDesk, and the workspace never depends on it. Boards live in the browser
 and no card operation waits for a server, so losing the network in mid-session costs one calm line, and voice and AI return with the
-network, with no reload. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
+network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
+replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 218 browser scenarios, a performance gate and 13 synthetic
+session. Every AI and speech call sits behind session and daily caps, and 224 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
 headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
 
@@ -32,7 +33,7 @@ headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is wri
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 218 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 224 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 24.6 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5) |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -190,11 +191,7 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
   and tested as stored preferences, but this build has no control for them. WCAG 2.2.1 Timing Adjustable and 2.3.3 Animation
   from Interactions and XAUR REQ 15b and 18a are therefore not claimed.
 - **Network.** Voice control and the AI need a connection, and listening starts from the Talk control, with no wake word.
-- **Server restart.** A page open across one does not reconnect by itself: the cards keep working, the AI returns after the next
-  Plan, and a reload recovers at once.
-- **Memory.** Removing a board or a timer retains some memory. It is harmless in a short session and matters for all-day use.
-- **Room memory.** Each Fit room leaves a persistent anchor behind. Past the limit a site is allowed, a later layout can come back
-  misplaced.
+- **Room memory.** The app remembers one room per browser profile, and a new fit replaces the last.
 
 Exact test instructions are in the [technical judge's guide](docs/JUDGE_GUIDE.md). Every finding, with its evidence, is in the
 [engineering audit](docs/ENGINEERING_AUDIT.md).
@@ -259,7 +256,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 218 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 224 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.

@@ -10,14 +10,21 @@ The application (`src/`, `public/`, `server/`, configuration, dependencies, test
 `docs/video/`) are under an absolute freeze. The owner reopened the video pipeline twice: once so the sound effects sit
 where their panels are on screen, and once for the second version of the video (two of Meta's synthetic rooms, the
 glide's before and after). Otherwise release preparation changed documentation only: this report, the
-[README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. Production keeps
-serving the same build.
+[README](../README.md), the [submission text](META_SUBMISSION.md), and status notes in the historical logs. Production kept
+serving the same build until 2026-11-05.
 
 **One production configuration change, 2026-11-05, on the owner's instruction:** the per-network session limit went from 30 to
 200 per hour, through the task's environment (ECS task revision 16, the same image), so that judges behind one shared address do
 not run into it. `src/` and `server/` are unchanged, so the repository's default is still 30; see
 [the audit](ENGINEERING_AUDIT.md), finding 9. The owner also opened the tests and the documentation to additions on that date
 (log block 41).
+
+**Three defects fixed, 2026-11-05, on the owner's instruction:** the freeze was lifted for them alone and then restored (commit
+`a2768d0`; `src/` only, `server/` unchanged). An open page now reconnects by itself after a server restart, removed panels free their
+memory, and each Fit room replaces its persistent anchor. Docker Desktop was unavailable, so `scripts/deploy.mjs` could not run: the
+client went to the same bucket with the same headers, followed by a CloudFront invalidation, which is what the script's
+`SiteDeployment` step does. The task stays on revision 16. The suite now has 224 scenarios; the video and the Devpost entry still quote
+199 and 24.6 ms, from the run they were made on (log block 42).
 
 ## Gold Master
 

@@ -99,7 +99,7 @@ The per-network limit is set in production through the task's environment (`SPAT
 | Network, before loading | The page does not load | Reconnect and open it |
 | Nova slow, throttled or wrong | A labelled plan from the built-in planner | Per request |
 | Transcribe unavailable | Calm line; visible controls work | Per request |
-| Server task restarts | Cards work; AI needs one Plan and up to 30 s, or a reload | See the [FAQ](JUDGE_FAQ.md#1-every-headset-holds-a-websocket-to-one-fargate-task-what-does-latency-do-to-the-frame-loop-and-what-happens-when-that-task-dies) |
+| Server task restarts | Cards work; an open page reconnects with a new session (2.2 s measured); a press during an outage gets the calm line | By itself. See the [FAQ](JUDGE_FAQ.md#1-every-headset-holds-a-websocket-to-one-fargate-task-what-does-latency-do-to-the-frame-loop-and-what-happens-when-that-task-dies) |
 | Daily AI cap spent | Plain line; everything else works | 00:00 UTC, or a restart |
 | A WebXR capability missing | That feature is absent | See the [hardware document](HARDWARE_MITIGATION.md#1-api-tolerance-requiredfeatures-is-empty) |
 | Browser storage blocked | The visit works; nothing is remembered | Next visit, if allowed |
@@ -120,7 +120,7 @@ The frame budget is treated as a hard requirement:
 | Layer | What | When |
 | --- | --- | --- |
 | Type check | TypeScript, strict | Every push, by a pre-push hook |
-| Browser scenarios | 218 in Meta's IWER emulator, on the production build | Every push |
+| Browser scenarios | 224 in Meta's IWER emulator, on the production build | Every push |
 | Performance gate | Frame, allocation, draw calls, triangles, heap | Every push |
 | Size budget | 2.5 MB gzipped | Every push |
 | JVM tests | Server, shared engine, infrastructure | Every deploy through `scripts/deploy.mjs` |

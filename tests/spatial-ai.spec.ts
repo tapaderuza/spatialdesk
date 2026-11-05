@@ -227,6 +227,7 @@ test('3D sound: the click comes from the button pushed; a glide breathes from it
   await page.evaluate(() => (window as Win).__world.launchXR());
   await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
   await frames(page, 20);
+  await settled(page); // a panel still sliding after entering would move the button between measuring it and pushing it
 
   // The click: pushed with a fingertip, it sounds from the button itself, where the finger has pushed it (the key
   // gives way, up to 12 mm back into its panel: src/ui/poke.ts).

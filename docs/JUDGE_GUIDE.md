@@ -35,7 +35,8 @@ own storage (IndexedDB), and no card operation waits for a server.
 - At step 4, each request ends with one plain line, *"Network issue. Switched to manual mode."*, with no error tone. The
   app waits at most 7 seconds (`AI_PATIENCE_MS`, `src/backend/resilience.ts`); a request that fails outright ends sooner.
 - At step 5, everything works as before, because none of it uses the network.
-- At step 6, the AI answers again with no reload. The connection retries by itself, with backoff of up to 30 seconds.
+- At step 6, the AI answers again with no reload. The connection retries by itself, with backoff of up to 30 seconds, and the
+  press itself wakes it, so it does not wait that long.
 
 **Two details you may notice**
 
@@ -47,8 +48,10 @@ own storage (IndexedDB), and no card operation waits for a server.
 
 **Verified:** in the emulator with the browser's network really offline (`tests/edge-cases.spec.ts`, `tests/resilience.spec.ts`),
 and against production the same way (AI and voice requests each ended in about 0.5 s; the card move and re-entering worked; the
-AI came back after reconnecting). **Not verified:** the behaviour of the Quest's own Wi-Fi switch. A server restart is a different
-case: see Known limits.
+AI came back after reconnecting). **Not verified:** the behaviour of the Quest's own Wi-Fi switch.
+
+A server restart is a different case, and it recovers by itself too. With a production page held open while the server was replaced
+on 2026-11-05, the link was back 2.2 s after the socket dropped, with a new session, no press and no reload, and the next Plan answered.
 
 ## 2. Performance and comfort
 
@@ -142,7 +145,7 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 218 browser scenarios: the 199 quoted in the video and the submission, plus five in `tests/edge-cases.spec.ts` and 14 in
+The suite has 224 browser scenarios: the 199 quoted in the video and the submission, plus five in `tests/edge-cases.spec.ts` and 20 in
 `tests/failure-modes.spec.ts`.
 
 ## 6. Known limits
@@ -152,8 +155,6 @@ The suite has 218 browser scenarios: the 199 quoted in the video and the submiss
 - **After a pinch that slides off a control into empty space, the next pinch is lost.** The one after it works.
 - **One-switch scanning covers the command panel and the agent's card**, not the cards on the boards.
 - **Voice and the AI need the network**, and listening starts from the **Talk** control: there is no wake word.
-- **A page open across a server restart does not reconnect by itself.** The cards keep working. The next **Plan my day** ends in the calm
-  line, the link returns within about 30 s, and the Plan after that answers. **Talk** alone does not recover it, and a reload does at once.
 - **Each network can open 200 new sessions per hour.** Past that, the link retries, the AI gives the calm line, and the cards keep working.
 - **The AI has 300 plans per day across all users, and voice 600 listens.** Past that, a plain line says so, and the cards keep working.
 - **No study with people, on any device, has been run yet.**

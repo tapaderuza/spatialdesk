@@ -9,9 +9,6 @@ These come first, because they are known. Each is recorded with its evidence in 
 
 | Defect | Change |
 | --- | --- |
-| A page open across a server restart does not reconnect by itself, and Talk does not recover it | Treat a socket that closes before its hello as an unknown session (`src/backend/link.ts`); drop the session on a 401 in `src/voice/listen.ts` |
-| Each Fit room leaves a persistent anchor behind, and past Meta's limit of 8 a layout is saved under the wrong handle | Delete the previous anchor before creating another (`src/room/room-system.ts`); never save under a handle that does not match the anchor |
-| Removing a panel retains memory | `entity.dispose()` instead of `entity.destroy()` in `src/workspace/pinned.ts`, shown to remove the geometry; then find what retains the JS heap |
 | A ray pinch held longer than 800 ms presses nothing, and the pinch after a slide-off is lost | Raise `clickThresholdMs` in IWSDK's ray pointer, and report the second upstream |
 | The per-network limit lives only in the deployed task's environment | Move it into `SpatialDeskStack.kt` |
 | No AI-services opt-out on the AWS account | Set one through AWS Organizations |

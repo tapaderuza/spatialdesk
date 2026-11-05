@@ -34,6 +34,7 @@ every request, asserts that `requiredFeatures` is empty in both modes, withholds
 | Anchors | `frame?.createAnchor` is guarded; its promise is caught | The fit holds for the session, without being remembered |
 | Persistent handles | `requestPersistentHandle` is checked before use | Same: no memory across visits |
 | Restoring an anchor | `restorePersistentAnchor` rejection is caught | *"I could not find your room layout here..."*; nothing is applied |
+| Keeping another anchor (Meta's guide: 8 for a site) | Each fit deletes the earlier ones first, and a ninth is never asked for | Never reached in 12 fits under a simulated limit. If refused: *"Fitted for this visit..."*, and nothing is saved under a handle it does not belong to |
 | Eye tracking | Hands-free aims with the head | Dwell still works |
 | The whole session (`NotAllowedError`) | The page stays in 2D | Workspace unchanged; the next try enters |
 | Microphone | The refusal returns before any network call | A plain line; the server is never asked |
@@ -82,9 +83,11 @@ under identical conditions**: production build, IWER, the same machine, the CPU 
 - **GPU time is not included.** IWER does not model it. Fill rate, translucent panels stacked in depth, passthrough compositing and
   text rendering at headset resolution are the likeliest places for a surprise, and none has been measured.
 
-**Memory.** A long sitting of card and comfort changes leaves nothing behind: after 160 changes the scene held the same 553 objects and
-the JS heap had grown about 1 MB. Removing a panel does retain memory: about 3.3 MB per board and 0.4 MB plus one geometry per timer. That
-is harmless in a judging session and a real defect for all-day use. It is recorded in the [engineering audit](ENGINEERING_AUDIT.md).
+**Memory.** A long sitting leaves nothing behind: after 160 card and comfort changes the scene held the same 553 objects and the JS heap
+had grown about 1 MB. Removing a panel now frees it. Over 85 rounds of each kind the JS heap grew about 0.02 MB per board or timer and was
+levelling off, geometries and textures did not change, and the WebAssembly memory stayed at 16 MB over 160 panels. Before the fix of
+2026-11-05 a board kept 3.3 MB and a timer 0.4 MB and a geometry, without limit; the cause is in the
+[engineering audit](ENGINEERING_AUDIT.md). These are desktop Chromium figures in the emulator. Quest Browser's own memory has not been measured.
 
 ## 3. Hand jitter: steady aim
 
@@ -122,7 +125,7 @@ local copy of the engine, and nothing per-frame touches a socket. "Manual mode" 
 | Waiting for a session within it | 4 s | `src/agent/client.ts` |
 | One Nova call, retries included | 6 s, then the labelled built-in planner | `timeout-seconds`, `application.yml` |
 | Connecting to voice | 7 s; nothing heard, 6 s | `src/voice/listen.ts` |
-| Reconnecting | Full jitter, 0.5 to 30 s | `src/backend/link.ts` |
+| Reconnecting | Full jitter, 0.5 to 30 s; a press of Plan or Talk wakes it at once | `src/backend/link.ts` |
 | Opening storage | 2 s, then a fresh start | `src/workspace/store.ts` |
 
 **Measured against production.** With the browser's network really cut (2026-11-04), Plan and Talk each ended in about 0.5 s with
@@ -131,9 +134,9 @@ local copy of the engine, and nothing per-frame touches a socket. "Manual mode" 
 **What remains open.**
 
 - **The first load needs a connection.** There is no offline cache, so the page must already be open.
-- **A server restart is a different case from a lost network.** A page that stays open across one does not reconnect by itself. Measured on
-  2026-11-05 against the real server: the first Plan ends in the calm line after 6.3 s, the link returned 23 s after that press, and the next Plan
-  answered in 1.6 s. The cards do not use the link, which is tested in the emulator. Talk alone does not recover it, and a reload does at once. See the
+- **A server restart is a different case from a lost network, and it recovers by itself.** With a production page held open while the server was
+  replaced on 2026-11-05, the link was back 2.2 s after the socket dropped, with no press and no reload. That is one replacement, measured once. A press
+  during a real outage still ends in the calm line. See the
   [FAQ](JUDGE_FAQ.md#1-every-headset-holds-a-websocket-to-one-fargate-task-what-does-latency-do-to-the-frame-loop-and-what-happens-when-that-task-dies).
 - **The Quest's own Wi-Fi switch** has not been tried.
 
