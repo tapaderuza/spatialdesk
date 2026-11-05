@@ -9,7 +9,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { findDesk, fitToRoom, invertRigid, matrixPose, multiply, poseMatrix, type RoomPlane } from '../src/room/fit.js';
 import type { Workspace } from '../src/workspace/model.js';
-import { frames, openWorkspace, pressXR, tap, turnHead, type Win } from './helpers.js';
+import { frames, openWorkspace, pressXR, settled, tap, turnHead, type Win } from './helpers.js';
 
 const viewer = { x: 0, y: 1.2, z: 0, yaw: 0, pitch: 0 };
 const table: RoomPlane = { orientation: 'horizontal', label: 'table', center: [0, 0.75, -0.65], normal: [0, 1, 0], tangent: [1, 0, 0], min: [-0.8, -0.38], max: [0.8, 0.38] };
@@ -186,6 +186,7 @@ test('a headset with no room scan is asked for one, once a session and only when
 
   // Right after entering, the planes may still be on their way: no scan yet, as Meta's guide asks.
   await inRoomWithScan();
+  await settled(page); // entering rearranges the panels once, before anything is asked of it
   const before = await poses(page);
   await page.evaluate(() => ((window as Win).__room.roomSince = performance.now()));
   await fit();
