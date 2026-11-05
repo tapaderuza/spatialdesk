@@ -26,6 +26,9 @@ client went to the same bucket with the same headers, followed by a CloudFront i
 `SiteDeployment` step does. The task stays on revision 16. The suite now has 224 scenarios; the video and the Devpost entry still quote
 199 and 24.6 ms, from the run they were made on (log block 42).
 
+**Privacy, 2026-11-05, on the owner's instruction:** the AWS account now belongs to an organization whose AI services opt-out policy covers
+every service, read back as `optOut`, and [the privacy policy](PRIVACY.md) is public. No code changed (log block 43).
+
 ## Gold Master
 
 | | |

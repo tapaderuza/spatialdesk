@@ -110,8 +110,8 @@ that one is never deleted. A ninth is never asked for, and nothing is saved unde
 
 ## 4. Do you collect biometric data from voice? Where does the audio go, and who keeps it?
 
-**Short answer: we compute no voiceprint, store no audio, and audio never touches our server. AWS's handling of the stream is the one thing we cannot
-vouch for, and we say exactly why below.**
+**Short answer: we compute no voiceprint, store no audio, and audio never touches our server. AWS's use of voice input to improve its services is switched off for this
+account, by a policy that can be read back from the account. The [privacy policy](PRIVACY.md) is public.**
 
 **What the app does.** The microphone opens only when the person selects Talk; there is no wake word. The browser converts it to 16 kHz PCM and streams it directly to Amazon
 Transcribe over TLS, on a URL the server signs. The tracks stop when the utterance ends. The request names a language, an encoding and a sample rate and nothing else: no
@@ -122,13 +122,30 @@ Transcribe. Refusing the microphone costs nothing, and the rest of the app works
 timings and token counts. They do not log the request or the transcript. A rejected plan's reason can quote a card title or a phrase from the plan, and logs are kept for 14 days.
 AWS states that Bedrock does not store prompts and completions or use them to train models, and model invocation logging is not enabled on this account (checked 2026-11-05).
 
-**The limit: AWS's default for Transcribe.** AWS documents that by default Transcribe stores and uses the voice inputs it processes to develop and improve the service, unless the account
-opts out through an AWS Organizations policy. Its service card separately says that streaming audio and transcripts are not stored at rest beyond the session, and the pages
-do not reconcile the two. **As of 2026-11-05 this account has no such opt-out in force.** So we do not claim that AWS retains nothing.
+**AWS's default, and our opt-out.** AWS documents that by default Transcribe stores and uses the voice inputs it processes to develop and improve the service, unless the account
+opts out through an AWS Organizations policy. **This account has opted out.** Since 2026-11-05 an AI services opt-out policy for all services is attached at the organization's root, with child policies barred from
+changing it, and the account's effective policy reads `optOut` (`aws organizations describe-effective-policy --policy-type AISERVICES_OPT_OUT_POLICY`). AWS states that this stops the use of the content for service
+improvement and deletes the associated historical content, except what is needed to provide the service. It does not stop the transcription itself: the audio still goes to Transcribe.
+
+**Meta's policies.** We checked the app against Meta's Developer Data Use Policy, as updated on 2026-07-02, since microphone data counts as Device User Data there:
+
+| Clause | What it asks | What SpatialDesk does |
+| --- | --- | --- |
+| 2.2 | A public privacy policy: what is processed, how, why, and how to ask for deletion | [`docs/PRIVACY.md`](PRIVACY.md) |
+| 3.1 | Use only to run the app, for aggregated analytics, or for the law | Only to run the app. No analytics |
+| 4.3, 4.4, 4.6 | No sale; no profiling on disability or medical condition; no identifying people through AI | None of these. Comfort settings stay in the browser, and no voiceprint exists |
+| 4.11 | No device data to Meta through its business tools | The app contains none |
+| 5.1, 5.2 | Sharing only as the user directs, or with a service provider that does not use it for its own purposes | Selecting Talk or Plan is what sends it, and AWS is the only provider. The opt-out above is what ends AWS's own use |
+| 6.2, 6.3 | Deletion, and a clear way to ask for it | Clearing the site's data; logs expire in 14 days; requests by [issue](https://github.com/tapaderuza/spatialdesk/issues) |
+
+**The limits.** This is our own reading, not a certificate from Meta or a lawyer. The policy's text does not settle whether a web page capturing the microphone falls under Device User Data or Developer User Data, so we followed the stricter one. We have
+not had AWS's terms reviewed against clause 5.2. The Store steps that Meta ties to an app listing (an age group, an IARC rating) belong to the launch, and are in the [roadmap](ROADMAP.md).
 
 **What we do not claim.** No third party has audited this. It is not presented as compliant with any privacy or health regulation, and nobody should enter clinical data.
 
-Sources: [Transcribe opt-out](https://docs.aws.amazon.com/transcribe/latest/dg/opt-out.html),
+Sources: [Meta Developer Data Use Policy](https://developers.meta.com/horizon/policy/data-use/),
+[AWS AI services opt-out policies](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_ai-opt-out.html),
+[Transcribe opt-out](https://docs.aws.amazon.com/transcribe/latest/dg/opt-out.html),
 [Transcribe service card](https://docs.aws.amazon.com/ai/responsible-ai/transcribe-speech-recognition/overview.html),
 [Nova 2 Lite service card](https://docs.aws.amazon.com/ai/responsible-ai/nova-2-lite/overview.html).
 

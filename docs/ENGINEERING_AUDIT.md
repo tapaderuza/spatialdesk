@@ -1,13 +1,13 @@
 # Engineering audit
 
-A self-audit of the shipped build, made on 2026-11-05 with the production code frozen. **Findings 2, 3 and 4 were fixed the same day**, when the owner lifted the freeze for those three alone; **the others are recorded and not fixed**. It is not a third-party audit and not a penetration test. Severity is
+A self-audit of the shipped build, made on 2026-11-05 with the production code frozen. **Findings 2, 3 and 4 were fixed the same day**, when the owner lifted the freeze for those three alone, and **findings 1 and 17 needed no code**; **the others are recorded and not fixed**. It is not a third-party audit and not a penetration test. Severity is
 our own judgement of the effect on a person using the app during judging.
 
 ## Findings
 
 | # | Severity | Finding | Evidence | Trigger | Fix |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Medium | **AWS's default use of voice input is not opted out.** AWS documents that Transcribe stores and uses voice inputs to improve the service unless the account opts out through AWS Organizations. The account is in no organization. | `organizations` API, 2026-11-05 | Any use of Talk | Set the opt-out policy on the account |
+| 1 | Fixed | **AWS's default use of voice input was not opted out.** AWS documents that Transcribe stores and uses voice inputs to improve the service unless the account opts out through AWS Organizations. | Effective policy on the account, 2026-11-05: `{"services":{"default":{"opt_out_policy":"optOut"}}}` | Any use of Talk | An organization with an AI services opt-out policy for all services, attached at its root, that child policies cannot change |
 | 2 | Fixed | **A page open across a server restart did not reconnect by itself.** A refused handshake reaches the browser as close code 1006, and `link.ts` kept offering its id. Plan recovered it; Talk did not. | Before, real server: first Plan 6.3 s and the calm line, link back 23 s later. After, production task replaced under an open page: link back 2.2 s after the socket dropped, no press. `tests/failure-modes.spec.ts` | A restart or crash with pages open | `a2768d0`: the link asks the socket's path over HTTP (401: new session; 400: keep it), a press wakes it, and Talk retries on a 401 |
 | 3 | Fixed | **Removing a panel retained memory.** About 3.3 MB of JS heap per board, 0.4 MB and one geometry per timer, linear. The cause: a UIKit component's `dispose()` stops only itself and IWSDK's document disposes only its root, so every other component kept its Yoga node, whose measure function kept the whole panel. | Heap snapshots gave the chain. After, over 85 rounds of each kind: about 0.02 MB per panel and levelling off; geometries and textures unchanged; WebAssembly memory flat at 16 MB over 160 panels. Desktop Chromium, not a headset. `tests/failure-modes.spec.ts` | Creating and removing boards or timers repeatedly | `a2768d0`: every component stops, children first, and the entities use `dispose()` (`pinned.ts`) |
 | 4 | Fixed | **Persistent anchors were never deleted.** Meta's documentation allows a site 8. Past that, the fit stood for the visit, but the layout was saved relative to the new anchor under the old handle. | Before, refusal simulated in IWER, viewer moved 0.5 m: every board 0.500 m out on return. After: 12 fits under a simulated limit never refused, and the last layout returned within 1 cm. Emulated. `tests/failure-modes.spec.ts` | Eight or more fits in one browser, then a change of seat | `a2768d0`: each fit deletes the earlier anchors first, keeps IWSDK's own, never asks for a ninth, and never saves under a mismatched handle |
@@ -23,6 +23,8 @@ our own judgement of the effect on a person using the app during judging.
 | 14 | Accepted | **One task, one region, state in memory.** Knowingly accepted for a competition. | `SpatialDeskStack.kt` | Task failure | See the [roadmap](ROADMAP.md) |
 | 15 | Accepted | **No offline first load.** The page must be open before the network goes. | `tests/edge-cases.spec.ts` | Opening with no connection | A service worker |
 | 16 | Low | **Two development notes are published with the site,** `ui/AGENTS.md` and `scenes/AGENTS.md`. They hold tooling guidance and no secrets. | HTTP 200, 2026-11-05 | Anyone who requests them | Keep them out of `public/` |
+| 17 | Fixed | **There was no public privacy policy,** which Meta's Developer Data Use Policy asks for (2.2). | The repository, 2026-11-05 | Any use of the app | [`docs/PRIVACY.md`](PRIVACY.md), checked against the code |
+| 18 | Low | **The app's own page does not link to the privacy policy.** The README and the FAQ do. | `index.html`, frozen | Someone who only opens the app | A link on the page, with the next client release |
 
 The largest finding is one no test here can address: **it has not run on a physical headset**. See the [hardware document](HARDWARE_MITIGATION.md).
 

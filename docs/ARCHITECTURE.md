@@ -73,7 +73,7 @@ in progress as finished, and covered two of four stated needs; on 2026-10-29 "br
 | Session id, quota counters | Server memory | The server | Until the task restarts |
 | Operational logs | CloudWatch: intents, counts, timings, and a rejected plan's reason | The AWS account | 14 days |
 
-Browser storage is not encrypted, and this is not a clinical record.
+Browser storage is not encrypted, and this is not a clinical record. The [privacy policy](PRIVACY.md) states all of this for the people using the app, and the AWS account is opted out of AI services' use of this content for service improvement.
 
 ## 6. Limits
 

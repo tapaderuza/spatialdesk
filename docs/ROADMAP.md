@@ -11,8 +11,9 @@ These come first, because they are known. Each is recorded with its evidence in 
 | --- | --- |
 | A ray pinch held longer than 800 ms presses nothing, and the pinch after a slide-off is lost | Raise `clickThresholdMs` in IWSDK's ray pointer, and report the second upstream |
 | The per-network limit lives only in the deployed task's environment | Move it into `SpatialDeskStack.kt` |
-| No AI-services opt-out on the AWS account | Set one through AWS Organizations |
 | No Content Security Policy; a dependency advisory; no alarms on this stack | Add a policy, update `zod`, add alarms on 5xx and unhealthy hosts |
+
+Before a Store listing, Meta also asks for an age group, an IARC rating, a privacy policy link in the submission, and a Data Use Checkup if the app uses Platform SDK features. A link to the [privacy policy](PRIVACY.md) belongs on the app's own page.
 
 ## 2. Hardware validation
 

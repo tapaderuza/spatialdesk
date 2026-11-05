@@ -145,7 +145,8 @@ server, never in the browser.
 
 **Data sharing is explicit.** Workspace state is saved in browser storage. AI requests send the request and relevant
 workspace context to the backend and the model. Approved helper snapshots contain card identifiers, titles and column
-labels only: no notes, timers or comfort profile. Browser storage is not an encrypted clinical record.
+labels only: no notes, timers or comfort profile. Browser storage is not an encrypted clinical record. The AWS account is opted
+out of AI services' use of this content for service improvement, and the [privacy policy](docs/PRIVACY.md) states all of it.
 
 ## Accessibility & Inclusivity Standards
 
