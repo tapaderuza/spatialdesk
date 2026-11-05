@@ -18,6 +18,7 @@ import {
   PanelDocument,
   PanelUI,
   RayInteractable,
+  UIKit,
   Vector3,
   type Entity,
   type Object3D,
@@ -154,10 +155,10 @@ export class PinnedPanel {
     panels.delete(this.item);
     if (this.root.object3D) stopGlide(this.root.object3D); // a panel that slides away is not moved any more
     this.unshadow();
-    this.panel.destroy();
-    this.root.destroy();
-    this.handle.destroy();
-    this.material.dispose();
+    if (this.document) stopComponents(this.document.rootElement);
+    this.panel.dispose();
+    this.root.dispose();
+    this.handle.dispose(); // with the bar's geometry and material
   }
 
   private snapHandle(): void {
@@ -169,6 +170,16 @@ export class PinnedPanel {
 }
 
 const scratch = new Vector3();
+
+/**
+ * A UIKit component's dispose() stops only itself, and IWSDK's document disposes only its root. Left running, every other
+ * component keeps its layout node, and each text's node keeps its measure function, which holds the whole panel: about
+ * 3 MB a board, for as long as the page lives. So every component stops, children first.
+ */
+function stopComponents(object: Object3D): void {
+  for (const child of [...object.children]) stopComponents(child);
+  if (object instanceof UIKit.Component) object.dispose();
+}
 
 /** Yaw toward the eyes (panels face +Z: atan2(dx, dz)), pitched so a panel below eye level leans back. */
 function turnToFace(object: Object3D, from: Vector3, eye: Vector3): void {

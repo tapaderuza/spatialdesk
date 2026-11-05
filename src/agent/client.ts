@@ -2,7 +2,7 @@
  * The agent, from the headset's side: one HTTP call to the command server, which asks Amazon Nova for a plan and
  * validates it with the shared engine. Nothing changes here until the user applies the plan.
  */
-import { activeSession, forgetActiveSession } from '../backend/link.js';
+import { forgetActiveSession, waitForSession, wakeLink } from '../backend/link.js';
 import { AI_PATIENCE_MS } from '../backend/resilience.js';
 import { attentionFor } from '../ui/attention.js';
 import type { Op, Pose, Workspace } from '../workspace/model.js';
@@ -59,6 +59,7 @@ const OFFLINE: AgentPlan = {
 export async function requestPlan(intent: Intent, text: string, workspace: Workspace, viewer: Pose, context?: string, conversation: ConversationTurn[] = [], sessionChoice?: SessionChoice): Promise<AgentPlan> {
   const deadline = performance.now() + AI_PATIENCE_MS;
   const left = () => Math.max(1, deadline - performance.now());
+  wakeLink();
   const session = await waitForSession(Math.min(4000, left()));
   if (!session) return OFFLINE;
   const attention = attentionFor(text, workspace);
@@ -88,16 +89,6 @@ function post(session: string, body: string, timeoutMs: number): Promise<Respons
     body,
     signal: AbortSignal.timeout(timeoutMs),
   });
-}
-
-async function waitForSession(timeoutMs: number, not?: string): Promise<string | null> {
-  const until = performance.now() + timeoutMs;
-  for (;;) {
-    const id = activeSession();
-    if (id && id !== not) return id;
-    if (performance.now() > until) return null;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
 }
 
 /** "Tuesday 2026-10-07 09:10 (UTC+02:00)": the agent plans around the hours left today. */

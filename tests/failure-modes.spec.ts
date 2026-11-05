@@ -1,10 +1,10 @@
 /**
  * What a headset, a browser, a network or a server can do to a session in progress, in the IWER Quest 3 emulator:
- *  - the server restarts under a live page, or refuses a new session because the network is over its limit;
+ *  - the server restarts under a live page or the connection drops, or a new session is refused because the network is over its limit;
  *  - the headset comes off in the middle of a glide, the system menu opens, the frame rate hitches;
  *  - controllers are put down and hands picked up, and back;
  *  - the browser refuses the immersive session or the microphone, or stores nothing;
- *  - the headset no longer knows the saved room, or refuses another persistent anchor;
+ *  - the headset no longer knows the saved room, holds old anchors, or refuses a persistent anchor;
  *  - the server answers with something that is not a usable plan;
  *  - a long sitting, which must leave nothing behind.
  * Emulator results: they show the app's logic, not how a physical headset behaves. The limits they pin are in
@@ -37,47 +37,126 @@ const online = (page: Page, timeout = 45_000) => page.waitForFunction(() => (win
 const visible = (page: Page) => page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'visible', null, { timeout: 30_000 });
 const flat = (page: Page) => page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive', null, { timeout: 15_000 });
 
-test('the server restarts under a live page: the cards carry on, and after the next Plan the AI comes back with no reload', async ({ page }) => {
-  test.setTimeout(150_000);
-  await onboarded(page);
-  let restarted = false;
-  let issued = 0;
-  const live: WebSocketRoute[] = [];
-  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: `session-${++issued}`.padEnd(22, '0'), protocol: 1 } }));
+/**
+ * A server that sessions can be issued by, and that forgets them all when it restarts: the handshake is refused (which the
+ * browser sees as a plain close) and the socket's path answers 401 over HTTP to an id it does not know, 400 to one it knows.
+ */
+async function restartableServer(page: Page) {
+  const server = { up: true, issued: 0, known: new Set<string>(), live: [] as WebSocketRoute[], asked: [] as string[] };
+  const idIn = (url: string) => new URL(url).searchParams.get('session') ?? '';
+  await page.route('**/api/sessions', (route) => {
+    if (!server.up) return route.fulfill({ status: 503, body: 'Service Unavailable' });
+    const sessionId = `session-${++server.issued}`.padEnd(22, '0');
+    server.known.add(sessionId);
+    return route.fulfill({ json: { sessionId, protocol: 1 } });
+  });
+  await page.route('**/ws?*', (route) => route.fulfill({ status: !server.up ? 503 : server.known.has(idIn(route.request().url())) ? 400 : 401 }));
   await page.routeWebSocket('**/ws?*', (ws) => {
-    if (restarted && ws.url().includes('session-1')) return void ws.close({ code: 1011 }); // this server has never heard of it
-    live.push(ws);
+    if (!server.up || !server.known.has(idIn(ws.url()))) return void ws.close({ code: 1011 });
+    server.live.push(ws);
     hello(ws);
   });
-  await page.route('**/api/agent/plan', (route) =>
-    route.request().headers()['x-session'].startsWith('session-1')
-      ? route.fulfill({ status: 401, json: { ok: false, error: 'Your session expired. Reconnecting, try again in a moment.' } })
-      : route.fulfill({ json: PLAN }),
-  );
+  await page.route('**/api/agent/plan', (route) => {
+    const id = route.request().headers()['x-session'];
+    server.asked.push(id);
+    if (!server.up) return route.fulfill({ status: 503, body: 'Service Unavailable' });
+    return server.known.has(id) ? route.fulfill({ json: PLAN }) : route.fulfill({ status: 401, json: { ok: false, error: 'Your session expired. Reconnecting, try again in a moment.' } });
+  });
+  return {
+    server,
+    /** The task is replaced: the sockets drop and every session is forgotten. */
+    restart: async () => {
+      server.known.clear();
+      await Promise.all(server.live.splice(0).map((ws) => ws.close({ code: 1011 })));
+    },
+  };
+}
+
+test('the server restarts under a live page: the cards carry on, the link comes back by itself, and the next Plan just answers', async ({ page }) => {
+  test.setTimeout(150_000);
+  await onboarded(page);
+  const { server, restart } = await restartableServer(page);
   const errors = await enterXR(page);
   await online(page);
+  expect(server.issued).toBe(1);
 
-  restarted = true;
-  await live[0].close({ code: 1011 });
-  await page.waitForFunction(() => (window as Win).__link?.kind !== 'online', null, { timeout: 10_000 });
-
+  await restart();
   await pressXR(page, 'command:focus-button');
   expect(await timers(page), 'the hands never needed the server').toBe(1);
   await settled(page);
-  // Known limit: a refused handshake reaches the browser as a plain close, so the link alone keeps offering the old id.
-  await page.waitForTimeout(3_000);
-  expect(issued).toBe(1);
 
-  // The server's 401 to Plan is what drops the old id. That press may fall between the link's retries and end in the calm
-  // line; the link then takes a new session by itself, and the next press works.
+  await page.waitForFunction(() => (window as Win).__link?.kind === 'online' && !(window as Win).__link.sessionId.startsWith('session-1'), null, { timeout: 40_000 });
+  expect(server.issued, 'with nobody pressing anything').toBe(2);
+
+  server.asked.length = 0;
   await pressXR(page, 'command:plan-button');
-  await page.waitForFunction((text) => (window as Win).__agent.state.phase === 'preview' || (window as Win).__notice?.text === text, MANUAL, { timeout: 12_000 });
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 7_000 });
+  expect(server.asked.length, 'no refusal on the way').toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('a press does not sit out the backoff: with the link deep in its wait when the server returns, the first Plan answers', async ({ page }) => {
+  test.setTimeout(150_000);
+  await onboarded(page);
+  await page.addInitScript(() => {
+    Math.random = () => 0.999; // the longest wait, every time
+  });
+  const { server, restart } = await restartableServer(page);
+  const errors = await enterXR(page);
   await online(page);
-  expect(issued).toBe(2);
-  if ((await phase(page)) !== 'preview') {
-    await pressXR(page, 'command:plan-button');
-    await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
-  }
+
+  server.up = false;
+  await restart();
+  await page.waitForFunction(() => (window as Win).__link?.retryInMs > 12_000, null, { timeout: 60_000 });
+  const waitLeft: number = await page.evaluate(() => (window as Win).__link.retryInMs);
+
+  server.up = true;
+  const pressed = Date.now();
+  await pressXR(page, 'command:plan-button');
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 7_000 });
+  const took = Date.now() - pressed;
+  console.log(`WOKEN plan answered in ${took} ms, with ${Math.round(waitLeft)} ms of backoff to run`);
+  expect(took).toBeLessThan(5_000);
+  expect(took).toBeLessThan(waitLeft);
+  expect(errors).toEqual([]);
+});
+
+test('a connection lost while the server stays up keeps its session: no new one, so a helper pairing and the quotas carry on', async ({ page }) => {
+  await onboarded(page);
+  const { server } = await restartableServer(page);
+  const errors = await enterXR(page);
+  await online(page);
+  const first: string = await page.evaluate(() => (window as Win).__link.sessionId);
+
+  await server.live[0].close({ code: 1011 }); // the socket drops; the server still knows the id
+  await page.waitForFunction(() => (window as Win).__link?.kind !== 'online', null, { timeout: 10_000 });
+  await online(page);
+  expect(await page.evaluate(() => (window as Win).__link.sessionId)).toBe(first);
+  expect(server.issued).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('Talk meets a session the server has forgotten: it takes a fresh one and asks again, in the same press', async ({ page }) => {
+  await onboarded(page);
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.resolve(new MediaStream());
+  });
+  const { server } = await restartableServer(page);
+  const seen: string[] = [];
+  await page.route('**/api/voice/session', (route) => {
+    const id = route.request().headers()['x-session'];
+    seen.push(id);
+    return server.known.has(id) ? route.fulfill({ json: { ok: false, error: 'Voice is resting.' } }) : route.fulfill({ status: 401, json: { ok: false, error: 'Your session expired. Reconnecting, try again in a moment.' } });
+  });
+  const errors = await openWorkspace(page);
+  await online(page);
+
+  server.known.clear(); // forgotten, with the socket still up: only the press can find out
+  await tap(page, 'command:talk-button');
+  await page.waitForFunction(() => (window as Win).__notice?.text?.includes('Voice is resting'), null, { timeout: 7_000 });
+  expect(seen.length).toBe(2);
+  expect(seen[0].startsWith('session-1')).toBe(true);
+  expect(seen[1].startsWith('session-2')).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -358,39 +437,147 @@ test('a saved room that is not readable is ignored, and the room still opens', a
   expect(errors).toEqual([]);
 });
 
-test('the headset refuses another persistent anchor (Meta documents 8 for a site): the fit stands for the visit, with no error', async ({ page }) => {
-  test.setTimeout(120_000);
-  await onboarded(page);
-  const errors = await openWorkspace(page, '?emulate&room=office_small');
-  await page.evaluate(() => (window as Win).__xrDevice.position.set(0, 1.2, 0));
-  await enterRoom(page);
-  await fit(page);
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem('spatialdesk.room') ?? 'null')?.uuid, null, { timeout: 5_000 });
-  const first = (await saved(page))!.uuid;
-
-  await page.evaluate(() => {
-    const anchor = (window as Win).__room.anchor;
-    Object.getPrototypeOf(anchor).requestPersistentHandle = () => Promise.reject(new DOMException('Too many persistent anchors.', 'QuotaExceededError'));
-  });
-  await page.evaluate(() => (window as Win).__xrDevice.position.set(0.5, 1.2, 0)); // sitting somewhere else this time
+const boardPlaces = (page: Page) => page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => ({ x: b.pose.x, y: b.pose.y, z: b.pose.z })) as { x: number; y: number; z: number }[]);
+const persistentAnchors = (page: Page) => page.evaluate(() => (window as Win).__world.session.persistentAnchors as string[]);
+const sitAt = async (page: Page, x: number) => {
+  await page.evaluate((at) => (window as Win).__xrDevice.position.set(at, 1.2, 0), x);
   await frames(page, 5);
-  await fit(page);
-  await page.waitForTimeout(800);
-  expect(await page.evaluate(() => (window as Win).__room.state.lastFit.desk), 'the fit itself stands').toBe(true);
-  const after = (await saved(page))!;
-  const here = await page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => ({ x: b.pose.x, y: b.pose.y, z: b.pose.z })) as { x: number; y: number; z: number }[]);
-
+};
+const savedAnchorIsNot = (page: Page, uuid: string | undefined) =>
+  page.waitForFunction((old) => {
+    const room = JSON.parse(localStorage.getItem('spatialdesk.room') ?? 'null');
+    return room?.uuid && room.uuid !== old;
+  }, uuid, { timeout: 5_000 });
+/** Leaves the room and comes back; resolves once a remembered layout, if any, has had its moment to return. */
+const reenterRoom = async (page: Page) => {
   await page.evaluate(() => (window as Win).__world.exitXR());
   await flat(page);
   await frames(page, 30);
   await enterRoom(page);
+};
+/** IWSDK's own persistent anchor, for scene understanding, and at most one of ours: what the site should hold. */
+const expectOneOfOurs = async (page: Page, label: string) => {
+  const { iwsdk, all } = await page.evaluate(() => ({ iwsdk: localStorage.getItem('iwsdk_scene_anchor_uuid'), all: (window as Win).__world.session.persistentAnchors as string[] }));
+  expect(iwsdk, 'IWSDK kept its anchor').toBeTruthy();
+  expect([...all].sort(), label).toEqual([iwsdk!, (await saved(page))!.uuid].sort());
+};
+/** Earlier anchors left on the headset, under IWER's own storage for them: there when the session starts. */
+const leftBehind = (page: Page, count: number) =>
+  page.addInitScript((n) => {
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    localStorage.setItem('@immersive-web-emulation-runtime/persistent-anchors', JSON.stringify(Object.fromEntries(Array.from({ length: n }, (_, i) => [`left-behind-${i}`, identity]))));
+  }, count);
+
+test('Fit room twelve times, each from a new seat, under Meta\'s limit of 8: one anchor of ours throughout, and the last layout comes back in place', async ({ page }) => {
+  test.setTimeout(180_000);
+  await onboarded(page);
+  const errors = await openWorkspace(page, '?emulate&room=office_small');
+  await sitAt(page, 0);
+  await enterRoom(page);
+  await fit(page);
+  await savedAnchorIsNot(page, undefined);
+  // The emulator has no limit of its own: this one refuses the ninth, as Meta's guide says a site can only have 8.
+  await page.evaluate(() => {
+    const w = window as Win;
+    const proto = Object.getPrototypeOf(w.__room.anchor);
+    const real = proto.requestPersistentHandle;
+    w.__refused = 0;
+    proto.requestPersistentHandle = function () {
+      if (w.__world.session.persistentAnchors.length < 8) return real.call(this);
+      w.__refused++;
+      return Promise.reject(new DOMException('Too many persistent anchors.', 'QuotaExceededError'));
+    };
+  });
+  const handles = new Set([(await saved(page))!.uuid]);
+  for (let i = 1; i < 12; i++) {
+    await sitAt(page, i * 0.05);
+    const before = (await saved(page))!.uuid;
+    await fit(page);
+    await savedAnchorIsNot(page, before);
+    await expectOneOfOurs(page, `after fit ${i + 1}`);
+    handles.add((await saved(page))!.uuid);
+  }
+  expect(handles.size, 'each fit its own handle').toBe(12);
+  expect(await page.evaluate(() => (window as Win).__refused)).toBe(0);
+
+  const here = await boardPlaces(page);
+  await reenterRoom(page);
   await page.waitForFunction(() => (window as Win).__room.state.restored > 0, null, { timeout: 10_000 });
-  const back = await page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => ({ x: b.pose.x, y: b.pose.y, z: b.pose.z })) as { x: number; y: number; z: number }[]);
-  const offsets = back.map((p, i) => Math.hypot(p.x - here[i].x, p.y - here[i].y, p.z - here[i].z));
-  console.log(`ANCHOR REFUSED saved uuid unchanged=${after.uuid === first} restored offset m=${offsets.map((o) => o.toFixed(3)).join(',')}`);
-  // Known limit: the layout was saved relative to the new anchor under the old handle, so it comes back out by the change of seat.
-  expect(after.uuid).toBe(first);
-  for (const offset of offsets) expect(offset).toBeCloseTo(0.5, 2);
+  const back = await boardPlaces(page);
+  for (let i = 0; i < here.length; i++) expect(Math.hypot(back[i].x - here[i].x, back[i].y - here[i].y, back[i].z - here[i].z), `board ${i}`).toBeLessThan(0.01);
+  expect(errors).toEqual([]);
+});
+
+test('a headset already holding 8 anchors from before, and a deletion that never answers: the old ones go, IWSDK\'s stays, and the fit is remembered', async ({ page }) => {
+  test.setTimeout(120_000);
+  await onboarded(page);
+  await leftBehind(page, 7);
+  const errors = await openWorkspace(page, '?emulate&room=office_small');
+  await sitAt(page, 0);
+  await enterRoom(page);
+  await page.waitForFunction(() => localStorage.getItem('iwsdk_scene_anchor_uuid'), null, { timeout: 5_000 });
+  expect((await persistentAnchors(page)).length, 'seven, and IWSDK\'s').toBe(8);
+  // The WebXR Anchors draft's own steps never resolve this promise: it must not hold the fit up.
+  await page.evaluate(() => {
+    const proto = Object.getPrototypeOf((window as Win).__world.session);
+    const real = proto.deletePersistentAnchor;
+    proto.deletePersistentAnchor = function (uuid: string) {
+      void real.call(this, uuid);
+      return new Promise(() => {});
+    };
+  });
+  await fit(page);
+  await savedAnchorIsNot(page, undefined);
+  await expectOneOfOurs(page, 'after the fit');
+  expect(await page.evaluate(() => (window as Win).__glide.active() >= 0), 'the frame loop is still running').toBe(true);
+  await frames(page, 10);
+  expect(errors).toEqual([]);
+});
+
+test('a browser with no way to delete anchors and already at the limit: no ninth is asked for, the fit stands for the visit, and it says so', async ({ page }) => {
+  test.setTimeout(120_000);
+  await onboarded(page);
+  await leftBehind(page, 7);
+  const errors = await openWorkspace(page, '?emulate&room=office_small');
+  await sitAt(page, 0);
+  await enterRoom(page);
+  await page.waitForFunction(() => localStorage.getItem('iwsdk_scene_anchor_uuid'), null, { timeout: 5_000 });
+  await page.evaluate(() => {
+    Object.getPrototypeOf((window as Win).__world.session).deletePersistentAnchor = undefined;
+  });
+  await fit(page);
+  await page.waitForFunction(() => (window as Win).__notice?.text?.includes('could not remember this room'), null, { timeout: 5_000 });
+  expect((await notice(page))?.error).toBe(false);
+  expect(await page.evaluate(() => (window as Win).__room.state.lastFit.desk), 'the fit itself stands').toBe(true);
+  expect((await persistentAnchors(page)).length, 'no ninth').toBe(8);
+  expect(await saved(page)).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test('the headset refuses a persistent anchor: the fit stands for the visit, it says so, and no layout comes back in the wrong place', async ({ page }) => {
+  test.setTimeout(120_000);
+  await onboarded(page);
+  const errors = await openWorkspace(page, '?emulate&room=office_small');
+  await sitAt(page, 0);
+  await enterRoom(page);
+  await fit(page);
+  await savedAnchorIsNot(page, undefined);
+  await page.evaluate(() => {
+    const anchor = (window as Win).__room.anchor;
+    Object.getPrototypeOf(anchor).requestPersistentHandle = () => Promise.reject(new DOMException('Too many persistent anchors.', 'QuotaExceededError'));
+  });
+  await sitAt(page, 0.5); // sitting somewhere else this time
+  await fit(page);
+  await page.waitForFunction(() => (window as Win).__notice?.text?.includes('could not remember this room'), null, { timeout: 5_000 });
+  expect((await notice(page))?.error).toBe(false);
+  expect(await page.evaluate(() => (window as Win).__room.state.lastFit.desk), 'the fit itself stands').toBe(true);
+  expect(await saved(page), 'no layout under a handle it does not belong to').toBeNull();
+  expect(await page.evaluate(() => (window as Win).__room.remembers)).toBe(false);
+
+  // With nothing remembered, entering arranges around the viewer as on any first visit; it used to restore 0.5 m out.
+  await reenterRoom(page);
+  await frames(page, 30);
+  expect(await page.evaluate(() => (window as Win).__room.state.restored), 'nothing to bring back').toBe(0);
   expect(errors).toEqual([]);
 });
 
@@ -438,7 +625,7 @@ test('answers that are no use: a page of HTML, an empty object, a plan the engin
   expect(errors).toEqual([]);
 });
 
-test('a long sitting: cards and comfort changes leave nothing behind; a board or timer panel removed has a known, bounded cost', async ({ page }) => {
+test('a long sitting: cards, comfort changes, and boards and timers created and removed leave nothing behind', async ({ page }) => {
   test.setTimeout(180_000);
   await onboarded(page);
   const errors = await enterXR(page);
@@ -495,17 +682,21 @@ test('a long sitting: cards and comfort changes leave nothing behind; a board or
   expect(worked.textures).toBe(start.textures);
   expect(worked.heapMB - start.heapMB, 'JS heap, MB').toBeLessThan(4);
 
-  // Known limits, measured and held where they are: removing a panel keeps memory (src/workspace/pinned.ts uses
-  // entity.destroy(), which keeps a geometry, and the JS heap keeps about 3.3 MB per board and 0.4 MB per timer).
-  await rounds('board', 10);
+  // A panel removed used to keep about 3.3 MB (a board) or 0.4 MB and a geometry (a timer): UIKit stops only the component
+  // it is told to, so the rest of a panel stayed alive (stopComponents, src/workspace/pinned.ts).
+  await rounds('board', 2); // what the first of each kind allocates once is not a leak
+  await rounds('timer', 2);
+  const warm = await measure();
+  await rounds('board', 20);
   const boarded = await measure();
-  await rounds('timer', 10);
+  await rounds('timer', 20);
   const timed = await measure();
-  console.log(`SOAK ${JSON.stringify({ start, worked, boarded, timed })}`);
+  console.log(`SOAK ${JSON.stringify({ start, worked, warm, boarded, timed })}`);
   expect(timed.objects, 'nothing is left in the scene').toBe(start.objects);
   expect(timed.textures).toBe(start.textures);
-  expect(boarded.heapMB - worked.heapMB, 'about 3.3 MB per board removed, MB').toBeLessThan(10 * 5);
-  expect(timed.heapMB - boarded.heapMB, 'about 0.4 MB per timer removed, MB').toBeLessThan(10 * 1);
-  expect(timed.geometries - boarded.geometries, 'one geometry per timer removed').toBeLessThanOrEqual(10);
+  expect(timed.geometries, 'and no geometry').toBe(warm.geometries);
+  // It used to come to 66 MB and 8 MB. The heap moves by a few MB between measures, whatever happens: hence the margin.
+  expect(boarded.heapMB - warm.heapMB, 'JS heap after 20 boards removed, MB').toBeLessThan(10);
+  expect(timed.heapMB - warm.heapMB, 'and after 20 timers more, MB').toBeLessThan(10);
   expect(errors).toEqual([]);
 });

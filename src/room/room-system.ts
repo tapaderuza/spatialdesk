@@ -7,7 +7,8 @@
  *    board you work on stands on your desk and the parked boards hang on your walls (src/room/fit.ts). One undo step.
  *  - Remembered: the fit creates a persistent anchor in the room and keeps every board's pose relative to it. The next
  *    time you enter the room, even after reorganising in VR, the anchor is restored and each board goes back where you
- *    left it on your desk and walls.
+ *    left it on your desk and walls. The app remembers one room, so each fit replaces the anchor before it: the site's
+ *    limit (Meta documents 8) is never reached, and a layout is never saved under a handle it does not belong to.
  * Per frame this only reads the anchor pose; planes are read when fitting.
  */
 import { createSystem, SceneUnderstandingSystem, SessionMode, VisibilityState, XRPlane, type World } from '@iwsdk/core';
@@ -21,6 +22,15 @@ import { fitToRoom, invertRigid, isSeat, matrixPose, multiply, poseMatrix, type 
 const KEY = 'spatialdesk.room';
 const OUTLINE_MS = 2500;
 const SAVE_DELAY_MS = 500;
+/** "A site can currently only create 8 persistent anchors at a time" (Meta's WebXR mixed reality guide). */
+const MAX_PERSISTENT = 8;
+/** How long a deletion gets to answer: the WebXR Anchors draft's steps never say to resolve its promise. */
+const DELETE_WAIT_MS = 1_000;
+/**
+ * Where IWSDK's SceneUnderstandingSystem keeps the id of its own persistent anchor. It reads that anchor every frame, so
+ * deleting it would stop the render loop: the site always holds this one, and at most one of ours.
+ */
+const IWSDK_ANCHOR_KEY = 'iwsdk_scene_anchor_uuid';
 
 interface SavedRoom {
   uuid: string;
@@ -36,7 +46,11 @@ interface NativePlane {
 }
 
 type PersistentAnchor = XRAnchor & { requestPersistentHandle?: () => Promise<string> };
-type RoomSession = XRSession & { restorePersistentAnchor?: (uuid: string) => Promise<XRAnchor> };
+type RoomSession = XRSession & {
+  persistentAnchors?: readonly string[];
+  restorePersistentAnchor?: (uuid: string) => Promise<XRAnchor>;
+  deletePersistentAnchor?: (uuid: string) => Promise<void>;
+};
 
 /** VR: hands, and eye gaze where the headset has it. Nothing about the room is asked for. */
 export function launchVR(world: World): void {
@@ -74,10 +88,34 @@ function writeSaved(room: SavedRoom): void {
   }
 }
 
+function clearSaved(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // storage blocked: nothing was kept
+  }
+}
+
+function iwsdkAnchor(): string | null {
+  try {
+    return localStorage.getItem(IWSDK_ANCHOR_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Settles whatever happens, and soon. */
+function deletePersistent(session: RoomSession, uuid: string): Promise<unknown> {
+  const deleted = Promise.resolve(session.deletePersistentAnchor?.(uuid)).catch(() => undefined);
+  return Promise.race([deleted, new Promise((resolve) => setTimeout(resolve, DELETE_WAIT_MS))]);
+}
+
 export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }) {
   private anchor: XRAnchor | null = null;
   private anchorMatrix: number[] | null = null;
   private uuid: string | null = null;
+  /** The latest restore or fit: an answer that arrives after a newer one, or after leaving the room, is dropped. */
+  private anchorTurn = 0;
   private fitRequested = false;
   /** Said by the user ("I'm on the sofa"); unset, the comfort profile's posture decides. */
   private fitLow: boolean | undefined;
@@ -148,13 +186,16 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     const session = this.world.session as RoomSession | null;
     if (!saved || !session?.restorePersistentAnchor) return;
     this.restorePending = true;
+    const turn = ++this.anchorTurn;
     session
       .restorePersistentAnchor(saved.uuid)
       .then((anchor) => {
+        if (turn !== this.anchorTurn) return;
         this.anchor = anchor;
         this.uuid = saved.uuid;
       })
       .catch(() => {
+        if (turn !== this.anchorTurn) return;
         // The room changed or the anchor was erased: the layout stays where it is until the next fit.
         this.restorePending = false;
         workspace.notify({ text: 'I could not find your room layout here. Press "Fit room" to place it again.', error: false });
@@ -164,6 +205,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private endRoom(): void {
     this.wasInRoom = false;
     this.state.inRoom = false;
+    this.anchorTurn++;
     this.anchor = null;
     this.anchorMatrix = null;
     this.restorePending = false;
@@ -238,18 +280,50 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     const frame = this.world.renderer.xr.getFrame() as (XRFrame & { createAnchor?: XRFrame['createAnchor'] }) | null;
     const space = this.world.renderer.xr.getReferenceSpace();
     if (!frame?.createAnchor || !space) return;
+    const turn = ++this.anchorTurn;
+    this.restorePending = false; // this fit replaces what a restore on its way would bring back
     frame
       .createAnchor(new XRRigidTransform({ x: viewer.x, y: 0, z: viewer.z }), space)
       ?.then(async (anchor) => {
-        const persistent = anchor as PersistentAnchor;
+        if (turn !== this.anchorTurn) {
+          anchor.delete();
+          return;
+        }
+        this.anchor?.delete();
         this.anchor = anchor;
         this.anchorMatrix = poseMatrix({ x: viewer.x, y: 0, z: viewer.z, yaw: 0, pitch: 0 });
-        this.uuid = persistent.requestPersistentHandle ? await persistent.requestPersistentHandle() : null;
-        this.save();
+        this.uuid = null; // from here on, nothing may be saved under the old handle
+        const uuid = await this.persist(anchor);
+        if (turn !== this.anchorTurn) return; // a handle left behind goes with the next fit
+        this.uuid = uuid;
+        if (uuid) {
+          this.save();
+        } else {
+          clearSaved();
+          this.state.saved = false;
+          workspace.notify({ text: 'Fitted for this visit: the headset could not remember this room.', error: false });
+        }
       })
       .catch(() => {
         // No anchors on this device: the fit still stands for this session.
       });
+  }
+
+  /** Every earlier anchor goes first, then the new handle; null if the headset will not keep it. */
+  private async persist(anchor: PersistentAnchor): Promise<string | null> {
+    const session = this.world.session as RoomSession | null;
+    if (!session || !anchor.requestPersistentHandle) return null;
+    const earlier = new Set<string>();
+    const ours = readSaved()?.uuid;
+    if (ours) earlier.add(ours);
+    // Any other is left over from an earlier version, unless it is IWSDK's: while its id is not known yet, none is touched.
+    const iwsdk = iwsdkAnchor();
+    if (iwsdk) {
+      for (const uuid of session.persistentAnchors ?? []) if (uuid !== iwsdk) earlier.add(uuid);
+    }
+    await Promise.all([...earlier].map((uuid) => deletePersistent(session, uuid)));
+    if ((session.persistentAnchors?.length ?? 0) >= MAX_PERSISTENT) return null;
+    return anchor.requestPersistentHandle().catch(() => null);
   }
 
   private scheduleSave(): void {

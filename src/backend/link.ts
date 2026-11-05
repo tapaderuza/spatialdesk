@@ -16,6 +16,8 @@ export type LinkState =
   | { kind: 'offline'; retryInMs: number; reason: string };
 
 const CLOSE_UNKNOWN_SESSION = 4404;
+/** How long the link waits for an HTTP answer before it counts as no answer. */
+const ASK_MS = 5_000;
 
 let active: BackendLink | null = null;
 
@@ -29,6 +31,22 @@ export function forgetActiveSession(): void {
   active?.forgetSession();
 }
 
+/** Someone is waiting for the server right now: the link does not sit out its backoff. */
+export function wakeLink(): void {
+  active?.wake();
+}
+
+/** The live session id, other than [not] when that one has just been refused; null if none comes in time. */
+export async function waitForSession(timeoutMs: number, not?: string): Promise<string | null> {
+  const until = performance.now() + timeoutMs;
+  for (;;) {
+    const id = activeSession();
+    if (id && id !== not) return id;
+    if (performance.now() > until) return null;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 export class BackendLink {
   readonly clock = new ClockSync(8);
   private socket: WebSocket | null = null;
@@ -36,6 +54,8 @@ export class BackendLink {
   private attempt = 0;
   private pingTimer = 0;
   private pingsSent = 0;
+  /** Set only while waiting out the backoff. */
+  private retryTimer = 0;
   private stopped = false;
 
   constructor(private readonly onState: (state: LinkState) => void, private readonly base = location.origin) {}
@@ -51,13 +71,23 @@ export class BackendLink {
 
   forgetSession(): void {
     this.sessionId = null;
-    this.socket?.close(1000);
+    this.attempt = 0;
+    if (this.socket && this.socket.readyState !== WebSocket.CLOSED) this.socket.close(1000); // its close retries
+    else this.wake();
+  }
+
+  wake(): void {
+    if (this.retryTimer === 0) return; // connected, or already trying
+    window.clearTimeout(this.retryTimer);
+    this.retryTimer = 0;
+    void this.connect();
   }
 
   stop(): void {
     if (active === this) active = null;
     this.stopped = true;
     window.clearTimeout(this.pingTimer);
+    window.clearTimeout(this.retryTimer);
     this.socket?.close(1000);
   }
 
@@ -65,8 +95,9 @@ export class BackendLink {
     if (this.stopped) return;
     this.onState({ kind: 'connecting' });
     try {
+      if (this.sessionId !== null && !(await this.stillKnown(this.sessionId))) this.sessionId = null;
       if (this.sessionId === null) {
-        const res = await fetch(`${this.base}/api/sessions`, { method: 'POST' });
+        const res = await fetch(`${this.base}/api/sessions`, { method: 'POST', signal: AbortSignal.timeout(ASK_MS) });
         if (!res.ok) throw new Error(`session ${res.status}`);
         this.sessionId = ((await res.json()) as { sessionId: string }).sessionId;
       }
@@ -83,6 +114,16 @@ export class BackendLink {
     } catch (error) {
       this.retry(error instanceof Error ? error.message : 'network error');
     }
+  }
+
+  /**
+   * A refused handshake reaches the browser as a plain close, the same as a lost network, so before reconnecting the server
+   * is asked over HTTP: the socket's path answers 401 to an id it does not know (a restart forgets them all) and 400 to one
+   * it knows, as this is no upgrade. Anything else says nothing about the id, and it is kept.
+   */
+  private async stillKnown(id: string): Promise<boolean> {
+    const res = await fetch(`${this.base}/ws?session=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(ASK_MS) });
+    return res.status !== 401;
   }
 
   private onMessage(json: string): void {
@@ -118,6 +159,9 @@ export class BackendLink {
     const delay = 500 + Math.random() * (ceiling - 500); // full jitter: every headset does not retry at once
     this.attempt++;
     this.onState({ kind: 'offline', retryInMs: delay, reason });
-    window.setTimeout(() => void this.connect(), delay);
+    this.retryTimer = window.setTimeout(() => {
+      this.retryTimer = 0;
+      void this.connect();
+    }, delay);
   }
 }

@@ -7,7 +7,7 @@
  * The browser's own speech recognition is not used: it is missing from some browsers and could not be verified on
  * Meta Quest Browser, while this path needs only a microphone and a WebSocket.
  */
-import { activeSession } from '../backend/link.js';
+import { forgetActiveSession, waitForSession, wakeLink } from '../backend/link.js';
 import { audioEvent, decodeMessage, type EventMessage } from './eventstream.js';
 import { accessPreferences } from '../accessibility/preferences.js';
 import { language } from '../i18n/language.js';
@@ -16,8 +16,8 @@ import { AI_PATIENCE_MS, manualModeNotice } from '../backend/resilience.js';
 /** `network`: the connection or Transcribe failed or was too slow (AI_PATIENCE_MS), not "nothing was said". */
 export type ListenResult = { ok: true; text: string } | { ok: false; error: string; network?: true };
 
-/** What the server answers to a voice session request; `network` is ours: no usable answer. */
-type Grant = { ok: boolean; url?: string; error?: string; network?: true };
+/** What the server answers to a voice session request; `network` is ours: no usable answer; `expired` too: it forgot us. */
+type Grant = { ok: boolean; url?: string; error?: string; network?: true; expired?: true };
 
 export interface ListenHandlers {
   /** The words so far, while the user is still speaking. */
@@ -25,6 +25,8 @@ export interface ListenHandlers {
 }
 
 const SAMPLE_RATE = 16_000;
+/** How long a press waits for a session to exist at all. */
+const SESSION_MS = 4_000;
 /** With nothing heard at all, give up after this long. */
 const NOTHING_MS = 6_000;
 /** After the end of the audio, how long Transcribe gets to send its last words. */
@@ -68,10 +70,23 @@ export function stopListening(): void {
   current?.finish();
 }
 
+function askForGrant(session: string, timeoutMs: number): Promise<Grant> {
+  return fetch('/api/voice/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session': session },
+    body: JSON.stringify({ language: language() }), // English unless the link or the person chose another
+    signal: AbortSignal.timeout(timeoutMs),
+  })
+    // A gateway error page (502, 503, 504) is the network's answer, not the server's.
+    .then((res): Grant | Promise<Grant> => {
+      if (res.status >= 500) throw new Error(`voice ${res.status}`);
+      return res.status === 401 ? { ok: false, expired: true } : (res.json() as Promise<Grant>);
+    })
+    .catch((): Grant => ({ ok: false, network: true }));
+}
+
 export async function listen(handlers: ListenHandlers = {}): Promise<ListenResult> {
   if (current) return { ok: false, error: 'Already listening.' };
-  const session = activeSession();
-  if (!session) return { ok: false, error: manualModeNotice(), network: true };
   // One deliberate setting snapshot per listen, so changing controls mid-sentence cannot cut someone off.
   const maxMs = accessPreferences.listenMaxMs;
   const pauseMs = accessPreferences.listenPauseMs;
@@ -87,6 +102,10 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
   let stream: MediaStream | null = null;
   let context: AudioContext | null = null;
   try {
+    wakeLink();
+    const session = await waitForSession(SESSION_MS);
+    if (cancelled) return stopped;
+    if (!session) return { ok: false, error: manualModeNotice(), network: true };
     // The microphone first: a refusal costs nothing on the server.
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
@@ -95,15 +114,14 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
     }
     // The wait for the connection (the server's grant, then Transcribe's socket) starts once the microphone is open.
     const connectBy = performance.now() + AI_PATIENCE_MS;
-    const grant: Grant = await fetch('/api/voice/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Session': session },
-      body: JSON.stringify({ language: language() }), // English unless the link or the person chose another
-      signal: AbortSignal.timeout(AI_PATIENCE_MS),
-    })
-      // A gateway error page (502, 503, 504) is the network's answer, not the server's.
-      .then((res) => (res.status >= 500 ? Promise.reject(new Error(`voice ${res.status}`)) : (res.json() as Promise<Grant>)))
-      .catch((): Grant => ({ ok: false, network: true }));
+    const left = () => Math.max(1, connectBy - performance.now());
+    let grant = await askForGrant(session, left());
+    if (grant.expired) {
+      // The server restarted and forgot us: the link reconnects with a fresh session, then we ask once more.
+      forgetActiveSession();
+      const fresh = await waitForSession(left(), session);
+      grant = fresh ? await askForGrant(fresh, left()) : { ok: false, network: true };
+    }
     if (cancelled) return stopped;
     if (grant.network) return { ok: false, error: manualModeNotice(), network: true };
     if (!grant.ok || !grant.url) return { ok: false, error: grant.error ?? 'Voice is unavailable right now.' };
