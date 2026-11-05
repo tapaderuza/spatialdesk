@@ -5,6 +5,7 @@
  *    and anchors), each launched explicitly so a VR session never prompts for the room.
  *  - Fit to room (button or voice): from the planes the headset detected (IWSDK's SceneUnderstandingSystem), the
  *    board you work on stands on your desk and the parked boards hang on your walls (src/room/fit.ts). One undo step.
+ *    A headset that has no planes to give is asked to scan the room.
  *  - Remembered: the fit creates a persistent anchor in the room and keeps every board's pose relative to it. The next
  *    time you enter the room, even after reorganising in VR, the anchor is restored and each board goes back where you
  *    left it on your desk and walls. The app remembers one room, so each fit replaces the anchor before it: the site's
@@ -31,6 +32,10 @@ const DELETE_WAIT_MS = 1_000;
  * deleting it would stop the render loop: the site always holds this one, and at most one of ours.
  */
 const IWSDK_ANCHOR_KEY = 'iwsdk_scene_anchor_uuid';
+/** Planes are "not populated immediately, so wait 2 to 3 seconds after session creation" (Meta's WebXR mixed reality guide). */
+const PLANES_WAIT_MS = 3_000;
+const LOOK_AROUND = "I can't see your desk or walls yet. Look around the room for a moment, then try again.";
+const NO_SCAN = "I still can't see your desk or walls. Set up your room in the headset's settings (Space Setup), then try again.";
 
 interface SavedRoom {
   uuid: string;
@@ -50,6 +55,7 @@ type RoomSession = XRSession & {
   persistentAnchors?: readonly string[];
   restorePersistentAnchor?: (uuid: string) => Promise<XRAnchor>;
   deletePersistentAnchor?: (uuid: string) => Promise<void>;
+  initiateRoomCapture?: () => Promise<void>;
 };
 
 /** VR: hands, and eye gaze where the headset has it. Nothing about the room is asked for. */
@@ -121,6 +127,9 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private fitLow: boolean | undefined;
   private restorePending = false;
   private wasInRoom = false;
+  private roomSince = 0;
+  /** A session may ask for a room scan only once. */
+  private scanAsked = false;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private outlineTimer: ReturnType<typeof setTimeout> | null = null;
   /** Where the focus plant stands in the room (on the real desk), once fitted or restored; null elsewhere. */
@@ -182,6 +191,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
   private startRoom(): void {
     this.wasInRoom = true;
     this.state.inRoom = true;
+    this.roomSince = performance.now();
     const saved = readSaved();
     const session = this.world.session as RoomSession | null;
     if (!saved || !session?.restorePersistentAnchor) return;
@@ -211,6 +221,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     this.restorePending = false;
     this.plantPose = null;
     this.state.planes = 0;
+    this.scanAsked = false;
   }
 
   private readAnchor(): void {
@@ -258,7 +269,7 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
     this.showOutlines();
     if (result.poses.length === 0) {
       this.state.lastFit = { desk: false, walls: 0, moved: 0 };
-      workspace.notify({ text: "I can't see your desk or walls yet. Look around the room for a moment, then try again.", error: false });
+      this.nothingToFit();
       return;
     }
     const on = result.desk ? (isSeat(result.desk.label) ? `your ${result.desk.label === 'bed' ? 'bed' : 'sofa'}` : 'your desk') : '';
@@ -273,6 +284,33 @@ export class RoomSystem extends createSystem({ planes: { required: [XRPlane] } }
       this.anchorHere(viewer);
       if (result.desk) announceAnchored('surface'); // the board now stands on a surface: a flash and a faint pulse
     }
+  }
+
+  /**
+   * A headset that never ran Space Setup has no planes to give, and looking around will not change that: once there
+   * really are none, it is asked to scan the room. The boards stay put, and the user presses Fit room again afterwards.
+   */
+  private nothingToFit(): void {
+    const session = this.world.session as RoomSession | null;
+    const noPlanes = this.state.planes === 0 && performance.now() - this.roomSince >= PLANES_WAIT_MS;
+    if (!noPlanes || !session?.initiateRoomCapture) {
+      workspace.notify({ text: LOOK_AROUND, error: false });
+      return;
+    }
+    if (this.scanAsked) {
+      workspace.notify({ text: NO_SCAN, error: false });
+      return;
+    }
+    this.scanAsked = true;
+    workspace.notify({ text: 'This headset has no scan of your room yet. Follow its steps, then press "Fit room" again.', error: false });
+    session.initiateRoomCapture().then(
+      () => {
+        if (this.state.inRoom) workspace.notify({ text: 'Ready. Press "Fit room" again to place your boards.', error: false });
+      },
+      () => {
+        if (this.state.inRoom) workspace.notify({ text: NO_SCAN, error: false });
+      },
+    );
   }
 
   /** A persistent anchor on the floor under the viewer: the room layout is kept relative to it. */

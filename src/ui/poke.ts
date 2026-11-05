@@ -130,6 +130,10 @@ export class PokeSystem extends createSystem({}) {
     // IWSDK's own touch pointers start enabled: off, so one touch is one press (PanelHits also ignores their events).
     this.input.xr.multiPointers.left.toggleSubPointer('touch', false);
     this.input.xr.multiPointers.right.toggleSubPointer('touch', false);
+    // IWSDK's rays carry the same 800 ms: a pinch held longer pressed nothing, and nothing said why. A slow release is
+    // still a press, with no time limit, like this file's own touch; leaving the panel before releasing still cancels it.
+    this.input.xr.multiPointers.left.getPointer('ray').options.clickThresholdMs = Infinity;
+    this.input.xr.multiPointers.right.getPointer('ray').options.clickThresholdMs = Infinity;
     (window as unknown as { __poke: PokeSystem['state'] }).__poke = this.state;
   }
 

@@ -120,7 +120,7 @@ The frame budget is treated as a hard requirement:
 | Layer | What | When |
 | --- | --- | --- |
 | Type check | TypeScript, strict | Every push, by a pre-push hook |
-| Browser scenarios | 224 in Meta's IWER emulator, on the production build | Every push |
+| Browser scenarios | 227 in Meta's IWER emulator, on the production build | Every push |
 | Performance gate | Frame, allocation, draw calls, triangles, heap | Every push |
 | Size budget | 2.5 MB gzipped | Every push |
 | JVM tests | Server, shared engine, infrastructure | Every deploy through `scripts/deploy.mjs` |

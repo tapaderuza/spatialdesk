@@ -2,7 +2,7 @@
  * Edge cases the other specs do not reach, in the IWER Quest 3 emulator:
  *  - a headset that grants none of the optional WebXR capabilities, in VR and in the room;
  *  - an answer from the AI that arrives after the app has stopped waiting;
- *  - a pinch that lands on nothing, and one that slides off a control before it opens;
+ *  - a pinch that lands on nothing, one that slides off a control before it opens, and one held for seconds;
  *  - eyes that sweep across the boards faster than anything can be selected;
  *  - the network going away in the middle of a session, and coming back.
  * Emulator results: they show the app's logic, not how a physical headset behaves.
@@ -161,6 +161,37 @@ test('a pinch on nothing does nothing; a pinch that slides off a control presses
   await closeHand(page);
   await openHand(page);
   expect((await allCards(page)).sort(), 'the held card is neither lost nor copied').toEqual(cards);
+  expect(errors).toEqual([]);
+});
+
+test('a pinch held as long as the hand needs presses when it opens, not before', async ({ page }) => {
+  await onboarded(page);
+  const errors = await enterXR(page);
+  await page.evaluate(() => ((window as Win).__xrDevice.primaryInputMode = 'hand'));
+  await frames(page, 15);
+
+  await aimHand(page, 'command:focus-button');
+  await closeHand(page);
+  await page.waitForTimeout(2_500); // IWSDK's ray gives up at 800 ms
+  expect(await timers(page), 'nothing while it is held').toBe(0);
+  await openHand(page);
+  expect(await timers(page), 'the release presses').toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test('a pinch held just as long, then taken off the panel, still presses nothing', async ({ page }) => {
+  await onboarded(page);
+  const errors = await enterXR(page);
+  await page.evaluate(() => ((window as Win).__xrDevice.primaryInputMode = 'hand'));
+  await frames(page, 15);
+
+  await aimHand(page, 'command:focus-button');
+  await closeHand(page);
+  await page.waitForTimeout(2_500);
+  await aimHand(page, null);
+  await frames(page, 12);
+  await openHand(page);
+  expect(await timers(page)).toBe(0);
   expect(errors).toEqual([]);
 });
 

@@ -41,8 +41,9 @@ every request, asserts that `requiredFeatures` is empty in both modes, withholds
 | All browser storage | Writes are caught; IndexedDB gives up after 2 s | The visit works; only the memory is lost |
 
 **What remains open.** Grants and prompts are Quest Browser's own. Meta's documentation shows plane detection requested as a
-required feature, while ours asks for it as optional, and that has not been tried on a device. The app does not call
-`initiateRoomCapture`, so on a headset with no Space Setup the plain line advises looking around, which will not help there.
+required feature, while ours asks for it as optional, and that has not been tried on a device. On a headset with no Space Setup,
+Fit room calls `initiateRoomCapture`, as that guide recommends: once a session, after the 3 seconds it says to wait. IWER lacks the
+call, so a test stands in for it, and what the headset's own scan does has not been seen.
 
 ## 2. Frame budget: 22.2 ms against Meta's own starter scene
 
@@ -110,9 +111,8 @@ Measured on the command panel's real button grid, with 3,000 trials per strength
 | Strong: 5 cm sweep at 4-6 Hz, 3 cm pinch jolt | 59.0% | **100%** | 0 |
 
 **What remains open.** This is a model of selection, not a clinical measure, and the noise is synthetic. The Quest tracker's real noise and
-the real jolt of a pinch have not been measured, and nobody has tried this with a tremor. Two pointer limits also apply to every ray pinch:
-one held longer than 800 ms presses nothing, and the pinch after one that slid off a control is lost. Both are listed in the
-[judge's guide](JUDGE_GUIDE.md#6-known-limits).
+the real jolt of a pinch have not been measured, and nobody has tried this with a tremor. One pointer limit also applies to every ray pinch:
+the pinch after one that slid off a control is lost. It is listed in the [judge's guide](JUDGE_GUIDE.md#6-known-limits).
 
 ## 4. Network: manual mode needs no switch
 
@@ -150,6 +150,7 @@ local copy of the engine, and nothing per-frame touches a socket. "Manual mode" 
 | Are pinches reliable? | 20 presses each on small and large controls | Each lands once on what was aimed at |
 | Is steady aim better on real tracking? | The same presses, on and off | On is no worse than off |
 | Does Fit room land on a real table? | Three rooms the developer has not seen | The board stands on the table |
+| Does the room scan start? | A Quest with no Space Setup: In my room, wait 3 s, Fit room | The scan opens, and Fit room works after it |
 | Do anchors come back? | Fit, leave, re-enter, reboot | The boards return to their places |
 | Is it comfortable? | People, seated, over a real session | Their own report: **never measured** |
 

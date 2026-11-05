@@ -19,7 +19,7 @@ and no card operation waits for a server, so losing the network in mid-session c
 network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
 replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 224 browser scenarios, a performance gate and 13 synthetic
+session. Every AI and speech call sits behind session and daily caps, and 227 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
 headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
 
@@ -33,7 +33,7 @@ headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is wri
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 224 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 227 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 24.6 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5) |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -170,7 +170,7 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 | **Voice control** | Speech through Amazon Transcribe drives commands and free-form requests, in English and Spanish. | No direct criterion | REQ 2a, 5a | `tests/voice.spec.ts`, `tests/e2e-voice.spec.ts` |
 | **Hands-free dwell** | Resting the head's aim, or the eyes where tracked, presses a control after 1 s, or 1.6 s for cards. A control cannot repeat until the gaze has left it, and sweeping across controls selects nothing. Enabled by `?handsfree` or by voice. | No direct criterion | REQ 2a, 2c | `tests/handsfree.spec.ts`, `tests/edge-cases.spec.ts` |
 | **Confirmation before spatial change** | An AI request yields a proposal listing each change and its reason. Nothing moves until Apply; Discard leaves the state unchanged; Undo reverses applied steps. | 3.2.5 Change on Request (AAA); 3.3.6 Error Prevention (All) (AAA) | REQ 15d | `tests/interaction.spec.ts`, `tests/edge-cases.spec.ts` |
-| **Pointer cancellation** | A ray pinch completes on release; moving off the control before release aborts it. | 2.5.2 Pointer Cancellation (A), for ray input | REQ 4a | `tests/edge-cases.spec.ts` |
+| **Pointer cancellation** | A ray pinch completes on release, however long it is held; moving off the panel before release aborts it. | 2.5.2 Pointer Cancellation (A), for ray input | REQ 4a | `tests/edge-cases.spec.ts` |
 | **Selection over dragging** | Moving a card is two discrete selections: pick, then drop. Repositioning a panel by hand does use a drag, on its grab bar; Fit room and spoken requests reposition panels without one. | 2.5.1 Pointer Gestures (A); 2.5.7 Dragging Movements (AA), in part | REQ 4c | `tests/interaction.spec.ts` |
 | **Target geometry** | Every interactive target is at least 6 x 6 cm in the world, and every direct-touch target is within arm's reach. | 2.5.8 Target Size (Minimum) (AA); CSS pixels have no direct meaning in XR | REQ 4b | `tests/interaction.spec.ts` |
 | **Calibration and field of view** | A guided setup records seating position and a comfortable reach measured by a pinch, and can be reopened at any time. The layout is fitted to the field of view the headset reports. | No direct criterion | REQ 13a, 13b | `tests/setup.spec.ts`, `tests/reach.spec.ts`, `tests/glasses.spec.ts` |
@@ -179,9 +179,6 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 
 ### Known limitations
 
-- **Held pinches.** A ray pinch held longer than 800 ms does not press and gives no feedback; this is the default of IWSDK's ray
-  pointer. It is the most significant gap for people with slow motor release. Direct touch, dwell and one-switch input are not
-  affected.
 - **Lost pinch.** After a pinch slides off a control into empty space, the next pinch is lost; the following one works.
 - **Direct touch** presses on contact by design, so it has no cancellation: 2.5.2 applies to ray input only.
 - **Scanning coverage.** One-switch scanning reaches the command panel and the agent's card, not the cards on the boards, so
@@ -257,7 +254,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 224 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 227 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.

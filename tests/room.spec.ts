@@ -144,3 +144,92 @@ test('in my room: fit to the real table and walls, undo in one step, and remembe
   expect(await page.evaluate(() => (window as Win).__notice.text)).toContain('where you left them');
   expect(errors).toEqual([]);
 });
+
+test('a headset with no room scan is asked for one, once a session and only when there really are no planes; after it, Fit room uses the room', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = await openWorkspace(page, '?emulate&room=office_small');
+  await page.evaluate(() => {
+    // Quest Browser's call, which IWER lacks; and until the scan, the synthetic room's planes stay out of every frame.
+    const win = window as Win;
+    const planes = Object.getOwnPropertyDescriptor(win.XRFrame.prototype, 'detectedPlanes')!;
+    win.__scanned = false;
+    Object.defineProperty(win.XRFrame.prototype, 'detectedPlanes', {
+      configurable: true,
+      get() {
+        return win.__scanned ? planes.get!.call(this) : new Set();
+      },
+    });
+  });
+  const inRoomWithScan = async () => {
+    await tap(page, 'command:room-button');
+    await page.waitForFunction(() => (window as Win).__room?.state.inRoom, null, { timeout: 30_000 });
+    await page.evaluate(() => {
+      const win = window as Win;
+      win.__scans = 0;
+      win.__world.session.initiateRoomCapture = () => {
+        win.__scans++;
+        return new Promise<void>((resolve, reject) => {
+          win.__scanDone = resolve;
+          win.__scanCancelled = () => reject(new DOMException('cancelled', 'OperationError'));
+        });
+      };
+    });
+  };
+  const leave = async () => {
+    await page.evaluate(() => (window as Win).__world.exitXR());
+    await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive' && !(window as Win).__world.session);
+    await frames(page, 30);
+  };
+  const fit = () => page.evaluate(() => (window as Win).__voice.say('fit room'));
+  const noticeSays = (text: string) => page.waitForFunction((t) => (window as Win).__notice?.text?.includes(t), text, { timeout: 8_000 });
+  const scans = () => page.evaluate(() => (window as Win).__scans as number);
+
+  // Right after entering, the planes may still be on their way: no scan yet, as Meta's guide asks.
+  await inRoomWithScan();
+  const before = await poses(page);
+  await page.evaluate(() => ((window as Win).__room.roomSince = performance.now()));
+  await fit();
+  await noticeSays('Look around');
+  expect(await scans()).toBe(0);
+
+  // Three seconds on, still none: the headset is asked. Cancelling the scan leaves one plain line, and no second try.
+  await page.waitForTimeout(3_100);
+  await fit();
+  await noticeSays('no scan of your room');
+  expect(await scans()).toBe(1);
+  await page.evaluate(() => (window as Win).__scanCancelled());
+  await noticeSays('Space Setup');
+  await page.evaluate(() => ((window as Win).__notice = null));
+  await fit();
+  await noticeSays('Space Setup');
+  expect(await scans(), 'once a session').toBe(1);
+  expect(await poses(page), 'and no board moved').toEqual(before);
+  await leave();
+
+  // The next session may ask again. This scan finishes, the planes arrive, and Fit room stands the board on the table.
+  await inRoomWithScan();
+  await page.waitForTimeout(3_100);
+  await fit();
+  await noticeSays('no scan of your room');
+  await page.evaluate(() => {
+    (window as Win).__scanned = true;
+    (window as Win).__scanDone();
+  });
+  await noticeSays('Ready');
+  await page.waitForFunction(() => (window as Win).__room.queries.planes.entities.size >= 8, null, { timeout: 15_000 });
+  await fit();
+  await noticeSays('Fitted to your room');
+  expect(await page.evaluate(() => (window as Win).__room.state.lastFit.desk)).toBe(true);
+  expect(await scans()).toBe(1);
+  await leave();
+
+  // A headset with a room is never asked.
+  await inRoomWithScan();
+  await page.waitForFunction(() => (window as Win).__room.queries.planes.entities.size >= 8, null, { timeout: 15_000 });
+  await page.waitForTimeout(3_100);
+  await page.evaluate(() => ((window as Win).__notice = null));
+  await fit();
+  await noticeSays('Fitted to your room');
+  expect(await scans()).toBe(0);
+  expect(errors).toEqual([]);
+});

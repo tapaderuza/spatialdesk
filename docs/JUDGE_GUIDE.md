@@ -107,7 +107,7 @@ uses it, not stop the app from starting.
 | Capability | If the headset does not grant it |
 | --- | --- |
 | Hand tracking | Controllers work everything |
-| Plane detection | Fit room says *"I can't see your desk or walls yet..."* and moves nothing |
+| Plane detection | Fit room asks the headset to scan the room where it offers that (Quest's Space Setup). Otherwise it says *"I can't see your desk or walls..."*. Either way it moves nothing until there is a room to fit to |
 | Anchors | The fit holds for the session, without being remembered |
 | Eye tracking | Hands-free aims with the head; every Quest has that |
 
@@ -145,13 +145,11 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 224 browser scenarios: the 199 quoted in the video and the submission, plus five in `tests/edge-cases.spec.ts` and 20 in
-`tests/failure-modes.spec.ts`.
+The suite has 227 browser scenarios: the 199 quoted in the video and the submission, plus seven in `tests/edge-cases.spec.ts`, 20 in
+`tests/failure-modes.spec.ts` and one in `tests/room.spec.ts`.
 
 ## 6. Known limits
 
-- **A pinch held longer than 800 ms does not press.** This is the default of IWSDK's ray pointer (`clickThresholdMs`), and
-  nothing tells the user. Direct touch, hands-free and one-switch input do not have this limit.
 - **After a pinch that slides off a control into empty space, the next pinch is lost.** The one after it works.
 - **One-switch scanning covers the command panel and the agent's card**, not the cards on the boards.
 - **Voice and the AI need the network**, and listening starts from the **Talk** control: there is no wake word.

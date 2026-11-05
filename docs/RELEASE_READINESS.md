@@ -29,6 +29,10 @@ client went to the same bucket with the same headers, followed by a CloudFront i
 **Privacy, 2026-11-05, on the owner's instruction:** the AWS account now belongs to an organization whose AI services opt-out policy covers
 every service, read back as `optOut`, and [the privacy policy](PRIVACY.md) is public. No code changed (log block 43).
 
+**Two more defects fixed, 2026-11-05, on the owner's instruction:** the freeze was lifted again for these two alone and then restored
+(`src/` only). A ray pinch now presses on release however long it is held, and Fit room asks a headset with no planes to scan the room.
+The client went out the same way, and the suite now has 227 scenarios (log block 44).
+
 ## Gold Master
 
 | | |

@@ -9,7 +9,7 @@ These come first, because they are known. Each is recorded with its evidence in 
 
 | Defect | Change |
 | --- | --- |
-| A ray pinch held longer than 800 ms presses nothing, and the pinch after a slide-off is lost | Raise `clickThresholdMs` in IWSDK's ray pointer, and report the second upstream |
+| The pinch after a slide-off is lost | Report it upstream |
 | The per-network limit lives only in the deployed task's environment | Move it into `SpatialDeskStack.kt` |
 | No Content Security Policy; a dependency advisory; no alarms on this stack | Add a policy, update `zod`, add alarms on 5xx and unhealthy hosts |
 
