@@ -48,22 +48,22 @@ required feature, while ours asks for it as optional, and that has not been trie
 The reference is deliberately not a number we chose. It is **Meta's IWSDK starter scene, published as Quest-ready, measured
 under identical conditions**: production build, IWER, the same machine, the CPU slowed 3x.
 
-| Measure (CPU) | SpatialDesk, latest gate | Meta's starter scene | Budget |
-| --- | --- | --- | --- |
-| Whole frame, median | 13.1 ms | 18.8 ms | |
-| Whole frame, 95th percentile | **22.2 ms** | 29.4 ms | 29.4 ms |
-| The app's own systems, 95th percentile | 2.2 ms | not measured | 3.0 ms |
-| Allocation per frame | enforced | not measured | 4,096 bytes |
-| Draw calls | 78 | 72 | 80 |
-| Triangles | 31,568 | 81,688 | 120,000 |
-| JS heap | 103 MB | not measured | 150 MB |
+| Measure (CPU) | SpatialDesk, 2026-11-04 | SpatialDesk, 2026-11-05 | Meta's starter scene | Budget |
+| --- | --- | --- | --- | --- |
+| Whole frame, median | 13.1 ms | 11.8 ms | 18.8 ms | |
+| Whole frame, 95th percentile | **22.2 ms** | **19.5 ms** | 29.4 ms | 29.4 ms |
+| The app's own systems, 95th percentile | 2.2 ms | 2.1 ms | not measured | 3.0 ms |
+| Allocation per frame | not recorded | 221 bytes | not measured | 4,096 bytes |
+| Draw calls | 78 | 78 | 72 | 80 |
+| Triangles | 31,568 | 31,568 | 81,688 | 120,000 |
+| JS heap | 103 MB | 103 MB | not measured | 150 MB |
 
 **Why this is strong evidence for the CPU.**
 
 - **It is measured at the worst case.** The gate fills the heaviest workspace the engine allows and turns hands-free on, so the gaze
   ray is tested against every panel each frame (`tests/perf.spec.ts`, `tests/workload.ts`). The starter scene is measured as it ships.
-- **The app itself is nearly free.** Our systems take 2.2 ms at the 95th percentile. The rest of the frame is the framework and the
-  renderer, which any IWSDK app pays. The per-frame paths are written to allocate nothing, and a sampling heap profiler enforces it.
+- **The app itself is nearly free.** Our systems take about 2 ms at the 95th percentile. The rest of the frame is the framework and the
+  renderer, which any IWSDK app pays. The per-frame paths are written not to allocate, and a sampling heap profiler holds them to the budget.
 - **The geometry is light.** 39% of the starter's triangles.
 - **It cannot regress quietly.** Exceeding any budget fails `npm run ci`, which a pre-push hook runs before every push.
 - **A stall is not paid as a jump.** The glide's step is capped at 50 ms. With the main thread frozen for half a second in the middle of
@@ -71,9 +71,9 @@ under identical conditions**: production build, IWER, the same machine, the CPU 
 
 **How to read it honestly.**
 
-- **22.2 ms is not a frame rate on a Quest.** A 60 fps frame has 16.7 ms, and this figure is deliberately pessimistic, with the CPU
-  slowed 3x. It neither predicts 45 fps nor proves 60.
-- **It varies.** The same code has measured 22.2 to 33.1 ms across runs on a shared laptop, so some runs miss the 29.4 ms budget, and
+- **These are not frame rates on a Quest.** A 60 fps frame has 16.7 ms, and these figures are deliberately pessimistic, with the CPU
+  slowed 3x. They neither predict 45 fps nor prove 60.
+- **It varies.** The same code has measured 19.5 to 33.1 ms across runs on a shared laptop, so some runs miss the 29.4 ms budget, and
   the gate retries before failing. The figure in our video and submission, 24.6 ms, is from an earlier run.
 - **One measure is worse than the starter:** 78 draw calls against 72.
 - **The thermal margin is an assumption, not a measurement.** `perf-budgets.json` records the reasoning: the development CPU and the

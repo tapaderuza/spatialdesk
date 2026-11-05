@@ -67,7 +67,7 @@ that lowers the render resolution for the emulator gate. Enter with the normal b
 From the CI performance gate (`tests/perf.spec.ts`, `perf-budgets.json`): production build, IWER, a development laptop with the
 CPU slowed 3x to allow for thermal throttling and browser overhead.
 
-| Measure | SpatialDesk (latest run) | Meta's IWSDK starter scene (reference) |
+| Measure | SpatialDesk (run of 2026-11-04) | Meta's IWSDK starter scene (reference) |
 | --- | --- | --- |
 | Whole frame, median | 13.1 ms | 18.8 ms |
 | Whole frame, 95th percentile | 22.2 ms | 29.4 ms |
@@ -82,8 +82,8 @@ CPU slowed 3x to allow for thermal throttling and browser overhead.
   rate on a Quest. **GPU time is not included.**
 - A 60 fps frame has 16.7 ms. The 22.2 ms above is a deliberately pessimistic number, with the CPU slowed 3x; it does not
   predict 45 fps, and it does not prove 60 fps either.
-- It varies with machine load. The same code has measured 22.2 to 33.1 ms across runs, so the gate retries before failing. The
-  figure quoted in our video and submission, 24.6 ms, is from an earlier run.
+- It varies with machine load. The same code has measured 19.5 to 33.1 ms across runs (19.5 ms on 2026-11-05), so the gate retries
+  before failing. The figure quoted in our video and submission, 24.6 ms, is from an earlier run.
 - It says nothing about motion sickness, which we have not measured.
 
 ### What supports comfort by design
