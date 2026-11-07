@@ -334,6 +334,8 @@ test('AI plan: chip, preview card, apply as one undo step, discard leaves everyt
 
   await tap(page, 'command:undo-button'); // the whole plan is one undo step
   expect(await page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => b.title))).toEqual(['Getting started', 'Ideas']);
+  // The agent's prompt names "Doing": a starter board without it failed validation on every first plan with no words (0 of 10 from Nova).
+  expect(await page.evaluate(() => (window as Win).__workspace.state.boards.map((b: any) => b.columns.map((c: any) => c.title)))).toEqual([['To do', 'Doing', 'Done'], ['To do', 'Doing', 'Done']]);
   expect(await page.evaluate(() => (window as Win).__workspace.state.timers.length)).toBe(0);
 
   await tap(page, 'command:plan-button');
@@ -354,7 +356,7 @@ test('explainable agent: undo one step and what depended on it, past later chang
     requests.push(body);
     if (body.intent === 'plan_my_day') return route.fulfill({ json: PLAN });
     if (body.intent === 'next_block') return route.fulfill({ json: nova('A short break.', [{ op: { op: 'start_timer', minutes: 5, label: 'Break' }, why: 'Rest after the block' }]) });
-    if (body.intent === 'replan') return route.fulfill({ json: nova('Quick win first.', [{ op: { op: 'move_card', card: 'Long task', column: 'Someday', index: 0 }, why: 'Park it for now' }]) });
+    if (body.intent === 'replan') return route.fulfill({ json: nova('Quick win first.', [{ op: { op: 'move_card', card: 'Long task', column: 'To do', index: 0 }, why: 'Park it for now' }]) });
     return route.fulfill({ status: 400, json: { ok: false, error: `unexpected ${body.intent}` } });
   });
   const errors = await openWorkspace(page);
@@ -394,7 +396,7 @@ test('explainable agent: undo one step and what depended on it, past later chang
   expect(state.timers.map((t: any) => `${t.label} ${t.state}`)).toEqual(['Deep work done', 'Break running']);
 
   // Work running over its estimate: a nudge waits on the notice line; one tap takes it to the agent.
-  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'add_card', board: 'Ideas', column: 'Next', title: 'Long task', minutes: 30 }));
+  await page.evaluate(() => (window as Win).__workspace.dispatch({ op: 'add_card', board: 'Ideas', column: 'Doing', title: 'Long task', minutes: 30 }));
   const nudge = await page.evaluate(() => (window as Win).__agent.watch(Date.now() + 3 * 3600_000));
   expect(nudge.intent).toBe('replan');
   await tap(page, 'command:notice');

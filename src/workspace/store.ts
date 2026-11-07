@@ -311,9 +311,8 @@ const STARTER: Op[] = [
   {
     op: 'create_board',
     title: 'Ideas',
-    columns: ['Someday', 'Next', 'Done'],
     cards: [
-      { title: 'Plan my day with the AI agent', column: 'Next', priority: 'high' },
+      { title: 'Plan my day with the AI agent', column: 'Doing', priority: 'high' },
       { title: 'Try Focus mode for deep work' },
     ],
   },
