@@ -9,11 +9,22 @@ emulator (Quest 3 profile) running the production build, and from the live produ
 | | |
 | --- | --- |
 | App | <https://d2p3027seoreck.cloudfront.net/> (Meta Quest Browser) |
+| A quick look | <https://d2p3027seoreck.cloudfront.net/?fast> (timers run in seconds: Focus 25 lasts 25 seconds, and the panel says so) |
 | Phone companion | <https://d2p3027seoreck.cloudfront.net/companion.html> |
 | Without a headset | <https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US> (any current Chromium browser) |
 | Code | <https://github.com/tapaderuza/spatialdesk> |
 
 Button names below are as shown in English, the app's default language.
+
+## Start here: the first five minutes
+
+1. Open the **quick look** link and select **Enter VR**.
+2. Answer the guided setup: where you sit, a pinch where your hand rests, and whether you want steady aim.
+3. Follow the three steps on the board: tap a card, drop it in **Doing**, press **Focus 25**.
+
+**Expected:** the block ends after 25 seconds, the focus plant on the desk grows a leaf, and the assistant suggests what to do next.
+
+**Verified:** in the emulator (`tests/studio.spec.ts`, `tests/accessibility.spec.ts`). **Not verified:** on a physical headset. Without `?fast`, Focus 25 lasts 25 real minutes.
 
 ## 1. Resilience: turn the Wi-Fi off
 
@@ -43,8 +54,9 @@ own storage (IndexedDB), and no card operation waits for a server.
 - The status line follows the WebSocket. It can keep saying *"Command server online"* until the operating system closes that
   socket, so the line in step 4 is the signal to judge by, not the status line.
 - A proposal labelled **Built-in planner** is the designed fallback, not a failure. The server validates every plan from
-  Amazon Nova; if a plan fails validation twice, a deterministic planner answers and the card says so. In a small sample on
-  2026-11-04 (five requests), this happened once.
+  Amazon Nova; if a plan fails validation twice, a deterministic planner answers and the card says so. On production on
+  2026-11-10, the first **Plan my day** of a fresh workspace, with no words, came from Nova 10 times in 10 (once after a retry),
+  in 1.1 to 3.0 s. Until that day it fell back every time: the starter board lacked the **Doing** column the agent plans with.
 
 **Verified:** in the emulator with the browser's network really offline (`tests/edge-cases.spec.ts`, `tests/resilience.spec.ts`),
 and against production the same way (AI and voice requests each ended in about 0.5 s; the card move and re-entering worked; the
@@ -85,8 +97,9 @@ CPU slowed 3x to allow for thermal throttling and browser overhead.
   rate on a Quest. **GPU time is not included.**
 - A 60 fps frame has 16.7 ms. The 22.2 ms above is a deliberately pessimistic number, with the CPU slowed 3x; it does not
   predict 45 fps, and it does not prove 60 fps either.
-- It varies with machine load. The same code has measured 19.5 to 33.1 ms across runs (19.5 ms on 2026-11-05), so the gate retries
-  before failing. The figure quoted in our video and submission, 24.6 ms, is from an earlier run.
+- It varies with machine load, so the gate retries before failing. On the same laptop the build has measured from 19.5 ms
+  (2026-11-05) to over 50 ms (2026-11-07), with draw calls and triangles unchanged; on 2026-11-10 it passed on a retry at
+  29.2 ms while the antivirus was using about three cores. Our video quotes 24.6 ms, from an earlier run.
 - It says nothing about motion sickness, which we have not measured.
 
 ### What supports comfort by design
@@ -113,6 +126,9 @@ uses it, not stop the app from starting.
 
 **To try it:** turn hand tracking off in the headset's settings and enter with controllers. Then use **In my room** on a headset with
 no room setup, and select **Fit room**.
+
+**Scene understanding:** this is a WebXR app, so it uses WebXR plane detection and anchors (`src/room/room-system.ts`) rather than MRUK.
+Fit room runs in all 13 rooms of Meta's Synthetic Environment Module, none of them tuned for, in the emulator (`tests/rooms.spec.ts`).
 
 **Verified:** in the emulator, by withholding every optional capability from the session. The test records each session request,
 asserts that `requiredFeatures` is empty for VR and for the room, and then operates the app
