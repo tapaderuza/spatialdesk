@@ -2,8 +2,8 @@
 
 Copy each section into the field of the same name. Every figure below is measured by the project's own checks; where a
 figure comes from the emulator rather than a physical headset, the text says so.
-The story (Inspiration to What's next) is the one submitted on 2026-10-30: under the 500 words the form suggests, and
-naming the device features the judging criteria score.
+The story (Inspiration to What's next) is the one on Devpost since 2026-11-10, when What it does, How we built it and a
+quick-look link changed: under the 500 words the form suggests, and naming the device features the judging criteria score.
 
 ## Project name
 
@@ -23,33 +23,32 @@ changed on the day you have least to spare. In a headset the room can move, so t
 
 ## What it does
 
-SpatialDesk is a seated, hands-first workspace: task boards, focus timers and an assistant, arranged around the body you
-have today.
+SpatialDesk is a seated, hands-first workspace: boards, focus timers and an assistant. The space moves to your reach,
+measured by your hand; a flat screen has nothing to bring closer.
 
-- **It fits you.** A one-minute setup asks where you sit and has you pinch where your hand rests; that sets every
-  panel's distance, height and side.
-- **You say what you need.** Amazon Transcribe hears you in English or Spanish; Amazon Nova proposes changes with
-  reasons. Nothing moves until you tap Apply; panels glide, and Undo always works.
-- **Every way in.** Hands (poke, pinch), gaze dwell (eyes where tracked, else head), voice, steady aim for tremor,
-  one-switch scanning. Rest your head on a card and say "move this to done".
-- **Your real room.** In passthrough, Fit room reads the detected planes: your board stands on your real desk, the
-  others on your walls, and a persistent anchor restores them tomorrow. Tested in all 13 rooms of Meta's Synthetic
-  Environment Module.
-- **Any field of view.** The layout reads each eye's projection and keeps essential panels in the comfortable view, down
-  to Meta VR Glasses' 58° × 54°.
-- **Help from a phone.** After you press Allow, a carer's phone shows your Today board and one large button, Help /
-  Recalibrate, that opens the setup in your headset. They ask; you decide.
-- **A reason to come back.** A focus plant grows a leaf with every focus block.
+- **It fits you.** A one-minute setup: where you sit, and a pinch where your hand rests, set every panel's distance,
+  height and side.
+- **You say what you need.** Transcribe hears English or Spanish; Nova proposes changes. Nothing moves until you tap
+  Apply, and Undo always works.
+- **Every way in.** Hands, gaze dwell, voice, steady aim for tremor, one-switch scanning.
+- **Your real room.** In passthrough, Fit room stands your board on your real desk and the others on your walls; an
+  anchor restores them tomorrow. Tested in all 13 rooms of Meta's Synthetic Environment Module, in the emulator.
+- **Any field of view.** Essential panels stay in the comfortable view, down to Meta VR Glasses' 58° × 54°.
+- **Help from a phone.** After you press Allow, a carer's phone can open the setup in your headset.
+- **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the focus block that ends them
+  lasts 25 seconds and your plant grows its first leaf; every block grows another.
+- **Airplane seat.** Locomotion is off. The board sits 62 cm away; cards and buttons answer a ray from a resting hand.
+- **One bus stop.** No install. A session takes one task and 5 to 90 minutes; a pause keeps your next step.
+- **Take it away.** Offline, boards, timers, Undo, hands and gaze keep working on a loaded page; if Nova fails, a
+  built-in planner answers.
 
 ## How we built it
 
-Meta's Immersive Web SDK, in TypeScript over WebXR. One Kotlin Multiplatform engine holds the layout and the rules: the
-headset runs it as JavaScript; the Spring Boot server runs it on the JVM to validate every Nova 2 Lite plan (Bedrock
-Converse, typed tool) before you see it. Guardrails enforce intent ("closer" must end nearer), and a built-in planner
-answers when the AI cannot: SpatialDesk works without it. Audio streams from the browser straight to Transcribe.
+Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on the Spring Boot server,
+which validates every Nova 2 Lite plan before you see it. Scene understanding uses WebXR planes and anchors, not MRUK.
 
-199 Playwright scenarios drive the production build in Meta's IWER emulator; a CI gate holds frame time (p95 24.6 ms,
-CPU throttled 3x) under Meta's IWSDK starter scene (29.4 ms), at 78 draw calls.
+227 Playwright scenarios drive the production build in Meta's IWER emulator; a CI gate holds frame time under Meta's
+IWSDK starter scene (p95 22.2 vs 29.4 ms, CPU throttled 3x).
 
 ## Challenges we ran into
 
@@ -73,7 +72,9 @@ Fargate, Elastic Load Balancing.
 - Without a headset (Meta's IWER emulator): https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US
 - The companion, on a phone: https://d2p3027seoreck.cloudfront.net/companion.html
 - The code: https://github.com/tapaderuza/spatialdesk
-- Step-by-step judge's guide and local setup: `README.md` in the repository.
+- The judge's guide: https://github.com/tapaderuza/spatialdesk/blob/main/docs/JUDGE_GUIDE.md
+- The privacy policy: https://github.com/tapaderuza/spatialdesk/blob/main/docs/PRIVACY.md
+- A quick look, with timers in seconds: https://d2p3027seoreck.cloudfront.net/?fast
 
 ## Video demo link
 
