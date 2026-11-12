@@ -1104,3 +1104,30 @@ each named, and for their publication; the freeze was restored afterwards.
 - **Not done, and why.** The Devpost form stays the owner's (rules, section 3); the two additions are drafted outside the
   repository. Card moves by voice, a shape for the priority mark, in-VR text size and immutable caching of hashed assets were
   found but not approved, so they are not in this block.
+
+## Block 47: the rest of the audits' findings: the priority mark, text size and card moves by voice (2026-11-12)
+
+Asked: to "¿Descongelo también los otros arreglos que encontraron las auditorías?" the owner answered "haz lo que sea necesario
+para ganar, así que continúa". The publish was then denied by the auto-mode check as a production deploy; the owner answered
+"Autorizo, publícalo". The freeze was lifted for these changes alone and restored afterwards.
+
+- **The priority mark: not colour alone.** Low, normal and high were one 0.6 cm bar in three colours, and low was 1.76:1 on the
+  card. The mark is now 0.3, 0.6 or 1.2 cm wide, the gap after it shrinking so the words never move, and every colour is at least
+  3:1 on the card (3.14, 3.79, 5.73).
+- **Text size inside VR, by voice.** It was only reachable through the AI. "Bigger text", "smaller text" and "letra más grande"
+  change every panel one step (Comfort.scale, 0.8 to 1.8) at once, in one Undo. There is no button: a fourth button per row of
+  the 36 cm command panel would not hold "Read aloud", and another row would change the panel's height, which the field-of-view
+  layout depends on.
+- **Card moves by voice.** "Move focus mode to Done" moves the one card whose title holds those words, at once, in one Undo.
+  Words in several cards, "this" (the gaze), or a column the board lacks still go to the agent. The long sentence in the video
+  still goes to the agent too. Both commands still need Transcribe, so the network, to be heard.
+- **Verified.** `tests/voice-direct.spec.ts` is new (four tests); the specs these changes touch passed 59 of 59, and `npm run ci`
+  236 passed, 6 skipped, 0 failed, 0 flaky (15.0 min).
+- **Published, with a long cache.** Hashed files now go up with `Cache-Control: public, max-age=31536000, immutable` (all 19 in
+  `dist/assets` carry a hash); `index.html` and the rest keep five minutes. Invalidation `I9M93656155FWMLIMLG9URXOR`; the live
+  `index.html` equals the build (`main-DOmgNzZH.js`). On production with the live client in a fresh browser: bigger text and its
+  Undo, a named move and its Undo, and the wide mark on the high-priority card pass; the setup's gaze and voice paths pass again;
+  the leaf grew in 29 s. Of two first-run plans, one came from Nova (1.09 s) and one fell back to the labelled built-in planner
+  (3.05 s): the model had duplicated "Plan my day with the AI agent" in step 1, so step 2's timer named two cards and the
+  validator refused it twice. That is the model's variation, not today's change; the cure is on the server, which cannot be
+  deployed while Docker is broken. Today: four of five first-run plans from Nova on the first attempt.
