@@ -152,6 +152,7 @@ Each of the first three opens with a link, so it can be set up in advance by who
 | One switch | `/?switch` | First pinch anywhere starts the scan; the next selects the control lit |
 | Hands-free | `/?handsfree` | Rest your head's aim on a control: a ring fills and presses it (1 s for buttons, 1.6 s for cards) |
 | Voice | any link | **Talk**, then *"Bring everything closer and make the text bigger"*; review, **Apply**, **Undo** |
+| Voice, at once | any link | **Talk**, then *"bigger text"* (or *"smaller text"*), or *"move focus mode to Done"*: done at once without asking the AI, and **Undo** puts it back. Words that fit several cards, or *"this"*, go to the AI instead |
 
 The standards behind these, and their limits, are in the README's
 [Accessibility & Inclusivity Standards](../README.md#accessibility--inclusivity-standards).
