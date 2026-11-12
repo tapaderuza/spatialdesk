@@ -38,6 +38,13 @@ export type VoiceCommand =
   | { kind: 'calibrate' }
   /** "Invite a helper": a code a family member or carer types on their phone to follow the Today board (src/assist). */
   | { kind: 'invite' }
+  /** "Bigger text", "letra más grande": the panels' size, at once and with Undo, without asking the AI (src/panel.ts). */
+  | { kind: 'text-size'; bigger: boolean }
+  /**
+   * "Move the dentist call to Done": [card] and [column] are the words heard (normalised); src/panel.ts moves the one card
+   * they name, at once and with Undo, and hands the sentence to the agent when they name none or several.
+   */
+  | { kind: 'move-card'; card: string; column: string; said: string }
   | { kind: 'ask'; text: string };
 
 const PLEASE = String.raw`(?: please| now)?`;
@@ -122,8 +129,17 @@ const LANGUAGE = new RegExp(
 /** "Plan my day:" and the like, in the words as heard (the rest keeps its commas for the planner). */
 const PLAN = /^\s*(?:plan|planifica|organiza)(?:\s+(?:my|mi)\s+(?:day|d[ií]a))?(?=$|[\s:,.-])\s*[:,.-]?\s*/i;
 
+/**
+ * "Bigger text", "make the text smaller", "letra más grande": said on its own. A longer sentence ("bring everything closer
+ * and make the text bigger") still goes to the agent, which can change more than the size.
+ */
+const TEXT_SIZE = /^(?:make (?:the )?)?(?:(?:text|letters|font|words)(?: a (?:bit|little))? (bigger|larger|smaller)|(bigger|larger|smaller) (?:text|letters|font|words)|(?:letra|letras|texto) (?:mas )?(grandes?|pequenas?|pequeno))(?: please| now)?$/;
+/** "Move X to Done", "mueve X a hecho": a card by its words, to a column by its name. "This"/"esto" is the agent's (gaze). */
+const MOVE_CARD = /^(?:move|put|drag|send|mueve|pon|pasa|lleva) (?:the |my |la |el |mi )?(.+?) (?:to|into|in|a|al|en) (?:the |my |la |el |mi )?(to do|todo|doing|done|in progress|por hacer|en curso|haciendo|hecho|hechas|terminado|terminadas)(?: column| columna)?(?: please| now)?$/;
+const POINTING = /^(?:this|that|it|this one|that one|this card|that card|esto|eso|esta|este|esa|ese|lo|la tarjeta)$/;
+
 /** Lower case, accents folded, punctuation dropped: "Turn High-Contrast on." -> "turn high contrast on". */
-function normalise(said: string): string {
+export function normalise(said: string): string {
   return said
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -168,6 +184,13 @@ export function parseCommand(said: string): VoiceCommand | null {
   }
   // Said on its own; a longer sentence ("... and I can't turn my neck") goes to the agent, which adapts the space too.
   if (/^(?:my hands? (?:shake|shakes|tremble)|i have (?:a )?tremor|me tiemblan las manos|tengo temblor)$/.test(text)) return { kind: 'steady', value: true };
+  const size = TEXT_SIZE.exec(text);
+  if (size) {
+    const word = size[1] ?? size[2] ?? size[3];
+    return { kind: 'text-size', bigger: /^(?:bigger|larger|grandes?)$/.test(word) };
+  }
+  const move = MOVE_CARD.exec(text);
+  if (move && !POINTING.test(move[1])) return { kind: 'move-card', card: move[1].replace(/^(?:card|tarjeta) /, ''), column: move[2], said: said.trim() };
   if (COMFORT.test(text)) return { kind: 'comfort', text: said.trim() };
   const sessionChoice = sessionChoiceFromWords(text);
   if (sessionChoice || /^(?:next session|my next session|plan my session|siguiente sesion|mi siguiente sesion|prepara mi sesion)$/.test(text)) return { kind: 'session', text: said.trim(), choice: sessionChoice ?? undefined };

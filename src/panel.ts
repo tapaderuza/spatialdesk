@@ -21,7 +21,15 @@ import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js'
 import { ReachSystem } from './accessibility/reach-system.js';
 import { setLanguage } from './i18n/language.js';
 import { requestSetup, spokenAnswer } from './onboarding/setup-state.js';
-import { parseCommand } from './voice/commands.js';
+import { normalise, parseCommand } from './voice/commands.js';
+import { presentationText } from './accessibility/presentation.js';
+
+/** Column names a voice may use, by the column they mean (normalised: no accents, lower case). */
+const VOICE_COLUMNS: readonly (readonly string[])[] = [
+  ['to do', 'todo', 'por hacer'],
+  ['doing', 'in progress', 'en curso', 'haciendo'],
+  ['done', 'hecho', 'hechas', 'terminado', 'terminadas'],
+];
 import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
 
@@ -414,6 +422,16 @@ export class PanelSystem extends createSystem({}) {
         tell('Adapting your space to you.');
         void agent?.run('comfort', command.text);
         return;
+      case 'text-size':
+        this.textSize(command.bigger, tell);
+        return;
+      case 'move-card':
+        // One card named, one column named: moved now, with Undo. Otherwise the agent reads the sentence, as before.
+        if (!this.moveCardByVoice(command.card, command.column, tell)) {
+          tell('Asking the AI.');
+          void agent?.run('companion', command.said);
+        }
+        return;
       case 'switch': {
         const on = command.value ?? !accessPreferences.switchEnabled;
         setAccessPreference('switchEnabled', on);
@@ -434,6 +452,61 @@ export class PanelSystem extends createSystem({}) {
         }
         return;
     }
+  }
+
+  /** "Bigger text": every panel one step (0.2) larger or smaller, within Comfort.scale's 0.8 to 1.8, in one Undo; no AI round trip. */
+  private textSize(bigger: boolean, tell: (text: string, error?: boolean) => void): void {
+    const now = workspace.state.comfort.scale;
+    const scale = Math.round(Math.min(1.8, Math.max(0.8, now + (bigger ? 0.2 : -0.2))) * 10) / 10;
+    if (scale === now) {
+      tell(bigger ? 'The text is as large as it goes.' : 'The text is as small as it goes.');
+      return;
+    }
+    const result = workspace.dispatch(
+      { op: 'set_comfort', scale },
+      { label: 'Text size', viewer: deskPose(this.world), notice: `Text ${bigger ? 'larger' : 'smaller'}. Say undo to put it back.` },
+    );
+    if (!result.ok) tell('The text size could not change.', true);
+  }
+
+  /**
+   * "Move the dentist call to Done": the one card whose title holds every word heard, to the column of that name on its
+   * board, in one Undo. False when the words name no card, or more than one, or the board has no such column: the agent
+   * then reads the sentence (it also knows "this", from the gaze).
+   */
+  private moveCardByVoice(cardWords: string, columnWords: string, tell: (text: string, error?: boolean) => void): boolean {
+    const group = VOICE_COLUMNS.find((names) => names.includes(columnWords)) ?? [columnWords];
+    const words = cardWords.split(' ').filter((word) => word.length > 1);
+    if (!words.length) return false;
+    const has = (title: string) => {
+      const padded = ` ${normalise(title)} `;
+      return words.every((word) => padded.includes(` ${word} `));
+    };
+    const state = workspace.state;
+    const boards = [...state.boards].sort((a, b) => Number(b.id === state.focusBoardId) - Number(a.id === state.focusBoardId));
+    const found: { board: (typeof boards)[number]; card: (typeof boards)[number]['columns'][number]['cards'][number]; from: string }[] = [];
+    for (const board of boards) {
+      for (const column of board.columns) {
+        for (const card of column.cards) if (has(card.title) || has(presentationText(card.title))) found.push({ board, card, from: column.id });
+      }
+    }
+    if (found.length !== 1) return false;
+    const { board, card, from } = found[0];
+    const target = board.columns.find((column) => group.includes(normalise(column.title)) || group.includes(normalise(presentationText(column.title))));
+    if (!target) return false;
+    const title = panelText(presentationText(card.title));
+    const columnTitle = panelText(presentationText(target.title));
+    if (target.id === from) {
+      tell(`"${title}" is already in ${columnTitle}.`);
+      return true;
+    }
+    const result = workspace.dispatch(
+      { op: 'move_card', card: card.id, board: board.id, column: target.id },
+      { label: 'move card', notice: `Moved "${title}" to ${columnTitle}. Say undo to put it back.` },
+    );
+    if (result.ok) play('drop', board.pose);
+    else tell(`"${title}" could not move.`, true);
+    return true;
   }
 
   /** Hands-free (src/ui/gaze.ts) says how it works when it turns on: nothing on screen would tell a first-time user. */
