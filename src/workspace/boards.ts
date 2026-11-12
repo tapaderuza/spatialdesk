@@ -31,8 +31,15 @@ const COLOR = {
   heldCard: '#2f5f9e',
   heldBorder: '#9cc3ff',
   focus: '#2f5f9e',
-  mark: { low: '#4c5664', normal: '#7f8b9b', high: '#ff8a7a' },
+  // Each at least 3:1 on the card (WCAG 1.4.11): low 3.1, normal 3.8, high 5.7.
+  mark: { low: '#727d8d', normal: '#7f8b9b', high: '#ff8a7a' },
 } as const;
+/**
+ * Priority is told by the mark's width as well as its colour (WCAG 1.4.1: not by colour alone): thin, as designed, wide.
+ * The gap after it shrinks as it widens, so the card's words never move.
+ */
+const MARK_WIDTH = { low: 0.3, normal: 0.6, high: 1.2 } as const;
+const MARK_AND_GAP = 1.6; // public/ui/board.uikitml .mark: width 0.6 + margin-right 1
 
 /** Characters that fit two lines of a card (1.9 cm Inter, minutes label beside it), by columns sharing 72 cm. */
 const CARD_CHARS = [0, 56, 36, 24, 17] as const;
@@ -131,7 +138,11 @@ class BoardView {
         const card = column.cards[first + k];
         this.paintCard(c, k);
         if (!card) return;
-        cardSlot.mark.setProperties({ backgroundColor: COLOR.mark[card.priority] });
+        cardSlot.mark.setProperties({
+          backgroundColor: COLOR.mark[card.priority],
+          width: MARK_WIDTH[card.priority],
+          marginRight: MARK_AND_GAP - MARK_WIDTH[card.priority],
+        });
         cardSlot.text.setProperties({ text: fit(panelText(content.columns[c].cards[first + k]), maxChars) });
         cardSlot.min.setProperties({ text: minutesLabel(card) });
       });
