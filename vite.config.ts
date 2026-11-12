@@ -57,6 +57,27 @@ function semRooms(): Plugin {
   };
 }
 
+/**
+ * @drawcall/uikitml's kits.js does `import * as Lucide from '@pmndrs/uikit-lucide'` and walks every export, which
+ * puts all 1,595 Lucide icons in the build (about 4 MB raw). The panels use no Lucide tag: the only consumers are two
+ * Horizon files (CheckIcon, ChevronDownIcon). The build gets a stub with just those two; the `Icon` suffix makes
+ * kits.js skip them, so its Lucide component set is empty. Dev is untouched.
+ */
+function lucideStub(): Plugin {
+  const id = '\0spatialdesk-lucide-stub';
+  return {
+    name: 'spatialdesk-lucide-stub',
+    apply: 'build',
+    enforce: 'pre',
+    resolveId: (source) => (source === '@pmndrs/uikit-lucide' ? id : null),
+    load: (source) =>
+      source === id
+        ? "export { Check as CheckIcon } from '@pmndrs/uikit-lucide/dist/Check.js';\n" +
+          "export { ChevronDown as ChevronDownIcon } from '@pmndrs/uikit-lucide/dist/ChevronDown.js';\n"
+        : null,
+  };
+}
+
 // The command server that dev and preview forward /api and /ws to: one running locally by default, or a deployed one
 // with SPATIALDESK_API=https://... (the recording mode films a local build against production without deploying it).
 const api = process.env.SPATIALDESK_API ?? 'http://localhost:8080';
@@ -68,7 +89,7 @@ const proxy = {
 export default defineConfig({
   // No headset in this project (emulator only): localhost over HTTP is already a secure context for WebXR,
   // so no self-signed certificate is needed.
-  plugins: [iwsdkDev({ https: false }), semRooms()],
+  plugins: [iwsdkDev({ https: false }), semRooms(), lucideStub()],
   server: {
     host: '0.0.0.0',
     port: 8081,
@@ -88,6 +109,8 @@ export default defineConfig({
       // perf gate attribute their cost and the size gate leave them out.
       output: {
         manualChunks: (id) => {
+          // Otherwise the preload helper lands in emulator-room, making the emulator chunks static deps of main.
+          if (id.includes('vite/preload-helper')) return 'preload-helper';
           if (id.includes('node_modules/iwer')) return 'emulator';
           if (/node_modules\/(@iwer|@drawcall\/glts|@bufbuild|ts-proto)\//.test(id)) return 'emulator-room';
           return undefined;
