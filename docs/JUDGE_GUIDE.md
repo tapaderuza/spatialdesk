@@ -28,10 +28,11 @@ Button names below are as shown in English, the app's default language.
 
 **Verified:** in the emulator (`tests/studio.spec.ts`, `tests/accessibility.spec.ts`). **Not verified:** on a physical headset. Without `?fast`, Focus 25 lasts 25 real minutes.
 
-**Without hands:** open the *without hands* link instead. Hands-free is off until something turns it on (its link, the
-**Hands-free** button, or *"hands free on"* after **Talk**), so a link is the way in for someone who cannot reach the button. Every
-step above then takes a held gaze, and the setup's pinch has a **Skip this step** button. **Verified:** gaze presses and card moves
-in the emulator (`tests/handsfree.spec.ts`), not yet as one run from setup to the leaf.
+**Without hands:** the setup's first screen shows **No hands? Look here** while hands-free is off. Rest your head's aim on it
+for 2 seconds (until then it is the only control a look can press) and hands-free turns on; every step above then takes a held
+gaze, and the pinch has a **Skip this step** button. The *without hands* link starts with hands-free already on. **By voice:**
+press **Talk** and answer the setup aloud (*"desk"*, *"skip"*, *"yes"*, *"start"*), then *"skip"* ends the guided steps.
+**Verified:** in the emulator (`tests/setup.spec.ts`, `tests/handsfree.spec.ts`), not yet as one run from setup to the leaf.
 
 ## 1. Resilience: turn the Wi-Fi off
 

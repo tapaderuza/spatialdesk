@@ -1067,3 +1067,40 @@ Asked: say how development stands and whether we can win, then make the change t
 - **The credits: a correction to block 44.** AWS support confirmed the Free Tier credits are forfeited and will not be reinstated. Another credit on the account, seen by the owner in the Billing console, has covered each day's usage since: in Cost Explorer, credit equals usage every day through 2026-11-09, about 3.3 USD a day. Its balance and expiry were not read here.
 - **Devpost, on the owner's order.** Told that section 3 of the rules voids entries "made by another on your behalf", the owner chose to have the text pasted for them and accepted that risk. What it does and How we built it were replaced (now naming the first five minutes, the airplane seat, one bus stop, take it away, and MRUK; 499 words in all), and a seventh Try it link opens `?fast`; Inspiration, the other links, the images, the video and the tags are unchanged. The previous text was kept outside the repository for rollback, and the public page, read signed out, shows the new one. `docs/META_SUBMISSION.md` matches it. The video needs no re-edit.
 - **The repository.** On the owner's choice it is now MIT-licensed, with the production URL as its homepage and topics for search.
+
+## Block 46: five audits, then a lighter load, a Talk that never hangs, and a setup without hands (2026-11-12)
+
+Asked: raise the odds of winning, using ECC (the Claude Code agent toolkit already installed as a plugin) and several agents
+at once. No outcome can be promised, and the owner was told so. Five read-only audits ran in parallel, one per criterion or
+prize; their findings were checked in the code before any was believed. The owner then lifted the freeze for four changes,
+each named, and for their publication; the freeze was restored afterwards.
+
+- **Two alarms disproved.** The Quest audit feared that `gazeTracking` was a required feature (Quest 3 has no eye tracking)
+  and that `offer: "none"` left no way in. Neither holds: IWSDK requests a feature set to `true` as optional
+  (`normalizeFlag`, `@iwsdk/core/dist/init/xr.js`), and the start page draws its own **Enter VR**.
+- **The load: `vite.config.ts` only.** The UIKitML kit imports all 1,595 Lucide icons and no panel uses one; and the Vite preload
+  helper sat in the emulator-room chunk, so every headset preloaded IWER's rooms. A build-only stub keeps the two icons Horizon
+  needs, and the helper has its own chunk. room-system went from 6.9 MB to 2.7 MB raw (1.79 to 0.73 MB gzip), and `index.html`
+  no longer preloads `emulator` or `emulator-room`; `?emulate` still loads them on demand.
+- **Talk never hangs.** A microphone prompt nobody answers (it may not show inside an immersive session) held Talk on "Stop"
+  for ever, and an audio graph or socket the browser refused rejected the listen with nothing to catch it. The prompt now gets
+  8 s, Stop ends that wait at once, a stream granted late is closed, and a setup failure says "Voice is unavailable on this
+  browser." The client's patience rose from 7 to 10 s, past the server's 6 s cut on a Nova call. `tests/voice-resilience.spec.ts`
+  is new; the timing tests and the docs follow the new value.
+- **The setup without hands, and by voice.** Hands-free started off, and turning it on needed a hand. The setup now shows
+  **No hands? Look here** while it is off: the one control a held gaze presses then (2 s, the ring on it alone), and it turns
+  hands-free on. Every answer can be spoken after Talk (desk, sofa, yes, no, start, skip; Spanish too), and "skip" ends the
+  coach. Three new tests in `tests/setup.spec.ts`.
+- **Docs.** The judge's guide gains a *without hands* link (`?fast&handsfree`), asks for the microphone on the 2D page first
+  (**Speak**), and describes the new ways in. The README and the hardware note quote 22.2 ms, as the submission does.
+- **Verified before the push.** The eleven specs these changes touch: 74 passed, 0 failed (7.0 min), the performance gate
+  among them. Then `npm run ci` in the pre-push hook: 232 passed, 6 skipped, 0 failed, 0 flaky (16.3 min), 1.33 MB gz.
+- **Published and verified on production.** The client went out as in block 42 (S3 sync without delete, invalidation
+  `I1D0TA3BNNO4UHY093FW813NX2`); the live `index.html` equals the build (`main-B5ZrEqyO.js`) and preloads only `language`,
+  `preload-helper` and `room-system`, which is served at 2,712,064 bytes raw. ECS stays on revision 16. With the live client in a
+  fresh browser each time: the setup's gaze way in and its voice answers, then "skip" on the coach, pass; Plan my day with no
+  words came from Nova 2 Lite 3 of 3 on the first attempt (1.18 to 1.32 s); with `?fast` the leaf grew in 29 s; a spoken "plan my
+  day" went through Amazon Transcribe to the agent (7.6 s end to end). Desktop browser and emulator: no physical headset.
+- **Not done, and why.** The Devpost form stays the owner's (rules, section 3); the two additions are drafted outside the
+  repository. Card moves by voice, a shape for the priority mark, in-VR text size and immutable caching of hashed assets were
+  found but not approved, so they are not in this block.
