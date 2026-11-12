@@ -5,8 +5,11 @@
  */
 import { isSpanish } from '../i18n/language.js';
 
-/** The whole wait for one AI request or one voice connection, from the press to the answer. */
-export const AI_PATIENCE_MS = 7_000;
+/**
+ * The whole wait for one AI request or one voice connection, from the press to the answer. It leaves room past the
+ * server's 6 s cut on a Nova call, so the answer, or the server's own built-in plan, can still arrive.
+ */
+export const AI_PATIENCE_MS = 10_000;
 
 /** The single notice for "the network or the AI is out of reach": plain, not an alarm. ASCII only (panel font). */
 export function manualModeNotice(): string {

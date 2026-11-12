@@ -15,7 +15,7 @@ All tests run Meta's IWER emulator (Quest 3 profile) on the production build. Co
 | CPU cost per frame | Budgets enforced on every push, measured at the heaviest workspace | `tests/perf.spec.ts` | Real frame time and thermals |
 | GPU cost per frame | Draw-call and triangle budgets only | `tests/perf.spec.ts` | **Everything else: not measured** |
 | Hand-tracking noise | Noise-tolerant targets; optional steady aim | `tests/interaction.spec.ts`, `tests/tremor.spec.ts` | The real tracker's noise |
-| Network degrades or disappears | Local-first workspace; a 7 s ceiling on every wait | `tests/resilience.spec.ts`, `tests/edge-cases.spec.ts`, production probes | The Quest's own Wi-Fi behaviour |
+| Network degrades or disappears | Local-first workspace; a 10 s ceiling on every wait | `tests/resilience.spec.ts`, `tests/edge-cases.spec.ts`, production probes | The Quest's own Wi-Fi behaviour |
 
 ## 1. API tolerance: `requiredFeatures` is empty
 
@@ -121,10 +121,10 @@ local copy of the engine, and nothing per-frame touches a socket. "Manual mode" 
 
 | Layer | Limit | Where |
 | --- | --- | --- |
-| One AI request, from press to answer | 7 s, then one calm line | `AI_PATIENCE_MS`, `src/backend/resilience.ts` |
+| One AI request, from press to answer | 10 s, then one calm line | `AI_PATIENCE_MS`, `src/backend/resilience.ts` |
 | Waiting for a session within it | 4 s | `src/agent/client.ts` |
 | One Nova call, retries included | 6 s, then the labelled built-in planner | `timeout-seconds`, `application.yml` |
-| Connecting to voice | 7 s; nothing heard, 6 s | `src/voice/listen.ts` |
+| Connecting to voice | 10 s; nothing heard, 6 s; a microphone prompt nobody answers, 8 s | `src/voice/listen.ts` |
 | Reconnecting | Full jitter, 0.5 to 30 s; a press of Plan or Talk wakes it at once | `src/backend/link.ts` |
 | Opening storage | 2 s, then a fresh start | `src/workspace/store.ts` |
 

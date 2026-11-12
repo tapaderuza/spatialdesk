@@ -63,14 +63,14 @@ so its output is structured or it is rejected.
 | An invalid plan | One retry with the exact error, then the same labelled planner |
 | The session's hour is spent | *"That is 20 plans this hour. Try again a little later."* |
 | The day is spent | *"The AI has done all the planning it can today. Your workspace still works by hand."* |
-| No answer within 7 s | *"Network issue. Switched to manual mode."*, and a late answer is discarded |
+| No answer within 10 s | *"Network issue. Switched to manual mode."*, and a late answer is discarded |
 
 **The limits.**
 
 - **The daily cap is shared and kept in memory.** 300 plans are shared by everyone and the count resets at a server restart. For scale, the
   account made 472 calls to this model in the 30 days to 2026-11-05, before judging began. A burst of heavy use in one day would end the AI for everyone until
   00:00 UTC, with the line above.
-- **Two attempts can outlast the patience.** Each call may take 6 s, so a first plan that fails validation late plus a slow retry can pass the client's 7 s.
+- **Two attempts can outlast the patience.** Each call may take 6 s, so a first plan that fails validation late plus a slow retry can pass the client's 10 s.
   The person then gets the calm line, and it reads "network" when the cause was the model. The late answer is dropped, which is tested.
 - **A plan can cost two Bedrock calls** while counting once against the quota.
 - **A cold start is slower.** The start-up warm-up call timed out on 2026-11-05 (6 s on 0.25 vCPU while the JVM was starting), so the first plan paid for the

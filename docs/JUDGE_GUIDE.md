@@ -51,7 +51,7 @@ own storage (IndexedDB), and no card operation waits for a server.
 **Expected**
 
 - At step 4, each request ends with one plain line, *"Network issue. Switched to manual mode."*, with no error tone. The
-  app waits at most 7 seconds (`AI_PATIENCE_MS`, `src/backend/resilience.ts`); a request that fails outright ends sooner.
+  app waits at most 10 seconds (`AI_PATIENCE_MS`, `src/backend/resilience.ts`); a request that fails outright ends sooner.
 - At step 5, everything works as before, because none of it uses the network.
 - At step 6, the AI answers again with no reload. The connection retries by itself, with backoff of up to 30 seconds, and the
   press itself wakes it, so it does not wait that long.

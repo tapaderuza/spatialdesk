@@ -84,7 +84,7 @@ Browser storage is not encrypted, and this is not a clinical record. The [privac
 | Plans | 20 per session per hour; 300 per day in all | The Bedrock bill |
 | Listens | 60 per session per hour; 600 per day in all | The Transcribe bill |
 | Nova call | 6 s, one SDK retry inside it | The wait |
-| Client patience | 7 s | The wait |
+| Client patience | 10 s | The wait |
 | Plan | 24 steps, 1,800 output tokens, 64 KB request | Model and server cost |
 | Request text | 600 characters; dialogue 6 turns | Prompt size |
 | Workspace | 4 boards, 3 timers | The frame budget |

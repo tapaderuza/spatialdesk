@@ -1,6 +1,6 @@
 /**
  * Failsafes: no judge meets an endless "thinking". When the AI (Amazon Nova) or the voice (Amazon Transcribe) is slower
- * than 7 s, or the network fails, the state ends, one calm line says "Network issue. Switched to manual mode.", and the
+ * than 10 s, or the network fails, the state ends, one calm line says "Network issue. Switched to manual mode.", and the
  * cards keep working by hand. A server that answers with its own words (a spent quota) still gets its explanation.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -31,7 +31,7 @@ async function moveByHand(page: Page): Promise<void> {
   expect(await cardsIn(page, 0)).not.toContain(first);
 }
 
-test('an AI that never answers: after 7 s "thinking" ends, one calm line, and the cards move by hand', async ({ page }) => {
+test('an AI that never answers: after 10 s "thinking" ends, one calm line, and the cards move by hand', async ({ page }) => {
   test.setTimeout(60_000);
   await session(page);
   await page.route('**/api/agent/plan', () => new Promise(() => {})); // the request hangs for ever
@@ -40,10 +40,10 @@ test('an AI that never answers: after 7 s "thinking" ends, one calm line, and th
   const pressed = Date.now();
   await tap(page, 'command:plan-button');
   expect(await phase(page)).toBe('thinking');
-  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'idle', null, { timeout: 15_000 });
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'idle', null, { timeout: 18_000 });
   const waited = Date.now() - pressed;
-  expect(waited, 'it gives up at the 7 s limit, neither before nor much after').toBeGreaterThan(6_500);
-  expect(waited).toBeLessThan(10_500);
+  expect(waited, 'it gives up at the 10 s limit, neither before nor much after').toBeGreaterThan(9_500);
+  expect(waited).toBeLessThan(13_500);
 
   expect(await notice(page)).toMatchObject({ text: MANUAL, error: false }); // calm, not an alarm
   expect(await page.evaluate(() => (window as Win).__workspace.state.boards.length)).toBe(2); // nothing changed
@@ -80,7 +80,7 @@ test('Spanish says it in Spanish', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('the voice that never connects: Talk ends after 7 s with the same line, and Talk works again after', async ({ page }) => {
+test('the voice that never connects: Talk ends after 10 s with the same line, and Talk works again after', async ({ page }) => {
   test.setTimeout(60_000);
   await session(page);
   await page.route('**/api/voice/session', () => new Promise(() => {})); // the server never grants the Transcribe URL
@@ -88,10 +88,10 @@ test('the voice that never connects: Talk ends after 7 s with the same line, and
 
   const pressed = Date.now();
   await tap(page, 'command:talk-button');
-  await page.waitForFunction(() => (window as Win).__notice?.text === 'Network issue. Switched to manual mode.', null, { timeout: 15_000 });
+  await page.waitForFunction(() => (window as Win).__notice?.text === 'Network issue. Switched to manual mode.', null, { timeout: 18_000 });
   const waited = Date.now() - pressed;
-  expect(waited).toBeGreaterThan(6_500);
-  expect(waited).toBeLessThan(10_500);
+  expect(waited).toBeGreaterThan(9_500);
+  expect(waited).toBeLessThan(13_500);
   expect((await notice(page)).error).toBe(false);
 
   // Not stuck "listening": the next press starts a new listen (here it fails at once, a 502 from the gateway).

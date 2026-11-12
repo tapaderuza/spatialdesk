@@ -76,13 +76,13 @@ test('hardware tolerance: nothing is required, and a headset that grants no opti
   expect(errors).toEqual([]);
 });
 
-test('an answer later than the 7 s limit is dropped: one calm line, nothing changes, and a second request while waiting is not sent', async ({ page }) => {
+test('an answer later than the 10 s limit is dropped: one calm line, nothing changes, and a second request while waiting is not sent', async ({ page }) => {
   test.setTimeout(90_000);
   await sessions(page);
   let calls = 0;
   await page.route('**/api/agent/plan', async (route) => {
     calls++;
-    if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 10_000)); // Bedrock takes 10 s
+    if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 13_000)); // Bedrock takes 13 s
     await route.fulfill({ json: PLAN }).catch(() => {}); // the app may have hung up already
   });
   const errors = await openWorkspace(page);
@@ -95,12 +95,12 @@ test('an answer later than the 7 s limit is dropped: one calm line, nothing chan
   await page.waitForTimeout(500);
   expect(calls, 'one request at a time').toBe(1);
 
-  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'idle', null, { timeout: 15_000 });
-  expect(Date.now() - pressed).toBeGreaterThan(6_500);
-  expect(Date.now() - pressed).toBeLessThan(9_500); // gave up before the answer came
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'idle', null, { timeout: 18_000 });
+  expect(Date.now() - pressed).toBeGreaterThan(9_500);
+  expect(Date.now() - pressed).toBeLessThan(12_500); // gave up before the answer came
   expect(await noticeText(page)).toBe(MANUAL);
 
-  await page.waitForTimeout(Math.max(0, 11_500 - (Date.now() - pressed))); // past the moment the answer arrives
+  await page.waitForTimeout(Math.max(0, 14_500 - (Date.now() - pressed))); // past the moment the answer arrives
   expect(await phase(page), 'the late answer opens nothing').toBe('idle');
   expect(await boards(page), 'and changes nothing').toBe(before);
 
@@ -257,7 +257,7 @@ test('the network goes in the middle of a session: one calm line, the work carri
   const pressed = Date.now();
   await pressXR(page, 'command:plan-button');
   await page.waitForFunction((text) => (window as Win).__notice?.text === text, MANUAL, { timeout: 12_000 });
-  expect(Date.now() - pressed, 'within the 7 s limit (and the press itself)').toBeLessThan(10_000);
+  expect(Date.now() - pressed, 'a request that fails outright ends well before the 10 s limit (the press itself included)').toBeLessThan(10_000);
   expect(failures, 'because the network really was gone').toEqual(['net::ERR_INTERNET_DISCONNECTED']);
   expect(await phase(page)).toBe('idle');
   expect((await page.evaluate(() => (window as Win).__notice)).error, 'not an alarm').toBe(false);

@@ -27,6 +27,8 @@ export interface ListenHandlers {
 const SAMPLE_RATE = 16_000;
 /** How long a press waits for a session to exist at all. */
 const SESSION_MS = 4_000;
+/** How long the browser gets to answer for the microphone: a prompt that never shows must not hold Talk on "Stop". */
+const MIC_MS = 8_000;
 /** With nothing heard at all, give up after this long. */
 const NOTHING_MS = 6_000;
 /** After the end of the audio, how long Transcribe gets to send its last words. */
@@ -106,12 +108,33 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
     const session = await waitForSession(SESSION_MS);
     if (cancelled) return stopped;
     if (!session) return { ok: false, error: manualModeNotice(), network: true };
-    // The microphone first: a refusal costs nothing on the server.
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch {
-      return { ok: false, error: 'The microphone is blocked. Allow it for this site to talk to SpatialDesk.' };
+    // The microphone first: a refusal costs nothing on the server. A question nobody answers (a prompt that never shows
+    // in an immersive session) ends the listen after MIC_MS, or at once on Stop, instead of holding Talk on "Stop".
+    const asked = Promise.resolve().then(() =>
+      navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } }),
+    );
+    let micTimer: ReturnType<typeof setTimeout> | undefined;
+    const answer = await Promise.race([
+      asked.catch(() => 'blocked' as const),
+      new Promise<'silent' | 'stopped'>((resolve) => {
+        micTimer = setTimeout(() => resolve('silent'), MIC_MS);
+        finish = () => {
+          cancelled = true;
+          resolve('stopped');
+        };
+      }),
+    ]);
+    clearTimeout(micTimer);
+    finish = () => {
+      cancelled = true;
+    };
+    if (answer === 'blocked') return { ok: false, error: 'The microphone is blocked. Allow it for this site to talk to SpatialDesk.' };
+    if (typeof answer === 'string') {
+      // A stream granted after we stopped waiting is closed at once, so the microphone light goes off.
+      void asked.then((late) => late.getTracks().forEach((track) => track.stop()), () => undefined);
+      return answer === 'stopped' ? stopped : { ok: false, error: 'The microphone did not answer. Allow it for this site, then press Talk again.' };
     }
+    stream = answer;
     // The wait for the connection (the server's grant, then Transcribe's socket) starts once the microphone is open.
     const connectBy = performance.now() + AI_PATIENCE_MS;
     const left = () => Math.max(1, connectBy - performance.now());
@@ -238,6 +261,11 @@ export async function listen(handlers: ListenHandlers = {}): Promise<ListenResul
         }
       };
     });
+  } catch (error) {
+    // The audio graph or the socket could not be built (a sample rate or an AudioWorklet this browser lacks, a refused
+    // URL): one plain line, and Talk is ready again, instead of a rejection nobody catches and a label stuck on "Stop".
+    console.warn('[voice] could not start:', error);
+    return cancelled ? stopped : { ok: false, error: 'Voice is unavailable on this browser.' };
   } finally {
     stream?.getTracks().forEach((track) => track.stop());
     void context?.close().catch(() => undefined);

@@ -61,7 +61,7 @@ the server and **deployed as `7dd7e7b`**, confirmed live: 53 cm to 43 cm); the d
   orb in the headset. Only titles and columns travel; the carer cannot configure; 15 minutes; Stop revokes at once.
 - **Panels glide** to the comfort zone in under a second instead of jumping (27 cm: largest frame 5 % of the way, within
   1 mm in 978 ms); a gliding panel takes no pointer; reduced motion and a flat screen place at once.
-- **No endless "thinking":** the AI and the voice get 7 s, then "Network issue. Switched to manual mode." and the cards
+- **No endless "thinking":** the AI and the voice get 10 s, then "Network issue. Switched to manual mode." and the cards
   still work by hand. The server cuts Nova at 6 s so its fallback fits.
 - **How a judge sees it:** two browser tabs are enough. Tab one: the app, "Enter VR" (or `?emulate` to try without a
   headset), say or type "invite a helper" (the button is on the start screen). Tab two: `/companion.html`, type the code.
