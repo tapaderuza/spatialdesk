@@ -20,7 +20,7 @@ import { deskPose, viewerPose } from './workspace/viewer.js';
 import { inRoom, launchRoom, launchVR, RoomSystem } from './room/room-system.js';
 import { ReachSystem } from './accessibility/reach-system.js';
 import { setLanguage } from './i18n/language.js';
-import { requestSetup } from './onboarding/setup-state.js';
+import { requestSetup, spokenAnswer } from './onboarding/setup-state.js';
 import { parseCommand } from './voice/commands.js';
 import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
@@ -291,6 +291,14 @@ export class PanelSystem extends createSystem({}) {
 
   /** Does what the words ask (src/voice/commands.ts); requests the buttons cannot express go to the agent. */
   runVoice(said: string): void {
+    // While the guided setup or the first-run coach is on screen, its answers ("desk", "yes", "start", "skip") are its own.
+    const firstRun = spokenAnswer(said);
+    if (firstRun) {
+      (window as unknown as { __heard: unknown }).__heard = { said, command: { kind: 'first-run' } }; // read by the Playwright tests
+      this.showNotice({ text: `Heard "${said.replace(/[.!?]+$/, '')}".`, error: false }, this.notice);
+      firstRun(); // after the echo: a notice of its own (setup saved, skipped) is the one left on screen
+      return;
+    }
     let command = parseCommand(said);
     const agent = this.world.getSystem(AgentSystem);
     // A short answer belongs to the question, not to the Apply button. Explicit cancel still closes it.

@@ -60,6 +60,40 @@ export function requestSetup(): boolean {
   return requests.size > 0;
 }
 
+/** Words as the first-run panels match them: lower case, no accents, no punctuation, no "please". */
+export function spokenWords(said: string): string {
+  return said
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\b(?:please|por favor)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Given the words (spokenWords), what to do if they answer the panel on screen; null when they do not. */
+type SpokenAnswer = (words: string) => (() => void) | null;
+const answerers = new Set<SpokenAnswer>();
+
+/** The setup and the coach listen here while they are on screen: "desk", "yes", "skip" are theirs, not the agent's. */
+export function onSpokenAnswer(answerer: SpokenAnswer): () => void {
+  answerers.add(answerer);
+  return () => {
+    answerers.delete(answerer);
+  };
+}
+
+/** What Talk heard, as an answer to the first-run panel on screen: the action to run, or null (src/panel.ts runVoice). */
+export function spokenAnswer(said: string): (() => void) | null {
+  const words = spokenWords(said);
+  for (const answerer of answerers) {
+    const act = answerer(words);
+    if (act) return act;
+  }
+  return null;
+}
+
 const closedListeners = new Set<(skipped: boolean) => void>();
 
 /** Told when the setup ends, finished or skipped: a helper's call for help that opened it learns how it went. */

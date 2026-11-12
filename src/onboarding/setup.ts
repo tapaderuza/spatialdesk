@@ -5,6 +5,9 @@
  *      comfort profile (src/accessibility/reach.ts); the orb is only an invitation, 50 cm from the eyes
  *   3. "Do you need pointer stabilization?"  [Yes] / [No]   -> steady aim (tremor mode, src/ui/aim.ts): the button
  *      aimed at over the last moments is the one pressed, and a tremor that leaves the panel for a moment is forgiven
+ * Every answer can also be spoken after Talk ("desk", "sofa", "yes", "no", "start", "skip"), and "No hands? Look here"
+ * (top, while hands-free is off) is the one control a held gaze presses before hands-free is on: it turns hands-free on,
+ * so someone who cannot use their hands gets through by gaze alone (src/ui/gaze.ts).
  * It opens by itself the first time someone enters XR, can be skipped at any step (Skip, top right), and comes back by voice
  * ("recalibrate") or from the My setup card. The first-run coach (src/onboarding/coach.ts) waits for it. Nothing is
  * stored but the choices: the seat, the comfort profile and the steady-aim setting.
@@ -30,14 +33,14 @@ import { accessPreferences, setAccessPreference } from '../accessibility/prefere
 import { AgentSystem } from '../agent/agent-system.js';
 import { isSpanish } from '../i18n/language.js';
 import { hoverFades } from '../ui/hover.js';
-import { PanelHits } from '../ui/panel-hits.js';
-import { idleBorder, onSettings } from '../ui/settings.js';
+import { gazeInvite, PanelHits } from '../ui/panel-hits.js';
+import { idleBorder, onSettings, settings, toggleSetting } from '../ui/settings.js';
 import { play } from '../ui/sounds.js';
 import { SetupPanel } from '../workspace/components.js';
 import { panelText, type Op } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
 import { aheadOfBoards, deskPose } from '../workspace/viewer.js';
-import { calibrated, markCalibrated, notifySetupClosed, onSetupRequested, setSeat, setupState, type Seat } from './setup-state.js';
+import { calibrated, markCalibrated, notifySetupClosed, onSetupRequested, onSpokenAnswer, setSeat, setupState, type Seat } from './setup-state.js';
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/setup.uikitml`;
 const SIZE = { width: 0.52, height: 0.38 } as const; // public/ui/setup.uikitml
@@ -59,12 +62,32 @@ const AFTER_PINCH_MS = 800;
 const COLOR = { choice: '#2f5f9e', skip: '#2a313b' } as const;
 
 type Stage = 'where' | 'reach' | 'steady' | 'done';
-type Key = 'a' | 'b' | 'skip';
+type Key = 'a' | 'b' | 'skip' | 'gaze';
+
+/** Spoken answers to each question (after spokenWords: lower case, no accents), English and Spanish. */
+const SPOKEN: Record<Stage, readonly (readonly [RegExp, Key])[]> = {
+  where: [
+    [/^(?:(?:at|on) (?:a |the |my )?|en (?:el |la |mi )?)?(?:desk|table|escritorio|mesa)$/, 'a'],
+    [/^(?:(?:on|in) (?:a |the |my )?|en (?:el |la |mi )?)?(?:sofa|couch|bed|sofa bed|cama|sofa cama)$/, 'b'],
+  ],
+  reach: [[/^(?:skip(?: (?:this|it))?(?: step)?|next|saltar(?: este paso)?|siguiente)$/, 'a']],
+  steady: [[/^(?:yes|yeah|yep|si)$/, 'a'], [/^(?:no|nope)$/, 'b']],
+  done: [[/^(?:start|begin|yes|ok|okay|done|ready|empezar|empieza|si|vale|listo)$/, 'a']],
+};
+/** Anywhere but the reach step (where "skip" skips the step): ends the setup, as Skip does. */
+const SKIP_SETUP = /^(?:skip(?: (?:the )?setup| it| all)?|saltar(?: todo| el ajuste)?)$/;
+
+function spokenKey(stage: Stage, words: string): Key | null {
+  for (const [pattern, key] of SPOKEN[stage]) if (pattern.test(words)) return key;
+  return SKIP_SETUP.test(words) ? 'skip' : null;
+}
 interface Page { step: string; title: string; hint: string; a: string; b: string }
 
 const TEXT = {
   en: {
     skip: 'Skip',
+    gaze: 'No hands? Look here',
+    handsFree: 'Hands-free on: look at a button and hold your gaze until the ring fills.',
     // The first words someone reads in the headset: a welcome, and why three questions.
     where: { step: 'Step 1 of 3', title: 'Where are you sitting?', hint: 'Welcome. Three quick questions fit this space to your body. Skip any time.', a: 'Desk', b: 'Sofa/Bed' },
     reach: { step: 'Step 2 of 3', title: 'Reach out and pinch this orb', hint: 'Pinch where your hand is comfortable. It does not have to touch the orb.', a: 'Skip this step', b: '' },
@@ -83,6 +106,8 @@ const TEXT = {
   },
   es: {
     skip: 'Saltar',
+    gaze: '¿Sin manos? Mira aquí',
+    handsFree: 'Sin manos activado: mira un botón y mantén la mirada hasta que se llene el anillo.',
     where: { step: 'Paso 1 de 3', title: '¿Dónde te sientas?', hint: 'Te damos la bienvenida. Tres preguntas rápidas ajustan este espacio a tu cuerpo.', a: 'Escritorio', b: 'Sofá/Cama' },
     reach: { step: 'Paso 2 de 3', title: 'Estira la mano y pellizca este orbe', hint: 'Pellizca donde tu mano esté cómoda. No hace falta tocar el orbe.', a: 'Saltar este paso', b: '' },
     reachDone: 'Hecho. Tu espacio se ajustará a donde llegó tu mano cuando pulses Empezar.',
@@ -111,6 +136,8 @@ interface Elements {
   bLabel: UIKit.Text;
   skip: UIKit.Text;
   skipLabel: UIKit.Text;
+  gaze: UIKit.Text;
+  gazeLabel: UIKit.Text;
 }
 
 export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, PanelDocument] } }) {
@@ -126,8 +153,11 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
   private advance: ReturnType<typeof setTimeout> | null = null;
   private readonly hovered = new Set<Key>();
   private readonly cleanups: (() => void)[] = [];
+  private hits: PanelHits<Key> | null = null;
   /** Read by the Playwright tests. */
   readonly view = {
+    /** "No hands? Look here" is shown (hands-free off). */
+    gaze: false,
     stage: null as Stage | null,
     seat: null as Seat | null,
     reach: null as Reach | null,
@@ -154,6 +184,11 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     this.queries.ready.subscribe('qualify', (entity) => this.bind(entity));
     this.cleanupFuncs.push(
       onSetupRequested(() => this.start()),
+      // Talk while a question is on screen: its answers are the setup's (src/panel.ts asks before anything else).
+      onSpokenAnswer((words) => {
+        const key = this.stage ? spokenKey(this.stage, words) : null;
+        return key == null ? null : () => this.choose(key);
+      }),
       // Fires now and at every change: the first time someone is in XR and has not been through it, it opens.
       this.world.visibilityState.subscribe(() => this.enteredXR()),
       () => this.cleanups.forEach((cleanup) => cleanup()),
@@ -196,6 +231,12 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     if (!this.stage) return;
     if (key === 'skip') {
       this.finish(true);
+      return;
+    }
+    if (key === 'gaze') {
+      // The setup stays on its question; from now on every control answers a held gaze.
+      toggleSetting('handsFree', true);
+      workspace.notify({ text: this.text().handsFree, error: false });
       return;
     }
     switch (this.stage) {
@@ -330,6 +371,10 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     el.bLabel.setProperties({ text: text(page.b) });
     el.b.setProperties({ display: page.b ? 'flex' : 'none' });
     el.skipLabel.setProperties({ text: text(this.text().skip) });
+    el.gazeLabel.setProperties({ text: text(this.text().gaze) });
+    el.gaze.setProperties({ display: settings.handsFree ? 'none' : 'flex' });
+    this.view.gaze = !settings.handsFree;
+    this.syncInvite();
     this.view.step = text(page.step);
     this.view.title = text(page.title);
     this.view.hint = text(page.hint);
@@ -341,7 +386,7 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
   private paint(): void {
     const el = this.elements;
     if (!el) return;
-    const items: readonly (readonly [Key, UIKit.Text, string])[] = [['a', el.a, COLOR.choice], ['b', el.b, COLOR.choice], ['skip', el.skip, COLOR.skip]];
+    const items: readonly (readonly [Key, UIKit.Text, string])[] = [['a', el.a, COLOR.choice], ['b', el.b, COLOR.choice], ['skip', el.skip, COLOR.skip], ['gaze', el.gaze, COLOR.skip]];
     for (const [key, element, base] of items) {
       element.setProperties({ borderColor: idleBorder(base) });
       hoverFades.paint(element, base, this.hovered.has(key));
@@ -380,6 +425,14 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     // Not drawn until its own words are in (bind): no frame of the layout file's default text.
     object.visible = shown && this.elements !== null;
     object.pointerEvents = shown ? undefined : 'none'; // undefined: back to pointer-events' default (only listeners)
+    this.syncInvite();
+  }
+
+  /** While a question is shown and hands-free is off, "No hands? Look here" alone takes a held gaze (src/ui/gaze.ts). */
+  private syncInvite(): void {
+    const open = this.stage !== null && this.hits !== null && !settings.handsFree;
+    gazeInvite.target = open ? this.hits : null;
+    gazeInvite.key = open ? 'gaze' : null;
   }
 
   private bind(entity: Entity): void {
@@ -403,12 +456,18 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
       bLabel: get('setup-b-label'),
       skip: get('setup-skip'),
       skipLabel: get('setup-skip-label'),
+      gaze: get('setup-gaze'),
+      gazeLabel: get('setup-gaze-label'),
     };
     this.elements = el;
-    this.cleanups.push(onSettings(() => this.paint()));
-    new PanelHits(
+    // Hands-free turned on (here, by voice or on the command panel) hides "No hands? Look here".
+    this.cleanups.push(onSettings(() => {
+      this.render();
+      this.syncInvite();
+    }));
+    this.hits = new PanelHits(
       el.root,
-      [['a', el.a], ['b', el.b], ['skip', el.skip]] as const,
+      [['a', el.a], ['b', el.b], ['skip', el.skip], ['gaze', el.gaze]] as const,
       {
         click: (key) => this.choose(key),
         hover: (key, hovered) => {

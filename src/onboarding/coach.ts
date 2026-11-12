@@ -24,7 +24,10 @@ import { heldCard, setCoachTarget } from '../workspace/boards.js';
 import { CoachPanel } from '../workspace/components.js';
 import { BOARD_SIZE } from '../workspace/model.js';
 import { workspace } from '../workspace/store.js';
-import { setupState } from './setup-state.js';
+import { onSpokenAnswer, setupState } from './setup-state.js';
+
+/** "Skip" after Talk, while a step is on screen: the same as the panel's Skip (spokenWords: lower case, no accents). */
+const SPOKEN_SKIP = /^(?:skip(?: (?:it|this|the (?:tour|guide|steps)))?|saltar(?: (?:esto|la guia|los pasos))?)$/;
 
 const CONFIG = `${import.meta.env.BASE_URL}ui/coach.uikitml`;
 const SIZE = { width: 0.44, height: 0.1 } as const; // public/ui/coach.uikitml
@@ -102,7 +105,10 @@ export class CoachSystem extends createSystem({ ready: { required: [CoachPanel, 
       this.go(0);
       if (setupState.active) this.hold(true);
     });
-    this.cleanupFuncs.push(() => this.cleanups.forEach((cleanup) => cleanup()));
+    this.cleanupFuncs.push(
+      () => this.cleanups.forEach((cleanup) => cleanup()),
+      onSpokenAnswer((words) => (this.step >= 0 && this.text && !this.held && SPOKEN_SKIP.test(words) ? () => this.skip() : null)),
+    );
   }
 
   update(): void {

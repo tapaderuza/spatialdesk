@@ -84,6 +84,13 @@ const RECTS_MAX_AGE_MS = 250;
 /** Panels that can be pressed right now or later, in creation order. An array: walked per frame without allocating. */
 export const livePanels: GazeTarget[] = [];
 
+/**
+ * The way in for someone who cannot reach the Hands-free button with a hand: while hands-free is off, this one control
+ * (the guided setup's "No hands? Look here", src/onboarding/setup.ts) still takes a held gaze, and nothing else does
+ * (src/ui/gaze.ts). Null when no such control is on screen.
+ */
+export const gazeInvite = { target: null as GazeTarget | null, key: null as string | null };
+
 export class PanelHits<K extends string> {
   private readonly inverse = new Matrix4();
   private readonly rootInverse = new Matrix4();

@@ -10,11 +10,12 @@
  *
  * The eyes where the headset tracks them (Meta VR Glasses: IWSDK's gaze pose, the same ray its look-and-pinch uses),
  * so the whole workspace works with the eyes alone; elsewhere the head, which every Quest user can aim.
- * Only while hands-free is on and in XR: every third frame one plane test per panel and one rectangle test per control
+ * Only in XR, and while hands-free is on or the guided setup's "No hands? Look here" is shown (the one control a held gaze
+ * presses before hands-free is on, panel-hits.ts gazeInvite): every third frame one plane test per panel and one rectangle test per control
  * on the panel looked at; every frame the ring follows the gaze. No allocation per frame.
  */
 import { createSystem, Mesh, PlaneGeometry, ShaderMaterial, Vector3, VisibilityState, type Entity } from '@iwsdk/core';
-import { livePanels, type GazeTarget } from './panel-hits.js';
+import { gazeInvite, livePanels, type GazeTarget } from './panel-hits.js';
 import { settings } from './settings.js';
 import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
 /** After a press, the head turns at least this much before anything else can be pressed. */
@@ -23,6 +24,8 @@ const RETICLE_SIZE = 0.036; // 3.6 cm: about 3.4 degrees at arm's length, the fi
 const SURFACE_OFFSET = 0.004; // in front of the panel, never inside it
 /** Ray tests every third frame: about 40 ms at 72 Hz, nothing next to a one-second dwell. */
 const TEST_EVERY_FRAMES = 3;
+/** The setup's "No hands? Look here", pressed while hands-free is off, waits longer: reading it must not press it. */
+const INVITE_DWELL_MS = 2000;
 
 /**
  * What the last ray test found (the panel and control under the gaze, and when), for src/ui/attention.ts: while
@@ -78,6 +81,8 @@ export class GazeSystem extends createSystem({}) {
   private onTarget = false;
   /** True from a press until the head has moved [REARM_COS] away from where it was. */
   private settling = false;
+  /** Hands-free is off, and only the setup's invitation (gazeInvite) listens to the gaze. */
+  private inviting = false;
   /** Read by the Playwright tests. */
   readonly state = { key: null as string | null, progress: 0, presses: 0, source: 'head' as 'eyes' | 'head' };
 
@@ -101,7 +106,8 @@ export class GazeSystem extends createSystem({}) {
 
   update(): void {
     const reticle = this.reticle.object3D!;
-    if (!settings.handsFree || this.world.visibilityState.peek() === VisibilityState.NonImmersive) {
+    this.inviting = !settings.handsFree && gazeInvite.target !== null;
+    if ((!settings.handsFree && !this.inviting) || this.world.visibilityState.peek() === VisibilityState.NonImmersive) {
       if (reticle.visible || this.panel) this.leave(reticle);
       return;
     }
@@ -126,15 +132,16 @@ export class GazeSystem extends createSystem({}) {
       return;
     }
     const panel = this.panel!;
-    const key = this.key;
+    // While only the invitation listens, the ring shows on it alone, and nothing else fills.
+    const key = this.inviting && !this.isInvite(panel, this.key) ? null : this.key;
     reticle.position.copy(this.direction).multiplyScalar(this.distance - SURFACE_OFFSET).add(this.origin);
     reticle.lookAt(this.origin);
-    reticle.visible = true;
+    reticle.visible = key != null || !this.inviting;
 
     let progress = 0;
     if (key != null && !this.spentPanel && !this.settling) {
       const now = this.lostAt >= 0 ? this.lostAt : performance.now();
-      progress = Math.max(0, (now - this.since - accessPreferences.settleMs) / dwellFor(key));
+      progress = Math.max(0, (now - this.since - accessPreferences.settleMs) / (this.inviting ? INVITE_DWELL_MS : dwellFor(key)));
       if (progress >= 1 && testing && this.onTarget) {
         // Pressed only right after a test, so never on a control the gaze has just left.
         progress = 0;
@@ -163,18 +170,21 @@ export class GazeSystem extends createSystem({}) {
       }
     }
     const now = performance.now();
-    gazeFinding.at = now;
-    gazeFinding.panel = best;
-    gazeFinding.key = null;
+    // Only hands-free proper speaks for the gaze to the agent's "this" (src/ui/attention.ts), not the invitation.
+    if (!this.inviting) {
+      gazeFinding.at = now;
+      gazeFinding.panel = best;
+      gazeFinding.key = null;
+    }
     if (!best) return this.holdTarget(now);
     this.distance = distance;
     this.point.copy(this.direction).multiplyScalar(distance).add(this.origin);
     const key = best.gazeHit(this.point, best !== this.panel);
-    gazeFinding.key = key;
+    if (!this.inviting) gazeFinding.key = key;
     if (best === this.panel && key == null && this.holdTarget(now)) return true;
     if (best !== this.panel || key !== this.key) {
       if (this.panel !== best) this.panel?.setGazeHover(null);
-      best.setGazeHover(key);
+      best.setGazeHover(this.inviting && !this.isInvite(best, key) ? null : key);
       this.panel = best;
       this.key = key;
       this.since = now;
@@ -188,6 +198,10 @@ export class GazeSystem extends createSystem({}) {
     this.lostAt = -1;
     this.onTarget = key != null;
     return true;
+  }
+
+  private isInvite(panel: GazeTarget, key: string | null): boolean {
+    return panel === gazeInvite.target && key !== null && key === gazeInvite.key;
   }
 
   /** Brief tracking misses may freeze progress; no selection can occur until the same visible control is hit again. */

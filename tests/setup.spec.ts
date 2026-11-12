@@ -8,7 +8,7 @@
  * the My setup card. The first-run coach waits for it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { enterXR, frames, openWorkspace, pressXR, settled, tap, type Win } from './helpers.js';
+import { enterXR, frames, lookAt, openWorkspace, pressXR, settled, tap, type Win } from './helpers.js';
 
 // A visitor who has never been through it: no "calibrated" flag (playwright.config.ts seeds one for every other test).
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -164,6 +164,56 @@ test('Skip closes the setup, counts as done, and changes nothing', async ({ page
   expect(errors).toEqual([]);
 });
 
+test('without hands: before hands-free, a look answers nothing; a held gaze on "No hands? Look here" turns it on, then the gaze answers', async ({ page }) => {
+  const errors = await enterXR(page);
+  await stageIs(page, 'where');
+  await expect.poll(() => shown(page, 'setup:setup-gaze')).toBe(true);
+  expect((await view(page)).gaze).toBe(true);
+  const handsFree = () => page.evaluate(() => JSON.parse(localStorage.getItem('spatialdesk.settings') ?? '{}').handsFree ?? false);
+
+  await lookAt(page, 'setup:setup-a'); // hands-free is off: resting the eyes on Desk presses nothing
+  await page.waitForTimeout(2_500);
+  expect((await view(page)).stage).toBe('where');
+  expect(await page.evaluate(() => (window as Win).__gaze.presses)).toBe(0);
+
+  await lookAt(page, 'setup:setup-gaze');
+  await page.waitForTimeout(1_200); // reading the words does not press it
+  expect(await handsFree()).toBe(false);
+  await expect.poll(handsFree, { timeout: 4_000 }).toBe(true); // held: hands-free is on
+  expect(await page.evaluate(() => (window as Win).__notice?.text)).toContain('hold your gaze');
+  await expect.poll(() => shown(page, 'setup:setup-gaze')).toBe(false);
+  expect((await view(page)).stage, 'still on its question').toBe('where');
+
+  await lookAt(page, 'setup:setup-a'); // now a held gaze answers
+  await stageIs(page, 'reach');
+  expect((await view(page)).seat).toBe('desk');
+  expect(errors).toEqual([]);
+});
+
+test('every answer by voice: "desk", "skip" at the orb, "yes", "start"; then "skip" ends the coach', async ({ page }) => {
+  const errors = await enterXR(page);
+  await stageIs(page, 'where');
+  const say = (words: string) => page.evaluate((w) => (window as Win).__voice.say(w), words);
+  await say('Desk.');
+  await stageIs(page, 'reach');
+  expect(await view(page)).toMatchObject({ seat: 'desk' });
+  await say('skip'); // at the orb, "skip" skips the step, not the setup
+  await stageIs(page, 'steady');
+  expect(await page.evaluate(() => (window as Win).__reach.view.measuring)).toBe(false);
+  await say('Yes, please.');
+  await stageIs(page, 'done');
+  expect((await preferences(page)).tremorTolerance).toBe(true);
+  await say('start');
+  await stageIs(page, null);
+  expect(await view(page)).toMatchObject({ finished: true, skipped: false });
+
+  await expect.poll(() => shown(page, 'coach:coach-text'), { timeout: 5_000 }).toBe(true);
+  await say('skip');
+  await page.waitForFunction(() => (window as Win).__onboarding.skipped === true, null, { timeout: 3_000 });
+  await expect.poll(() => shown(page, 'coach:coach-text')).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test('"recalibrate" brings it back for someone who has done it', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('spatialdesk.calibrated', '1'));
   const errors = await enterXR(page);
@@ -195,6 +245,22 @@ test.describe('in Spanish', () => {
     await pressXR(page, 'setup:setup-a');
     await stageIs(page, 'reach');
     expect((await view(page)).title).toBe('Estira la mano y pellizca este orbe');
+    expect(errors).toEqual([]);
+  });
+
+  test('the answers can be said in Spanish, accents or not: "sofá", "saltar", "sí", "vale"', async ({ page }) => {
+    const errors = await enterXR(page, '&lang=es-ES');
+    await stageIs(page, 'where');
+    const say = (words: string) => page.evaluate((w) => (window as Win).__voice.say(w), words);
+    await say('Sofá.');
+    await stageIs(page, 'reach');
+    expect(await view(page)).toMatchObject({ seat: 'sofa' });
+    await say('saltar este paso');
+    await stageIs(page, 'steady');
+    await say('Sí');
+    await stageIs(page, 'done');
+    await say('vale');
+    await stageIs(page, null);
     expect(errors).toEqual([]);
   });
 });
