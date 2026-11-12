@@ -10,6 +10,7 @@ emulator (Quest 3 profile) running the production build, and from the live produ
 | --- | --- |
 | App | <https://d2p3027seoreck.cloudfront.net/> (Meta Quest Browser) |
 | A quick look | <https://d2p3027seoreck.cloudfront.net/?fast> (timers run in seconds: Focus 25 lasts 25 seconds, and the panel says so) |
+| Without hands | <https://d2p3027seoreck.cloudfront.net/?fast&handsfree> (the quick look with hands-free on: rest your head's aim on a control until its ring fills) |
 | Phone companion | <https://d2p3027seoreck.cloudfront.net/companion.html> |
 | Without a headset | <https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US> (any current Chromium browser) |
 | Code | <https://github.com/tapaderuza/spatialdesk> |
@@ -18,13 +19,19 @@ Button names below are as shown in English, the app's default language.
 
 ## Start here: the first five minutes
 
-1. Open the **quick look** link and select **Enter VR**.
+1. Open the **quick look** link. Before the headset view, press **Speak** once and allow the microphone (say your day's tasks,
+   or press **Stop**): **Talk** then works inside VR with no permission prompt. Select **Enter VR**.
 2. Answer the guided setup: where you sit, a pinch where your hand rests, and whether you want steady aim.
 3. Follow the three steps on the board: tap a card, drop it in **Doing**, press **Focus 25**.
 
 **Expected:** the block ends after 25 seconds, the focus plant on the desk grows a leaf, and the assistant suggests what to do next.
 
 **Verified:** in the emulator (`tests/studio.spec.ts`, `tests/accessibility.spec.ts`). **Not verified:** on a physical headset. Without `?fast`, Focus 25 lasts 25 real minutes.
+
+**Without hands:** open the *without hands* link instead. Hands-free is off until something turns it on (its link, the
+**Hands-free** button, or *"hands free on"* after **Talk**), so a link is the way in for someone who cannot reach the button. Every
+step above then takes a held gaze, and the setup's pinch has a **Skip this step** button. **Verified:** gaze presses and card moves
+in the emulator (`tests/handsfree.spec.ts`), not yet as one run from setup to the leaf.
 
 ## 1. Resilience: turn the Wi-Fi off
 
@@ -161,7 +168,7 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 227 browser scenarios: the 199 quoted in the video and the submission, plus seven in `tests/edge-cases.spec.ts`, 20 in
+The suite has 227 browser scenarios: the 199 quoted in the video, plus seven in `tests/edge-cases.spec.ts`, 20 in
 `tests/failure-modes.spec.ts` and one in `tests/room.spec.ts`.
 
 ## 6. Known limits

@@ -76,7 +76,7 @@ under identical conditions**: production build, IWER, the same machine, the CPU 
 - **These are not frame rates on a Quest.** A 60 fps frame has 16.7 ms, and these figures are deliberately pessimistic, with the CPU
   slowed 3x. They neither predict 45 fps nor prove 60.
 - **It varies.** The same code has measured 19.5 to 33.1 ms across runs on a shared laptop, so some runs miss the 29.4 ms budget, and
-  the gate retries before failing. The figure in our video and submission, 24.6 ms, is from an earlier run.
+  the gate retries before failing. Our video quotes 24.6 ms, from an earlier run; the submission text quotes the 22.2 ms above.
 - **One measure is worse than the starter:** 78 draw calls against 72.
 - **The thermal margin is an assumption, not a measurement.** `perf-budgets.json` records the reasoning: the development CPU and the
   Quest 3's Snapdragon XR2 Gen 2 score alike on single-core benchmarks, and the 3x slowdown is there to cover sustained throttling and

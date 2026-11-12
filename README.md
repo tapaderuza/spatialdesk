@@ -23,7 +23,7 @@ session. Every AI and speech call sits behind session and daily caps, and 227 br
 rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
 headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
 
-**[Watch the two-minute demo](https://youtu.be/FWbl6vpkiH4)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
+**[Watch the two-minute demo](https://youtu.be/FWbl6vpkiH4)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Quick look, timers in seconds](https://d2p3027seoreck.cloudfront.net/?fast)** · **[Without hands](https://d2p3027seoreck.cloudfront.net/?fast&handsfree)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
 ## At a glance
 
@@ -34,7 +34,7 @@ headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is wri
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
 | **Automated checks** | 227 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
-| **Performance gate** | Whole-frame p95 24.6 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5) |
+| **Performance gate** | Whole-frame p95 22.2 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5). The video quotes 24.6 ms, from an earlier run |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
 accessibility-focused productivity prototype: it does not diagnose, prescribe treatment or claim clinical validation.
