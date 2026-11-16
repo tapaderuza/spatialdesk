@@ -1131,3 +1131,36 @@ para ganar, así que continúa". The publish was then denied by the auto-mode ch
   (3.05 s): the model had duplicated "Plan my day with the AI agent" in step 1, so step 2's timer named two cards and the
   validator refused it twice. That is the model's variation, not today's change; the cure is on the server, which cannot be
   deployed while Docker is broken. Today: four of five first-run plans from Nova on the first attempt.
+
+## Block 48: Devpost, the forum, rivals, and "A bad day? One press asks the AI" (2026-11-16)
+
+Asked: the two Devpost additions and "y demás" ("quiero que lo hagas tú" for the forum post), how the chances look against
+rivals, then an audit the owner pasted, answered "hazlo todo para ganar", and "Autorizo, publícalo". The freeze was lifted
+for the one code change and restored afterwards.
+
+- **Devpost, on the owner's order (the risk of section 3 accepted, as on 2026-11-05 and 11-10).** An eighth Try it link
+  (`?fast&handsfree`), the tag `meta-quest-browser`, two gallery images from the live app with captions (none deleted), a new
+  3:2 thumbnail from a real capture, and the "Every way in" line naming voice, gaze alone, high contrast, steady aim and one
+  switch; the story stays at 494 words, and the scenarios read 236. The declarations page was not touched; the entry stayed
+  Submitted, 5 of 5.
+- **The Meta forum.** On the owner's order a request for a five-minute Quest test was posted as tapaderuza in What I'm
+  Building. The scheduled check now reads that thread too, read only, and pushes a notification on any reply.
+- **Rivals, from what is public.** About 60 GitHub repositories name the contest; the closest Productivity entries put an AI
+  planner on the real desk or wall (one has been tried on a Quest through the forum). None public makes the app itself
+  accessible. Devpost's gallery is not published yet.
+- **The audit.** Half of it already existed: smooth glides, a calm line on a refused microphone, 429 and 5xx handling,
+  validated storage. Two suggested prompts asked for brightness and contrast, which Comfort does not control, so they were
+  not used. A spatial preview and a controls HUD were not built: large, and untestable on a headset before the deadline.
+- **"A bad day? One press asks the AI".** The start page gains three one-press comfort requests (Neck hurts, Tired eyes,
+  Left hand only), for anyone without a microphone; each goes to the agent as "comfort", the proposal shows a reason per
+  change, and nothing moves until Apply. One compact row, so the box does not grow over the command panel. New test
+  `tests/bad-day.spec.ts`; CI 237 passed, 0 failed (14.7 min). Two earlier pushes of documentation alone failed only the
+  performance gate while the laptop was busy (13.7 to 19.7 ms, then 7.5 to 12.5 ms, for our systems); the same check passed
+  idle, and nothing in the code had changed.
+- **Published and verified.** As in block 47 (invalidation `I1TDGAG5YTYK7F09MTDLK8JPIC`); the live `index.html` equals the
+  build (`main-Dxa21X4S.js`). With the live client and real Nova 2 Lite, each button in a fresh browser: Neck hurts, closer
+  (reach 0.75), lower (tilt -10) and less turn (25 degrees), 1.31 s; Tired eyes, scale 1.3, 0.97 s; Left hand only, side
+  left, 0.94 s. All three on the first attempt, nothing moved before Apply, and Apply changed the comfort. Desktop browser,
+  no headset.
+- **The README** opens with three steps to try it and the no-microphone path. A 399-word story and testing instructions
+  were written for the owner outside the repository.
