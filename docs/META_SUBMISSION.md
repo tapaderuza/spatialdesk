@@ -2,8 +2,8 @@
 
 Copy each section into the field of the same name. Every figure below is measured by the project's own checks; where a
 figure comes from the emulator rather than a physical headset, the text says so.
-The story (Inspiration to What's next) is the one on Devpost since 2026-11-16: 446 words, shorter for a skim, still naming the
-device features and the first five minutes the judging criteria score.
+The story (Inspiration to What's next) is the one on Devpost since the evening of 2026-11-16: 493 words, with a section built
+for accessibility and fatigue, and still naming the device features and the first five minutes the criteria score.
 
 ## Project name
 
@@ -24,17 +24,22 @@ Someone I love, who lives with a disability, said that from her sofa. On a bad d
 SpatialDesk is a seated, hands-first workspace for Quest: boards, focus timers and an AI assistant. The space comes to your reach, measured by your own hand; a flat screen has nothing to bring closer.
 
 - **It fits you.** A one-minute setup sets every panel's distance, height and side from one pinch where your hand rests.
-- **Say what you need.** Transcribe hears English or Spanish; Nova 2 Lite proposes changes, each with its reason. Nothing moves until you tap Apply, and Undo always works. No microphone? One press asks for the same.
-- **Every way in.** Voice for every button, the setup and card moves; gaze alone from the first screen; high contrast; steady aim for tremor; one-switch scanning.
+- **Say what you need.** Transcribe hears English or Spanish; Nova 2 Lite proposes changes, each with its reason. Nothing moves until you tap Apply, and Undo always works.
 - **Your real room.** In passthrough, Fit room stands your board on your desk and the others on your walls, anchored for tomorrow.
 - **Any field of view.** Essential panels stay in comfortable view, down to Meta VR Glasses' 58° × 54°.
-- **Help from a phone.** After you press Allow, a carer's phone can open the setup in your headset.
-- **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the closing focus block lasts 25 seconds and grows your plant's first leaf; every block adds one.
-- **Seated, anywhere.** Locomotion is off and the board sits 62 cm away. No install; once loaded, boards, timers and Undo work offline, and a built-in planner answers if Nova cannot.
+- **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the closing focus block lasts 25 seconds and grows your plant's first leaf.
+- **Seated, anywhere.** No install; once loaded it works offline, and a built-in planner answers if Nova cannot.
+
+**Built for accessibility and fatigue**
+
+- **Arms that tire or hurt.** No step needs a raised arm: gaze alone from the first screen, voice for every button, the setup and card moves, one-press requests on the start page, steady aim for tremor, one-switch scanning.
+- **Eyes and attention.** High contrast; "bigger text" by voice; Read aloud speaks each proposed change with its reason; comfort is five explained settings: distance, height, side, turn and text size.
+- **Motion.** Locomotion is off, every move glides, and the AI's changes wait for Apply.
+- **Help and memory.** Save the setup that works and restore it, with review; after you press Allow, a carer's phone can open the setup in your headset.
 
 ## How we built it
 
-Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 237 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene.
+Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 238 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene.
 
 ## Challenges we ran into
 

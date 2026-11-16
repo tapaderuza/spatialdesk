@@ -1164,3 +1164,26 @@ for the one code change and restored afterwards.
   no headset.
 - **The README** opens with three steps to try it and the no-microphone path. A 399-word story and testing instructions
   were written for the owner outside the repository.
+
+## Block 49: a strict look at Accessibility Forward, and Read aloud that reads the whole proposal (2026-11-16)
+
+Asked: be strict about whether the Accessibility Forward award can be won; then two moves passed on to the owner (Read aloud
+for the proposal, an accessibility section on Devpost), and "Autorizo, publícalo". The freeze was lifted for the one code
+change and restored afterwards.
+
+- **Strict runs on production, in the emulator.** Gaze alone, from the first screen to the plant's first leaf, with no hand
+  or controller press: 2 of 2, once the gaze leaves a control between steps, as a person's does (a control just pressed is not
+  pressed again until the gaze has left it, and nothing is pressed until the head moves; no cue says so). One switch, by
+  trigger in XR, scans the setup, the coach and the command panel; boards are not scanned, so cards cannot be moved by one
+  switch, and in XR the switch's press on Desk was also taken as the reach pinch. High contrast reached every panel shown.
+- **Read aloud said only a proposal's summary.** It now says the summary, each change in the card's own words with its reason
+  (the first five, then how many more), and "To confirm, say apply or press Apply. Nothing moves before that." Browser
+  speech only. New test `tests/read-aloud-proposal.spec.ts`; CI 238 passed, 0 failed. Published (invalidation
+  `I7UM73JTEXSPW34UOCAD5OT4S2`, live `main-C8snusFV.js`); on production with real Nova the whole proposal was spoken.
+- **Found by listening: the sign of tilt.** "Neck hurts" asks for "closer and lower"; once in three, Nova sends tiltDeg +10
+  with the reason "Lower the space", so the card says "10° higher" beside "Lower". The prompt describes tilt as "the whole
+  space higher or lower round the eyes" without saying which sign is which. The cure is a sentence in the server's prompt,
+  which cannot be deployed while Docker is broken.
+- **Devpost, on the owner's order.** The story (493 words) gains "Built for accessibility and fatigue": arms that tire, eyes
+  and attention, motion, help and memory, each line a feature that exists; "prevents motion sickness" was not used. Two
+  English gallery captures from production with real Nova now open the gallery. Still Submitted, 5 of 5.
