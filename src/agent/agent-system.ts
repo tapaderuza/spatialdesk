@@ -176,7 +176,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       // Undo or a manual adjustment invalidates the check-in's "applied" status.
       else if (this.checkingComfort && change.previous && JSON.stringify(change.previous.comfort) !== JSON.stringify(change.state.comfort)) this.close();
     }));
-    this.cleanupFuncs.push(installDayInput(this.world, () => void this.run('plan_my_day')));
+    this.cleanupFuncs.push(installDayInput(this.world, () => void this.run('plan_my_day'), (text) => void this.run('comfort', text)));
     this.cleanupFuncs.push(onSettings(() => this.render()));
     this.cleanupFuncs.push(onAccessPreferences(() => this.render()));
     this.cleanupFuncs.push(onPanelClaim(owner => { if (owner !== 'agent' && this.mode !== 'idle') this.close(); }));

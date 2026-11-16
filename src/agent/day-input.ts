@@ -27,7 +27,19 @@ function saveDayText(text: string): void {
   }
 }
 
-export function installDayInput(world: World, onPlan: () => void): () => void {
+/**
+ * "A bad day? Ask for it in one press": the comfort request the product is built around, for someone who cannot or
+ * would rather not speak (no microphone, a shared office). Each goes to the agent as "comfort", like the same words said
+ * to Talk: Nova proposes the changes with a reason each, and nothing moves until Apply. Only what Comfort can do
+ * (reach, height and tilt, text size, side): no brightness, which the app does not control.
+ */
+export const BAD_DAY: readonly { label: string; text: string }[] = [
+  { label: 'Neck hurts', text: 'My neck hurts today. Bring everything closer and lower.' },
+  { label: 'Tired eyes', text: 'My eyes are tired today. Make the text bigger.' },
+  { label: 'Left hand only', text: 'Only my left hand works today. Put everything on my left.' },
+];
+
+export function installDayInput(world: World, onPlan: () => void, onComfort: (text: string) => void = () => undefined): () => void {
   const box = document.createElement('div');
   box.id = 'day-input';
   box.style.cssText =
@@ -47,6 +59,14 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
     '<div style="display:flex;gap:8px;margin-top:8px">' +
     '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#2f5f9e;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
     '<button id="day-speak" type="button" hidden style="min-height:40px;padding:0 14px;background:#2a313b;color:#eef1f5;border:0;border-radius:8px;font:inherit;cursor:pointer">Speak</button>' +
+    '</div>' +
+    // Compact (one row): the box sits over the scene's lower left, and must not grow over the command panel.
+    '<div style="margin-top:10px;font-size:13px;font-weight:700">A bad day? One press asks the AI</div>' +
+    '<div style="display:flex;gap:6px;margin-top:6px">' +
+    BAD_DAY.map(
+      (prompt, i) =>
+        `<button id="day-badday-${i}" type="button" title="${prompt.text}" style="flex:1;min-height:34px;padding:4px 6px;background:#1d222a;color:#eef1f5;border:1px solid #4a5666;border-radius:8px;font:inherit;font-size:13px;cursor:pointer">${prompt.label}</button>`,
+    ).join('') +
     '</div>' +
     '<button id="day-invite" type="button" style="margin-top:8px;width:100%;min-height:40px;background:transparent;color:#eef1f5;border:1px solid #4a5666;border-radius:8px;font:inherit;cursor:pointer">Invite a family member or carer to follow along</button>' +
     '<div id="day-status" role="status" style="margin-top:6px;color:#b9c2cf;font-size:12px">In VR, the Plan my day chip uses these words, and Talk takes voice commands.</div>';
@@ -84,6 +104,12 @@ export function installDayInput(world: World, onPlan: () => void): () => void {
   plan.addEventListener('click', () => {
     saveDayText(text.value);
     onPlan();
+  });
+  BAD_DAY.forEach((prompt, i) => {
+    box.querySelector<HTMLButtonElement>(`#day-badday-${i}`)!.addEventListener('click', () => {
+      status.textContent = 'Asking the AI. Its proposal opens in the workspace; nothing moves until you press Apply.';
+      onComfort(prompt.text);
+    });
   });
 
   // Dictation through the same voice path as Talk in VR (src/voice/listen.ts). Using it here also lets the browser ask
