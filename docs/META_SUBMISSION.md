@@ -30,24 +30,25 @@ measured by your hand; a flat screen has nothing to bring closer.
   height and side.
 - **You say what you need.** Transcribe hears English or Spanish; Nova proposes changes. Nothing moves until you tap
   Apply, and Undo always works.
-- **Every way in.** Hands, gaze dwell, voice, steady aim for tremor, one-switch scanning.
-- **Your real room.** In passthrough, Fit room stands your board on your real desk and the others on your walls; an
-  anchor restores them tomorrow. Tested in all 13 rooms of Meta's Synthetic Environment Module, in the emulator.
-- **Any field of view.** Essential panels stay in the comfortable view, down to Meta VR Glasses' 58° × 54°.
+- **Every way in.** Voice for every button, the setup and card moves; gaze alone from the first screen; high contrast;
+  steady aim for tremor; one-switch scanning.
+- **Your real room.** In passthrough, Fit room stands your board on your desk and the others on your walls, anchored for
+  tomorrow. Tested in all 13 rooms of Meta's Synthetic Environment Module, in the emulator.
+- **Any field of view.** Essential panels stay in comfortable view, down to Meta VR Glasses' 58° × 54°.
 - **Help from a phone.** After you press Allow, a carer's phone can open the setup in your headset.
-- **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the focus block that ends them
-  lasts 25 seconds and your plant grows its first leaf; every block grows another.
-- **Airplane seat.** Locomotion is off. The board sits 62 cm away; cards and buttons answer a ray from a resting hand.
+- **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the closing focus block lasts 25
+  seconds and grows your plant's first leaf; every block adds one.
+- **Airplane seat.** Locomotion is off; the board, 62 cm away, answers a ray from a resting hand.
 - **One bus stop.** No install. A session takes one task and 5 to 90 minutes; a pause keeps your next step.
-- **Take it away.** Offline, boards, timers, Undo, hands and gaze keep working on a loaded page; if Nova fails, a
-  built-in planner answers.
+- **Take it away.** Offline, boards, timers, Undo, hands and gaze keep working once loaded; if Nova fails, a built-in
+  planner answers.
 
 ## How we built it
 
 Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on the Spring Boot server,
 which validates every Nova 2 Lite plan before you see it. Scene understanding uses WebXR planes and anchors, not MRUK.
 
-227 Playwright scenarios drive the production build in Meta's IWER emulator; a CI gate holds frame time under Meta's
+236 Playwright scenarios drive the production build in Meta's IWER emulator; a CI gate holds frame time under Meta's
 IWSDK starter scene (p95 22.2 vs 29.4 ms, CPU throttled 3x).
 
 ## Challenges we ran into

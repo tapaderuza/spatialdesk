@@ -17,6 +17,21 @@ emulator (Quest 3 profile) running the production build, and from the live produ
 
 Button names below are as shown in English, the app's default language.
 
+## Accessibility Forward, in two minutes
+
+The award names four things. Each one can be tried from the links above.
+
+| The award asks for | In SpatialDesk | Try it |
+| --- | --- | --- |
+| Voice alternatives for hand interactions | **Talk** takes every button's name, the setup's answers, *"bigger text"* and *"move focus mode to Done"*; anything longer goes to the AI as a plan you approve | **Talk**, then *"focus"*, *"bigger text"*, *"undo"* |
+| Eyes-only navigation for limited mobility | Hands-free: a held gaze presses any control. On the setup's first screen, **No hands? Look here** turns it on by gaze alone | A 2-second look at **No hands? Look here**, or the *without hands* link |
+| High-contrast modes | **Contrast** on the command panel, or *"high contrast on"* | Press **Contrast** |
+| Inclusive by default | The first-run setup fits every panel to the person's seat and reach and offers steady aim for tremor; one-switch scanning (`/?switch`) and a carer's phone (after **Allow**) are there for whoever needs them | Enter VR for the first time |
+
+On Quest 3 and 3S, which have no eye tracking, hands-free aims with the head; where the headset tracks the eyes, it uses them.
+**Verified:** in the emulator (`tests/setup.spec.ts`, `tests/handsfree.spec.ts`, `tests/voice-direct.spec.ts`,
+`tests/accessibility.spec.ts`). **Not verified:** on a physical headset.
+
 ## Start here: the first five minutes
 
 1. Open the **quick look** link. Before the headset view, press **Speak** once and allow the microphone (say your day's tasks,
