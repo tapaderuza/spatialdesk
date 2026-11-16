@@ -2,6 +2,13 @@
 
 **Accessibility should not be a settings menu you dig through on a bad day. It should be an environment that adapts to you.**
 
+> **Try it in three steps.** **1.** Open <https://d2p3027seoreck.cloudfront.net/?fast> in Meta Quest Browser, or
+> <https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US> in desktop Chrome or Edge (Meta's IWER emulator, no headset).
+> **2.** Select **Enter VR** and answer the one-minute setup; with no hands, rest your gaze on **No hands? Look here** for two
+> seconds. **3.** Tap a card, drop it in **Doing**, press **Focus 25**: with `?fast` the block lasts 25 seconds and the plant on
+> the desk grows a leaf. No microphone? On the start page, **A bad day? One press asks the AI** sends a comfort request to
+> Amazon Nova; review the reasons, then **Apply**.
+
 **The problem.** Reach, posture and energy change from one day to the next, and productivity software assumes they don't. On a
 low-energy day the screen sits too far away, turning the head costs more, and accessibility settings ask for effort up front, in
 a menu, at the moment there is least of it to spend. This is a physical-ergonomics problem, and spatial computing is the first
@@ -19,7 +26,7 @@ and no card operation waits for a server, so losing the network in mid-session c
 network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
 replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 227 browser scenarios, a performance gate and 13 synthetic
+session. Every AI and speech call sits behind session and daily caps, and 237 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
 headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
 
@@ -33,7 +40,7 @@ headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is wri
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 227 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 237 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 22.2 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5). The video quotes 24.6 ms, from an earlier run |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -69,6 +76,10 @@ and select **Enter VR**. **IWER** is Meta's browser-based headset emulator: it s
 controllers, so the whole workspace can be explored with a mouse and keyboard. **WebXR** is the browser interface that
 starts and manages the immersive session. Emulator results show browser behaviour, not comfort or performance on a
 physical headset; see Meta's [testing guide](https://iwsdk.dev/guides/02-testing-experience.html).
+
+No microphone, or an office where speaking is awkward: the start page's **A bad day? One press asks the AI** buttons
+(**Neck hurts**, **Tired eyes**, **Left hand only**) send the same comfort request a spoken one would. The proposal opens in
+the workspace with a reason for each change, and nothing moves until **Apply**; **Undo** takes it back.
 
 ### The companion, with a second screen
 
@@ -254,7 +265,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 227 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 237 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.
