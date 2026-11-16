@@ -477,7 +477,21 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.mode = !plan.ok ? 'error' : this.quiet ? 'suggestion' : 'preview';
     if (this.quiet) this.show();
     this.render();
-    this.speak(plan.ok ? plan.summary ?? '' : plan.error ?? '');
+    this.speak(plan.ok ? this.spokenProposal(plan) : plan.error ?? '');
+  }
+
+  /**
+   * What Read aloud says for a proposal: the summary, each change with its reason (the card's own words), then how to
+   * confirm. Someone who cannot read the card's small text hears all of it, and nothing moves until they say or press
+   * Apply. A long plan reads its first five steps and says how many more the card shows.
+   */
+  private spokenProposal(plan: AgentPlan): string {
+    const es = this.language().startsWith('es');
+    const shown = plan.steps.slice(0, 5).map((step, i) => `${i + 1}. ${describeStep(step.op, workspace.state)}${step.why ? `: ${step.why}` : ''}.`);
+    const more = plan.steps.length - shown.length;
+    const rest = more > 0 ? (es ? `Y ${more} más en la tarjeta.` : `And ${more} more on the card.`) : '';
+    const confirm = plan.steps.length ? (es ? 'Para confirmar, di aplicar o pulsa Aplicar. Nada se mueve antes.' : 'To confirm, say apply or press Apply. Nothing moves before that.') : '';
+    return [plan.summary ?? '', ...shown, rest, confirm].filter(Boolean).join(' ');
   }
 
   apply(): void {
