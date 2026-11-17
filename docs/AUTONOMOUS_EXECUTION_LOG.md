@@ -1378,3 +1378,38 @@ Asked: "Cono podemos ser favoritos claros?", then "Haz todo lo que has dicho". T
 - **One more caption, on "Autorizo, publícalo".** Photo 1 said the board comes "closer and lower" after Apply. Since
   block 50, Neck hurts no longer asks for lower, so the caption now reads "comes closer". Saved, and checked on the
   public page; the story was unchanged (4,872 characters).
+
+## Block 56: timing the person sets, a frame rate a tester can read, and a second call for headsets (2026-11-17 to 2026-11-18)
+
+Asked: "Pero como podemos mejorarlo? ... quiero ganar si o si", then "Hazlo todo y publícalo". The freeze was lifted
+for these two changes and restored afterwards.
+
+- **The gaps.**
+  - Gaze time, scan speed, reduced motion and mono audio were implemented and applied live, but nothing could change
+    them. The README therefore did not claim WCAG 2.2.1 or XAUR REQ 15b and 18a, and Reach Fit offers adjustable dwell.
+  - No frame rate had been read on a real headset.
+- **The changes** (df9ad44):
+  - *"Slower gaze"* and *"faster gaze"* step through 0.7, 1, 1.6, 2.4 and 3.2 s; cards wait 1.6 times as long.
+  - *"Slower scan"* steps through 1, 1.5, 2.5 and 4 s. *"Less motion"* and *"mono audio"* toggle.
+  - All in English and Spanish, said back on the panel and kept for the next visit.
+  - Links for a helper: `?dwell=`, `?scan=`, `?calm`, `?mono`.
+  - `?fps` adds a console line with frames per second and the slowest frame, once a second, with no per-frame
+    allocation.
+  - `tests/timing.spec.ts` has 7 tests. One of them checks that a 2.4 s gaze has not pressed at 1.5 s in the emulated
+    headset.
+  - Docs (e37370c): the README's standards table gains the row (WCAG 2.2.1, 2.3.3; XAUR REQ 15b, 18a), and the judge's
+    guide lists the links. CI 253 passed.
+- **Published and verified.**
+  - Invalidation `IDR3KVFN590RMUFKOM4T5JIAHT`, live `main-DLC55OOF.js`.
+  - On production, 17 of 17: the 15 earlier checks, plus `?dwell=2400` holding a gaze press past 1.5 s, "slower gaze"
+    said back, and `?fps` showing a frame rate.
+  - The new check first failed once on its own expectation: the app rightly says "3.2 s (the slowest)".
+- **Devpost.**
+  - The story now names the gaze and scan timing, less motion and mono audio, and the `?fps` link. It reads 253
+    scenarios, and its limits say no Quest frame rate is in yet.
+  - "Gaze times are fixed" is gone. Saved and checked on the public page; `docs/META_SUBMISSION.md` mirrors it.
+- **Headsets.**
+  - A test request went up in the Start Developer Lounge (members only), with `?fast&fps`.
+  - The last reply to the forum tester could no longer be edited, so one line under their confirmation asks for the
+    `?fps` number.
+- **Not verified:** any frame rate on a real Quest; that waits for a tester.

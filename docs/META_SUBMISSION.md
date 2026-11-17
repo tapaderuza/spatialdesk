@@ -2,7 +2,7 @@
 
 Copy each section into the field of the same name. Every figure below is measured by the project's own checks; where a
 figure comes from the emulator rather than a physical headset, the text says so.
-The story (Inspiration to What's next) is the one on Devpost since the evening of 2026-11-17: it answers the Accessibility
+The story (Inspiration to What's next) is the one on Devpost since the night of 2026-11-17 to 18: it answers the Accessibility
 Forward award item by item, reports the tester's Quest 3 runs, and ends with honest limits.
 
 ## Project name
@@ -33,9 +33,9 @@ SpatialDesk is a seated, hands-first workspace for Quest: boards, focus timers a
 **Accessibility Forward, as the award names it**
 
 - **Voice alternatives for hand interactions.** Press **Talk** and say any button's name, a setup answer, "bigger text", "high contrast on" or "move focus mode to Done", in English or Spanish; anything longer becomes an AI proposal you approve. No microphone? On the start page, **Neck hurts**, **Tired eyes** or **Left hand only** asks in one press.
-- **Eyes-only navigation for limited mobility.** Hands-free: a held gaze presses any control while a ring fills (1 s for buttons, 1.6 s for cards). A 3-second look at **No hands? Look here** turns it on from the first screen; the setup, a card into Doing and a focus block then need no hands. On Quest 3 and 3S, which have no eye tracking, the head aims; where the headset tracks the eyes, it uses them.
+- **Eyes-only navigation for limited mobility.** Hands-free: a held gaze presses any control while a ring fills (1 s for buttons, 1.6 s for cards). Too fast or too slow? Say "slower gaze" or "faster gaze" (0.7 to 3.2 s), or set it in the link. A 3-second look at **No hands? Look here** turns it on from the first screen; the setup, a card into Doing and a focus block then need no hands. On Quest 3 and 3S, which have no eye tracking, the head aims; where the headset tracks the eyes, it uses them.
 - **High-contrast modes.** **Contrast**, or "high contrast on": black panels, white text, a white outline on every target. Every panel text measures at least 8.19:1 against its background (7.23:1 in the normal theme; WCAG AAA asks 7:1), and a test fails the build below 7:1.
-- **Inclusive by default.** Seated, with locomotion off; one pinch fits every panel to your seat and reach; steady aim for tremor; one-switch scanning; Read aloud speaks each proposed change with its reason. After you press Allow, a carer's phone can open the setup in your headset.
+- **Inclusive by default.** Seated, with locomotion off; one pinch fits every panel to your seat and reach; steady aim for tremor; one-switch scanning at your own pace ("slower scan"); "less motion" and "mono audio"; Read aloud speaks each proposed change with its reason. After you press Allow, a carer's phone can open the setup in your headset.
 
 **Tested on a real Quest 3**
 
@@ -43,7 +43,7 @@ A tester from Meta's developer forum ran SpatialDesk on a Quest 3, in VR and in 
 
 ## How we built it
 
-Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 246 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene.
+Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 253 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene. With `?fps`, the console shows the frame rate on the headset itself.
 
 ## Challenges we ran into
 
@@ -57,7 +57,7 @@ Testing without a headset: the emulator never showed a pose that settles late, o
 
 **Honest limits**
 
-One tester on one Quest 3 is not a study, and no session with disabled users has run yet. Frame time is measured in the emulator by CI, not on the headset. Gaze times are fixed. One-switch scanning reaches the console and the AI's card, not the cards on the boards. Voice and the AI need the network; boards, timers and Undo do not.
+One tester on one Quest 3 is not a study, and no session with disabled users has run yet. Frame time is measured in the emulator by CI; `?fps` shows it on a headset, but no number from a real Quest is in yet. One-switch scanning reaches the console and the AI's card, not the cards on the boards. Voice and the AI need the network; boards, timers and Undo do not.
 
 ## Built with
 
