@@ -7,7 +7,8 @@
 > **2.** Select **Enter VR** and answer the one-minute setup; with no hands, rest your gaze on **No hands? Look here** for two
 > seconds. **3.** Tap a card, drop it in **Doing**, press **Focus 25**: with `?fast` the block lasts 25 seconds and the plant on
 > the desk grows a leaf. No microphone? On the start page, **A bad day? One press asks the AI** sends a comfort request to
-> Amazon Nova; review the reasons, then **Apply**.
+> Amazon Nova; review the reasons, then **Apply**. To see the planner, press **Use the example** above **Describe your day**,
+> then **Plan my day**.
 
 **The problem.** Reach, posture and energy change from one day to the next, and productivity software assumes they don't. On a
 low-energy day the screen sits too far away, turning the head costs more, and accessibility settings ask for effort up front, in
