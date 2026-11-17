@@ -2,8 +2,8 @@
 
 Copy each section into the field of the same name. Every figure below is measured by the project's own checks; where a
 figure comes from the emulator rather than a physical headset, the text says so.
-The story (Inspiration to What's next) is the one on Devpost since the evening of 2026-11-16: 493 words, with a section built
-for accessibility and fatigue, and still naming the device features and the first five minutes the criteria score.
+The story (Inspiration to What's next) is the one on Devpost since the evening of 2026-11-17: it answers the Accessibility
+Forward award item by item, reports the tester's Quest 3 runs, and ends with honest limits.
 
 ## Project name
 
@@ -23,31 +23,41 @@ Someone I love, who lives with a disability, said that from her sofa. On a bad d
 
 SpatialDesk is a seated, hands-first workspace for Quest: boards, focus timers and an AI assistant. The space comes to your reach, measured by your own hand; a flat screen has nothing to bring closer.
 
-- **It fits you.** A one-minute setup sets every panel's distance, height and side from one pinch where your hand rests.
+- **It fits you.** A one-minute setup sets every panel's distance, height and side from one pinch where your hand reaches comfortably.
 - **Say what you need.** Transcribe hears English or Spanish; Nova 2 Lite proposes changes, each with its reason. Nothing moves until you tap Apply, and Undo always works.
 - **Your real room.** In passthrough, Fit room stands your board on your desk and the others on your walls, anchored for tomorrow.
 - **Any field of view.** Essential panels stay in comfortable view, down to Meta VR Glasses' 58° × 54°.
 - **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the closing focus block lasts 25 seconds and grows your plant's first leaf.
 - **Seated, anywhere.** No install; once loaded it works offline, and a built-in planner answers if Nova cannot.
 
-**Built for accessibility and fatigue**
+**Accessibility Forward, as the award names it**
 
-- **Arms that tire or hurt.** No step needs a raised arm: gaze alone from the first screen, voice for every button, the setup and card moves, one-press requests on the start page, steady aim for tremor, one-switch scanning.
-- **Eyes and attention.** High contrast; "bigger text" by voice; Read aloud speaks each proposed change with its reason; comfort is five explained settings: distance, height, side, turn and text size.
-- **Motion.** Locomotion is off, every move glides, and the AI's changes wait for Apply.
-- **Help and memory.** Save the setup that works and restore it, with review; after you press Allow, a carer's phone can open the setup in your headset.
+- **Voice alternatives for hand interactions.** Press **Talk** and say any button's name, a setup answer, "bigger text", "high contrast on" or "move focus mode to Done", in English or Spanish; anything longer becomes an AI proposal you approve. No microphone? On the start page, **Neck hurts**, **Tired eyes** or **Left hand only** asks in one press.
+- **Eyes-only navigation for limited mobility.** Hands-free: a held gaze presses any control while a ring fills (1 s for buttons, 1.6 s for cards). A 3-second look at **No hands? Look here** turns it on from the first screen; the setup, a card into Doing and a focus block then need no hands. On Quest 3 and 3S, which have no eye tracking, the head aims; where the headset tracks the eyes, it uses them.
+- **High-contrast modes.** **Contrast**, or "high contrast on": black panels, white text, a white outline on every target. Every panel text measures at least 8.19:1 against its background (7.23:1 in the normal theme; WCAG AAA asks 7:1), and a test fails the build below 7:1.
+- **Inclusive by default.** Seated, with locomotion off; one pinch fits every panel to your seat and reach; steady aim for tremor; one-switch scanning; Read aloud speaks each proposed change with its reason. After you press Allow, a carer's phone can open the setup in your headset.
+
+**Tested on a real Quest 3**
+
+A tester from Meta's developer forum ran SpatialDesk on a Quest 3, in VR and in passthrough, and found what the emulator could not show: the console over the board until a restart, panels too close after a near pinch, a gaze ring too easy to start, and the app quitting by itself. Each has a client fix and a test: the space re-checks your head a second or two in, a near pinch brings it at most 20% closer and shrinks the panels to match, and "No hands? Look here" needs a 3-second look. Their next run: "the panels are positioned much better now. The app no longer closes unexpectedly." Exit now also asks for a second press, against the likely cause of those quits: a fingertip on it.
 
 ## How we built it
 
-Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 238 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene.
+Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 246 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene.
 
 ## Challenges we ran into
 
 Turning comfort into geometry: reach, head-turn limit, tilt, side and text size conflict, so one shared engine solves them, and every comfort rule is a test that fails the build.
 
+Testing without a headset: the emulator never showed a pose that settles late, or fingertips near Exit. One tester's Quest 3 did, in a day.
+
 ## What's next for SpatialDesk
 
-**Target launch date: March 2027**, on the Meta Horizon Store as an installable web app, free at launch. Before then: testing on Quest 3 and 3S hardware, and sessions with disabled users and carers.
+**Target launch date: March 2027**, on the Meta Horizon Store as an installable web app, free at launch. Before then: sessions with disabled users and carers, and more headsets, Quest 3S included.
+
+**Honest limits**
+
+One tester on one Quest 3 is not a study, and no session with disabled users has run yet. Frame time is measured in the emulator by CI, not on the headset. Gaze times are fixed. One-switch scanning reaches the console and the AI's card, not the cards on the boards. Voice and the AI need the network; boards, timers and Undo do not.
 
 ## Built with
 

@@ -1366,3 +1366,12 @@ Asked: "Cono podemos ser favoritos claros?", then "Haz todo lo que has dicho". T
 - **The question, posted.** On the owner's order, the third question went up under the tester's confirmation: try
   hands-free, voice and one switch on their Quest 3, with a yes or no for each. Its opening thank-you was left out,
   because the reply before it already thanked them.
+- **Devpost, on "Hazlo todo tú, te autorizo".** The owner ordered the edit, as on 2026-11-05, 11-10 and 11-16, and was
+  told then of the rules' clause on entries made on their behalf. It was done in the owner's signed-in Chrome.
+  - The story (now 4,872 characters) answers the award's four items in its own words, adds "Tested on a real Quest 3"
+    and "Honest limits", reads 246 scenarios, and asks for a pinch "where your hand reaches comfortably".
+  - The one-switch gallery caption no longer says "every control".
+  - The previous text is kept in `.work/submission-package/DEVPOST_BEFORE_2026-11-17.md`.
+  - Devpost answered "Your edits have been saved!" and the entry still shows under the competition. The public page has
+    every new phrase and none of the old ones.
+  - `docs/META_SUBMISSION.md` mirrors the story. Additional info (the declarations) was not touched.
