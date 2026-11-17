@@ -28,7 +28,7 @@ import {
   type UIKitDocument,
 } from '@iwsdk/core';
 import { ReachSystem } from '../accessibility/reach-system.js';
-import type { Reach } from '../accessibility/reach.js';
+import { scaleForReach, type Reach } from '../accessibility/reach.js';
 import { accessPreferences, setAccessPreference } from '../accessibility/preferences.js';
 import { AgentSystem } from '../agent/agent-system.js';
 import { isSpanish } from '../i18n/language.js';
@@ -304,8 +304,9 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
   }
 
   /**
-   * The pinch: noted, not applied yet. The boards would come to the hand's distance (about 45 cm), in front of this panel
-   * (55 cm), covering it and taking the ray meant for its buttons; so the space moves when Start is pressed.
+   * The pinch: noted, not applied yet. The boards would come toward the hand (as near as 50 cm, smaller by as much), in
+   * front of this panel (55 cm), covering it and taking the ray meant for its buttons; so the space moves when Start is
+   * pressed.
    */
   private measured(reach: Reach): void {
     this.view.reach = reach;
@@ -322,6 +323,9 @@ export class SetupSystem extends createSystem({ ready: { required: [SetupPanel, 
     const before = workspace.state.comfort;
     const ops: Op[] = [];
     if (before.reach !== c.reach) ops.push({ op: 'set_comfort', reach: c.reach });
+    // Nearer, the panels shrink by as much: they look the size they did, not pressed against the face.
+    const scale = scaleForReach(c.reach, before.scale);
+    if (scale !== before.scale) ops.push({ op: 'set_comfort', scale });
     if (before.tiltDeg !== c.tiltDeg) ops.push({ op: 'set_comfort', tiltDeg: c.tiltDeg });
     if (before.side !== c.side) ops.push({ op: 'set_comfort', side: c.side });
     if (ops.length) workspace.dispatch(ops, { label: 'Guided setup', viewer: deskPose(this.world), notice: this.text().applied });

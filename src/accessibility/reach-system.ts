@@ -10,7 +10,7 @@ import type { AgentPlan } from '../agent/client.js';
 import { isSpanish } from '../i18n/language.js';
 import { play } from '../ui/sounds.js';
 import { workspace } from '../workspace/store.js';
-import { comfortFromReach, reachState, type Reach } from './reach.js';
+import { comfortFromReach, reachState, scaleForReach, type Reach } from './reach.js';
 
 /** Unanswered, the measurement ends on its own, so a pinch much later is a pinch again. */
 const TIMEOUT_MS = 30_000;
@@ -154,6 +154,10 @@ export class ReachSystem extends createSystem({}) {
     const up = Math.abs(c.tiltDeg);
     const steps: AgentPlan['steps'] = [];
     if (before.reach !== c.reach) steps.push({ op: { op: 'set_comfort', reach: c.reach }, why: es ? `Donde llegó tu mano: a ${cm} cm` : `Where your hand reached: ${cm} cm away` });
+    const scale = scaleForReach(c.reach, before.scale);
+    if (scale !== before.scale) {
+      steps.push({ op: { op: 'set_comfort', scale }, why: es ? 'Paneles más pequeños, para que de cerca se vean del mismo tamaño' : 'Smaller panels, so up close they look the same size' });
+    }
     if (before.tiltDeg !== c.tiltDeg) {
       steps.push({ op: { op: 'set_comfort', tiltDeg: c.tiltDeg }, why: es
         ? c.tiltDeg >= 0 ? `${up} grados más arriba, a la altura de tu mano` : `${up} grados más abajo, a la altura de tu mano`

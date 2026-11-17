@@ -58,7 +58,7 @@ leaves open) and [five hard questions](docs/JUDGE_FAQ.md) (latency, Bedrock limi
 1. Open the production link in Meta Quest Browser. Before entering, add a few tasks under **Describe your day**, for
    example: **"Review the proposal, reply to Ana, prepare tomorrow's meeting."** Choose **Enter VR** for an immersive
    session, or **In my room** when the browser supports passthrough.
-2. Complete the short comfort setup: where you sit, a comfortable reach (pinch where your hand rests), and steady aim.
+2. Complete the short comfort setup: where you sit, a comfortable reach (reach out and pinch where your hand is comfortable), and steady aim.
    Any step can be skipped.
 3. Select **Talk**, allow microphone access, and say: **"Bring everything closer and make the text bigger."** Review the
    proposal, select **Apply**, and watch the panels glide into reach. **Undo** restores the previous layout.

@@ -16,7 +16,20 @@ const FOCUS_ELEVATION_DEG = (Math.atan2(-0.17, 0.62) * 180) / Math.PI;
 const SIDE_DEG = 12;
 /** Nearer than this, the pinch was not a reach (a hand resting on the lap or by the face). */
 export const MIN_REACH_M = 0.25;
-const LIMITS = { reach: [0.5, 1.8], tiltDeg: [-25, 30] } as const;
+/**
+ * A pinch brings the space at most 20% nearer (the board 50 cm from the eyes, not 31): on a Quest 3 a hand pinched at
+ * rest put the boards against the face, overlapping (a tester's report, 2026-11-17). Scale: the engine's own limits.
+ */
+const LIMITS = { reach: [0.8, 1.8], tiltDeg: [-25, 30], scale: [0.8, 1.8] } as const;
+
+/**
+ * The panels' scale for a measured reach: nearer than the designed distance they shrink by as much, so they look the
+ * size they did (and as large as the person chose), only within reach. Further, they keep their scale.
+ */
+export function scaleForReach(reach: number, scale: number): number {
+  if (reach >= 1) return scale;
+  return Math.round(clamp(scale * reach, LIMITS.scale) * 20) / 20;
+}
 
 /** While measuring, a pinch is a measurement: it must not also press what its ray points at (src/ui/panel-hits.ts). */
 export const reachState = { measuring: false };

@@ -12,8 +12,10 @@ test("a reach gives distance, height and side: the board's own spot changes noth
   const { comfortFromReach } = await import('../src/accessibility/reach.js');
   // Where the board already sits (0.62 m ahead, 0.17 m below the eyes): nothing to change.
   expect(comfortFromReach(EYES, { x: 0, y: 1.43, z: -0.62 })?.comfort).toEqual({ reach: 1, tiltDeg: 0, side: 'both' });
-  // Lying back on a sofa: the hand comes nearer, higher and to the right.
-  expect(comfortFromReach(EYES, { x: 0.25, y: 1.7, z: -0.4 })?.comfort).toEqual({ reach: 0.75, tiltDeg: 27, side: 'right' });
+  // Lying back on a sofa: the hand comes nearer (48 cm: held at 50, the nearest a pinch brings it), higher and right.
+  expect(comfortFromReach(EYES, { x: 0.25, y: 1.7, z: -0.4 })?.comfort).toEqual({ reach: 0.8, tiltDeg: 27, side: 'right' });
+  // A hand pinched at rest, 30 cm away: the board stops at 50 cm, never against the face (a tester's Quest 3, 2026-11-17).
+  expect(comfortFromReach(EYES, { x: 0, y: 1.45, z: -0.26 })?.comfort.reach).toBe(0.8);
   // A shorter reach, a little lower and to the left (an arm that rests on a wheelchair's armrest).
   expect(comfortFromReach(EYES, { x: -0.2, y: 1.4, z: -0.45 })?.comfort).toEqual({ reach: 0.85, tiltDeg: -7, side: 'left' });
   // The anchor's heading counts: facing -X, the board's spot is 0.62 m along -X.
@@ -22,6 +24,16 @@ test("a reach gives distance, height and side: the board's own spot changes noth
   expect(comfortFromReach(EYES, { x: 0, y: 2.6, z: -1.2 })?.comfort).toMatchObject({ reach: 1.8, tiltDeg: 30 });
   expect(comfortFromReach(EYES, { x: 0, y: 1.55, z: -0.15 })).toBeNull();
   expect(comfortFromReach(EYES, { x: 0, y: 1.4, z: 0.5 })).toBeNull();
+});
+
+test('nearer, the panels shrink by as much: they look the size they did, and as large as the person chose', async () => {
+  const { scaleForReach } = await import('../src/accessibility/reach.js');
+  expect(scaleForReach(0.8, 1)).toBe(0.8); // 20% nearer, 20% smaller: the same size to the eyes
+  expect(scaleForReach(0.85, 1)).toBe(0.85);
+  expect(scaleForReach(0.8, 1.4)).toBe(1.1); // bigger text stays bigger
+  expect(scaleForReach(0.8, 0.8)).toBe(0.8); // never below the engine's smallest
+  expect(scaleForReach(1, 1.2)).toBe(1.2);
+  expect(scaleForReach(1.3, 1)).toBe(1); // further: kept as it was
 });
 
 test('fit to my reach by voice, in English and Spanish', async () => {
@@ -95,6 +107,7 @@ test('fit to my reach in XR: the pinch measures (and presses nothing), the card 
   expect(card.plan.source).toBe('reach');
   expect(card.plan.steps.map((s: any) => s.op)).toEqual([
     { op: 'set_comfort', reach: measured.reach },
+    { op: 'set_comfort', scale: measured.reach }, // nearer, smaller by as much: the same size to the eyes
     { op: 'set_comfort', tiltDeg: measured.tiltDeg },
     { op: 'set_comfort', side: 'right' },
   ]);
@@ -102,7 +115,7 @@ test('fit to my reach in XR: the pinch measures (and presses nothing), the card 
   await pressXR(page, 'agent:plan-apply');
   await page.waitForFunction((m) => {
     const c = (window as Win).__workspace.state.comfort;
-    return c.reach === m.reach && c.tiltDeg === m.tiltDeg && c.side === m.side;
+    return c.reach === m.reach && c.scale === m.reach && c.tiltDeg === m.tiltDeg && c.side === m.side;
   }, measured, { timeout: 5_000 });
   expect(errors).toEqual([]);
 });

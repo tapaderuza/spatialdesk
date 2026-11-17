@@ -114,10 +114,13 @@ test('a new visitor in XR: where they sit, an orb to pinch, steady aim; the spac
   await stageIs(page, null);
   expect(await view(page)).toMatchObject({ finished: true, skipped: false });
   expect(await page.evaluate(() => (window as Win).__workspace.state.comfort)).toMatchObject({ reach: measured.reach, tiltDeg: measured.tiltDeg, side: measured.side });
+  // Nearer, the panels shrink by as much, so they look the size they did (a Quest 3 tester saw them fill the view).
+  expect((await page.evaluate(() => (window as Win).__workspace.state.comfort)).scale).toBe(measured.reach);
   await settled(page); // the amber frame and the pulse come when the boards have finished sliding
   expect(await page.evaluate(() => (window as Win).__anchor.view.flashes)).toBeGreaterThan(0);
   await page.evaluate(() => (window as Win).__voice.say('undo'));
   expect((await page.evaluate(() => (window as Win).__workspace.state.comfort)).reach).toBe(1);
+  expect((await page.evaluate(() => (window as Win).__workspace.state.comfort)).scale).toBe(1);
   expect(await flag(page, 'spatialdesk.calibrated')).toBe('1');
   expect(await shown(page, 'setup:setup-root')).toBe(false);
   await expect.poll(() => shown(page, 'coach:coach-text'), { timeout: 5_000 }).toBe(true);

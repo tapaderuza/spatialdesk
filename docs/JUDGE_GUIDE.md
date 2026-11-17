@@ -38,7 +38,7 @@ On Quest 3 and 3S, which have no eye tracking, hands-free aims with the head; wh
    or press **Stop**): **Talk** then works inside VR with no permission prompt. Press **Use the example** above **Describe
    your day** (or type a few tasks): **Plan my day** then plans those words, which the AI does far better than an empty
    day. Select **Enter VR**.
-2. Answer the guided setup: where you sit, a pinch where your hand rests, and whether you want steady aim.
+2. Answer the guided setup: where you sit, a pinch where your hand reaches comfortably, and whether you want steady aim.
 3. Follow the three steps on the board: tap a card, drop it in **Doing**, press **Focus 25**.
 
 **Expected:** the block ends after 25 seconds, the focus plant on the desk grows a leaf, and the assistant suggests what to do next.
