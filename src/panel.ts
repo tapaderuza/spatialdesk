@@ -188,7 +188,7 @@ export class PanelSystem extends createSystem({}) {
       // Settings: each toggle shows its state as its colour (blue = on).
       contrast: { element: element('contrast-button'), base: BUTTON.base, action: () => toggleSetting('highContrast') },
       sound: { element: element('sound-button'), base: BUTTON.base, action: () => toggleSetting('sound') },
-      voice: { element: element('voice-button'), base: BUTTON.base, action: () => toggleSetting('readAloud') },
+      voice: { element: element('voice-button'), base: BUTTON.base, action: () => this.toggleReadAloud() },
       handsfree: { element: element('handsfree-button'), base: BUTTON.base, action: () => this.toggleHandsFree() },
       wrap: { element: element('wrap-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.wrapUp() },
       xr: { element: xrButton, base: BUTTON.primary, action: () => launchVR(this.world) },
@@ -446,6 +446,7 @@ export class PanelSystem extends createSystem({}) {
       }
       case 'setting':
         if (command.setting === 'handsFree') this.toggleHandsFree(command.value);
+        else if (command.setting === 'readAloud') this.toggleReadAloud(command.value);
         else {
           toggleSetting(command.setting, command.value);
           tell(`${SETTING_NAMES[command.setting]} ${settings[command.setting] ? 'on' : 'off'}.`);
@@ -507,6 +508,23 @@ export class PanelSystem extends createSystem({}) {
     if (result.ok) play('drop', board.pose);
     else tell(`"${title}" could not move.`, true);
     return true;
+  }
+
+  /**
+   * Read aloud uses the browser's own speech. Some headset browsers have none: then it says so plainly, rather than a
+   * toggle that stays silent; the card always shows the same words.
+   */
+  toggleReadAloud(value?: boolean): void {
+    toggleSetting('readAloud', value);
+    const speech = typeof speechSynthesis !== 'undefined';
+    workspace.notify({
+      text: !settings.readAloud
+        ? 'Read aloud off.'
+        : speech
+          ? "Read aloud on: the AI's proposals are spoken, each change with its reason."
+          : 'Read aloud is not available in this browser. The card always shows the same words.',
+      error: false,
+    });
   }
 
   /** Hands-free (src/ui/gaze.ts) says how it works when it turns on: nothing on screen would tell a first-time user. */

@@ -42,3 +42,16 @@ test('Read aloud: a proposal is heard in full, each change with its reason, then
   expect(spoken).toContain('To confirm, say apply or press Apply. Nothing moves before that.');
   expect(errors).toEqual([]);
 });
+
+test('Read aloud on a browser with no speech: it says so plainly instead of a toggle that stays silent', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'speechSynthesis', { value: undefined, configurable: true });
+  });
+  const errors = await openWorkspace(page);
+  await page.evaluate(() => (window as Win).__voice.say('read aloud on'));
+  expect(await page.evaluate(() => (window as Win).__notice?.text)).toContain('Read aloud is not available in this browser');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('spatialdesk.settings') ?? '{}').readAloud)).toBe(true);
+  await page.evaluate(() => (window as Win).__voice.say('read aloud off'));
+  expect(await page.evaluate(() => (window as Win).__notice?.text)).toBe('Read aloud off.');
+  expect(errors).toEqual([]);
+});
