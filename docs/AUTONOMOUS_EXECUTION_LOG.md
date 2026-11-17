@@ -1358,4 +1358,11 @@ Asked: "Cono podemos ser favoritos claros?", then "Haz todo lo que has dicho". T
   - The Devpost text.
   - A third question for the tester (hands-free, voice and one switch on their Quest 3), to post only on the owner's
     order.
-- **Not published.** Waiting for "Autorizo, publícalo".
+- **Published and verified,** on "Autorizo, publícalo":
+  - Invalidation `IBDZBXUWVV4574FEBHLB2SMAGU`, live `main-DApDbIGS.js`. Hashed assets carry a year's immutable cache.
+  - The live `ui/command.uikitml` has the new blue.
+  - On production, 15 of 15: Exit, the bad-day buttons, Read aloud, the close pinch, the setup, gaze alone, one switch,
+    high contrast, and Use the example then Plan my day.
+- **The question, posted.** On the owner's order, the third question went up under the tester's confirmation: try
+  hands-free, voice and one switch on their Quest 3, with a yes or no for each. Its opening thank-you was left out,
+  because the reply before it already thanked them.
