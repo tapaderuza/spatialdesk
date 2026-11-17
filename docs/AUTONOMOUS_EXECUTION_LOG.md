@@ -1239,4 +1239,48 @@ Asked: "Autorizo, publícalo" (Read aloud with no speech), then "Sí, hazlos" (t
   - Use the example then Plan my day, 3 of 3 (1.6 to 2.0 s).
   - Read aloud with the whole proposal.
 - **Not verified.** Nothing on a physical headset: that the overlap came from the settling pose is a diagnosis, not a
-  measurement. A reply to the tester is drafted and waits for the owner.
+  measurement. On the owner's "Sí, publícala" the reply was posted in the thread, under the tester's comment.
+
+## Block 52: panels against the face, and a scale that never followed comfort (2026-11-17)
+
+Asked: "Hazlo", "Autorizo, y publícalo" and "Autorizo, publícalo". The freeze was lifted for these changes and restored
+afterwards.
+
+- **The second report.** The tester tried the new version, also with the browser cache cleared. In MR the panels spawned
+  very large, about a metre, too close to the face ("extremely claustrophobic"), the console over the board; a
+  screenshot showed it. The app quit by itself, once after a few seconds and once after about 30.
+- **Diagnosis, from code and the emulator.**
+  - The setup's reach step brought the space to the pinching hand, as near as 31 cm, with the panels at full size. The
+    board is 72 cm wide, so it filled about 77° of the view at 45 cm, against 60° by design. The emulator at that
+    reach matched the tester's screenshot.
+  - The forum post had asked for "one pinch where your hand rests", which invites a pinch close to the body.
+  - The quit was not found. Over 60 s in XR with a focus block running, geometries, textures and the JS heap stayed
+    flat. The server logs only the two connections, at 12:48 and 12:51 UTC. One candidate: Fit room with no planes
+    asks the Quest for a room scan, which leaves the app, but only after a press of Fit room.
+- **Fix 1** (e0b2ec7):
+  - A pinch brings the space at most 20% nearer, so the board stays at least 50 cm away.
+  - Nearer, the panels shrink by as much (`scaleForReach`), so they look the size they did. A larger text size the
+    person chose stays larger.
+  - The same applies to "fit to my reach", whose card says so.
+  - The guide and README ask for a pinch where the hand reaches comfortably.
+  - CI: one unrelated test failed once (the quota notice), passed 4 of 4 alone, then the full run passed: 242.
+  - Published as `main-BELCTI3e.js`.
+- **Found by verifying it on production: the drawn size never followed the comfort profile** (aded3ee).
+  - `panelScale` was recomputed only when the headset's view changed. The setup's smaller panels, "bigger text" and
+    the "Tired eyes" request therefore changed the stored scale but not the drawn size until a reload.
+  - The tests had checked only the stored value; they now check the drawn size.
+  - CI 242 passed, 0 failed.
+- **Published and verified.** Invalidation `I1A180YEL53XEV53LAXU7VVB6J`, live `main-WNAyAry_.js`. On production, 14 of 14:
+  - A pinch 32 cm away gives reach 0.8 and panels drawn at 0.8: the board looks its usual size instead of filling the
+    view.
+  - The setup by gaze, gaze alone to the leaf (setup done in 17 s), one switch, high contrast.
+  - The three bad-day buttons, from Nova on the first attempt.
+  - Use the example then Plan my day, 3 of 3.
+  - Read aloud with the whole proposal.
+- **The reply.** On the owner's order, a second reply explains the cause and the fix and asks about the quit: the
+  browser page or the browser closing, In my room and Fit room, hands or controllers.
+- **Still open.**
+  - The quit's cause.
+  - "Neck hurts" from Nova sets reach 0.75 with the scale unchanged, so its panels come nearer at full size. That
+    path is not covered by the setup's fix.
+  - Nothing has run on a physical headset since these fixes.
