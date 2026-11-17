@@ -84,6 +84,7 @@ export class PanelSystem extends createSystem({}) {
   /** The pending placement answers a change the person asked for (the console slides there) and not a re-anchor. */
   private placeSmooth = false;
   private anchorCheckFrames = 0;
+  private anchorRecheckFrames = 0;
 
   init(): void {
     const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
@@ -246,6 +247,11 @@ export class PanelSystem extends createSystem({}) {
         if (!is2D) {
           this.placeFrames = 3; // after ScreenSpace hands the panel back to the scene
           this.anchorCheckFrames = 10; // once the headset pose has settled
+          // And once more after a second or two: on a real Quest the tracked pose can still be settling at frame 10, and
+          // a layout arranged around it left the console over the board until a restart (a tester's report, 2026-11-17).
+          // Rearranges only when the head is far from where the space was placed (not when it has only turned), so a
+          // settled start changes nothing.
+          this.anchorRecheckFrames = 100;
         }
       }),
     );
@@ -258,6 +264,7 @@ export class PanelSystem extends createSystem({}) {
       if (this.placeFrames === 0) this.placeSmooth = false;
     }
     if (this.anchorCheckFrames > 0 && --this.anchorCheckFrames === 0) this.reanchorIfFar();
+    if (this.anchorRecheckFrames > 0 && --this.anchorRecheckFrames === 0) this.reanchorIfFar(false);
   }
 
   /** What a press on this panel arranges around: the user is looking at the panel then, not ahead (viewer.ts). */
@@ -531,7 +538,7 @@ export class PanelSystem extends createSystem({}) {
   toggleHandsFree(value?: boolean): void {
     toggleSetting('handsFree', value);
     workspace.notify({
-      text: settings.handsFree ? 'Hands-free on: look at a button and hold your gaze until the ring fills.' : 'Hands-free off.',
+      text: settings.handsFree ? 'Hands-free on: look at a button and hold your gaze until the ring fills. Say "hands free off" or press Hands-free to stop.' : 'Hands-free off.',
       error: false,
     });
   }
@@ -583,7 +590,11 @@ export class PanelSystem extends createSystem({}) {
     }
   }
 
-  private reanchorIfFar(): void {
+  /**
+   * [turnToo] false for the later check: by then the person may have turned to look at the console, and a turn must not
+   * swing the workspace (tests/seated.spec.ts); only a head far from the space's place (the pose settling) rearranges it.
+   */
+  private reanchorIfFar(turnToo = true): void {
     this.fitView();
     // In the room, a remembered layout is restored to its real place (RoomSystem): never rearranged around the head.
     if (inRoom(this.world) && this.world.getSystem(RoomSystem)?.remembers) {
@@ -593,7 +604,7 @@ export class PanelSystem extends createSystem({}) {
     const viewer = viewerPose(this.world);
     const anchor = workspace.state.anchor;
     const turn = Math.abs(Math.atan2(Math.sin(viewer.yaw - anchor.yaw), Math.cos(viewer.yaw - anchor.yaw)));
-    if (Math.hypot(viewer.x - anchor.x, viewer.z - anchor.z) > REANCHOR_METRES || turn > REANCHOR_RADIANS || Math.abs(viewer.y - anchor.y) > REANCHOR_METRES) {
+    if (Math.hypot(viewer.x - anchor.x, viewer.z - anchor.z) > REANCHOR_METRES || (turnToo && turn > REANCHOR_RADIANS) || Math.abs(viewer.y - anchor.y) > REANCHOR_METRES) {
       workspace.dispatch({ op: 'arrange_space', layout: 'desk' }, { viewer, undoable: false, notice: 'Arranged around you.' });
     }
     this.placeFrames = 1;

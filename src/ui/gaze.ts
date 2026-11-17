@@ -24,8 +24,11 @@ const RETICLE_SIZE = 0.036; // 3.6 cm: about 3.4 degrees at arm's length, the fi
 const SURFACE_OFFSET = 0.004; // in front of the panel, never inside it
 /** Ray tests every third frame: about 40 ms at 72 Hz, nothing next to a one-second dwell. */
 const TEST_EVERY_FRAMES = 3;
-/** The setup's "No hands? Look here", pressed while hands-free is off, waits longer: reading it must not press it. */
-const INVITE_DWELL_MS = 2000;
+/**
+ * The setup's "No hands? Look here", pressed while hands-free is off, waits longer: reading it, or resting the eyes
+ * on it while thinking, must not press it (a tester on a Quest found hands-free on without meaning it, 2026-11-17).
+ */
+const INVITE_DWELL_MS = 3000;
 
 /**
  * What the last ray test found (the panel and control under the gaze, and when), for src/ui/attention.ts: while

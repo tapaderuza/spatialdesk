@@ -177,10 +177,11 @@ test('without hands: before hands-free, a look answers nothing; a held gaze on "
   expect(await page.evaluate(() => (window as Win).__gaze.presses)).toBe(0);
 
   await lookAt(page, 'setup:setup-gaze');
-  await page.waitForTimeout(1_200); // reading the words does not press it
+  await page.waitForTimeout(2_200); // reading the words, or resting on them a moment, does not press it
   expect(await handsFree()).toBe(false);
-  await expect.poll(handsFree, { timeout: 4_000 }).toBe(true); // held: hands-free is on
+  await expect.poll(handsFree, { timeout: 5_000 }).toBe(true); // held: hands-free is on
   expect(await page.evaluate(() => (window as Win).__notice?.text)).toContain('hold your gaze');
+  expect(await page.evaluate(() => (window as Win).__notice?.text), 'it says how to stop').toContain('hands free off');
   await expect.poll(() => shown(page, 'setup:setup-gaze')).toBe(false);
   expect((await view(page)).stage, 'still on its question').toBe('where');
 

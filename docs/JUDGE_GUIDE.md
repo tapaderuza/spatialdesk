@@ -24,7 +24,7 @@ The award names four things. Each one can be tried from the links above.
 | The award asks for | In SpatialDesk | Try it |
 | --- | --- | --- |
 | Voice alternatives for hand interactions | **Talk** takes every button's name, the setup's answers, *"bigger text"* and *"move focus mode to Done"*; anything longer goes to the AI as a plan you approve | **Talk**, then *"focus"*, *"bigger text"*, *"undo"* |
-| Eyes-only navigation for limited mobility | Hands-free: a held gaze presses any control. On the setup's first screen, **No hands? Look here** turns it on by gaze alone | A 2-second look at **No hands? Look here**, or the *without hands* link |
+| Eyes-only navigation for limited mobility | Hands-free: a held gaze presses any control. On the setup's first screen, **No hands? Look here** turns it on by gaze alone | A 3-second look at **No hands? Look here**, or the *without hands* link |
 | High-contrast modes | **Contrast** on the command panel, or *"high contrast on"* | Press **Contrast** |
 | Inclusive by default | The first-run setup fits every panel to the person's seat and reach and offers steady aim for tremor; one-switch scanning (`/?switch`) and a carer's phone (after **Allow**) are there for whoever needs them | Enter VR for the first time |
 
@@ -46,7 +46,7 @@ On Quest 3 and 3S, which have no eye tracking, hands-free aims with the head; wh
 **Verified:** in the emulator (`tests/studio.spec.ts`, `tests/accessibility.spec.ts`). **Not verified:** on a physical headset. Without `?fast`, Focus 25 lasts 25 real minutes.
 
 **Without hands:** the setup's first screen shows **No hands? Look here** while hands-free is off. Rest your head's aim on it
-for 2 seconds (until then it is the only control a look can press) and hands-free turns on; every step above then takes a held
+for 3 seconds (until then it is the only control a look can press) and hands-free turns on; every step above then takes a held
 gaze, and the pinch has a **Skip this step** button. The *without hands* link starts with hands-free already on. **By voice:**
 press **Talk** and answer the setup aloud (*"desk"*, *"skip"*, *"yes"*, *"start"*), then *"skip"* ends the guided steps.
 **Verified:** in the emulator (`tests/setup.spec.ts`, `tests/handsfree.spec.ts`), not yet as one run from setup to the leaf.

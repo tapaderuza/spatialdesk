@@ -87,7 +87,7 @@ const TEXT = {
   en: {
     skip: 'Skip',
     gaze: 'No hands? Look here',
-    handsFree: 'Hands-free on: look at a button and hold your gaze until the ring fills.',
+    handsFree: 'Hands-free on: look at a button and hold your gaze until the ring fills. Say "hands free off" or press Hands-free to stop.',
     // The first words someone reads in the headset: a welcome, and why three questions.
     where: { step: 'Step 1 of 3', title: 'Where are you sitting?', hint: 'Welcome. Three quick questions fit this space to your body. Skip any time.', a: 'Desk', b: 'Sofa/Bed' },
     reach: { step: 'Step 2 of 3', title: 'Reach out and pinch this orb', hint: 'Pinch where your hand is comfortable. It does not have to touch the orb.', a: 'Skip this step', b: '' },
@@ -107,7 +107,7 @@ const TEXT = {
   es: {
     skip: 'Saltar',
     gaze: '¿Sin manos? Mira aquí',
-    handsFree: 'Sin manos activado: mira un botón y mantén la mirada hasta que se llene el anillo.',
+    handsFree: 'Sin manos activado: mira un botón y mantén la mirada hasta que se llene el anillo. Para quitarlo, di "hands free off" o pulsa Hands-free.',
     where: { step: 'Paso 1 de 3', title: '¿Dónde te sientas?', hint: 'Te damos la bienvenida. Tres preguntas rápidas ajustan este espacio a tu cuerpo.', a: 'Escritorio', b: 'Sofá/Cama' },
     reach: { step: 'Paso 2 de 3', title: 'Estira la mano y pellizca este orbe', hint: 'Pellizca donde tu mano esté cómoda. No hace falta tocar el orbe.', a: 'Saltar este paso', b: '' },
     reachDone: 'Hecho. Tu espacio se ajustará a donde llegó tu mano cuando pulses Empezar.',
