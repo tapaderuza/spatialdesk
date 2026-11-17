@@ -62,7 +62,7 @@ export function installDayInput(world: World, onPlan: () => void, onComfort: (te
     '<textarea id="day-text" rows="2" maxlength="600" placeholder="Finish the report, review two pull requests, call the dentist, gym at 18:00"' +
     ' style="width:100%;box-sizing:border-box;resize:vertical;background:#1d222a;color:#eef1f5;border:1px solid #2c333d;border-radius:8px;padding:8px;font:inherit"></textarea>' +
     '<div style="display:flex;gap:8px;margin-top:8px">' +
-    '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#2f5f9e;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
+    '<button id="day-plan" type="button" style="flex:1;min-height:40px;background:#284f88;color:#eef1f5;border:0;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">Plan my day</button>' +
     '<button id="day-speak" type="button" hidden style="min-height:40px;padding:0 14px;background:#2a313b;color:#eef1f5;border:0;border-radius:8px;font:inherit;cursor:pointer">Speak</button>' +
     '</div>' +
     // Compact (one row): the box sits over the scene's lower left, and must not grow over the command panel.

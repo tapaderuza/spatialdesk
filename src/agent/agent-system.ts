@@ -69,7 +69,7 @@ const TITLES: Record<Intent, string> = {
   comfort: 'Your space, adapted to you',
   first_step: 'A first step',
 };
-const COLOR = { base: '#2a313b', primary: '#2f5f9e', hover: '#9cc3ff', text: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
+const COLOR = { base: '#2a313b', primary: '#284f88', hover: '#9cc3ff', text: '#eef1f5', dim: '#a7b0bd', error: '#ff9385' } as const;
 
 export type Mode = 'idle' | 'thinking' | 'preview' | 'suggestion' | 'log' | 'error' | 'memory' | 'session' | 'resume';
 type Element = UIKit.Text;

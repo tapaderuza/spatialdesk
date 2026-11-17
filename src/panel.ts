@@ -37,8 +37,8 @@ const engine = Workspaces.getInstance();
 
 // Status colours on the dark panel: all >= 7:1 against #15181e (ROADMAP heuristic B).
 const COLORS = { online: '#5ee0a0', connecting: '#f2b84b', offline: '#ff8a7a' } as const;
-const BUTTON = { base: '#2a313b', primary: '#2f5f9e' } as const;
-const TEXT = { normal: '#eef1f5', dim: '#8b95a3', error: '#ff8a7a' } as const;
+const BUTTON = { base: '#2a313b', primary: '#284f88' } as const;
+const TEXT = { normal: '#eef1f5', dim: '#a7b0bd', error: '#ff9385' } as const;
 // The notice line: amber text and border while the agent has a nudge waiting there.
 const NOTICE = { base: '#1d222a', nudge: '#f2b84b' } as const;
 const COACH_BORDER = '#f2b84b';

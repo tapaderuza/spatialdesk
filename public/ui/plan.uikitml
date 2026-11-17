@@ -29,7 +29,7 @@
   .forget { height: 6; align-items: center; justify-content: center; border-radius: 1.4; border-width: 0.3; border-color: #2a313b; background-color: #2a313b; }
   .buttons { flex-direction: row; gap: 1.2; height: 7; }
   .btn { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
-  .primary { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .primary { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 1.4; background-color: #284f88; border-width: 0.3; border-color: #284f88; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }
   .root:dark { background-color: #000000; border-color: #ffffff; }
   .title:dark { color: #ffffff; }

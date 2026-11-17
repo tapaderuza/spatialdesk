@@ -59,7 +59,7 @@ const ORB_BREATH_MS = 1800;
 const CHECK_EVERY_MS = 200;
 /** After the pinch the next question waits: the pinch is released first, and the amber frame is seen. */
 const AFTER_PINCH_MS = 800;
-const COLOR = { choice: '#2f5f9e', skip: '#2a313b' } as const;
+const COLOR = { choice: '#284f88', skip: '#2a313b' } as const;
 
 type Stage = 'where' | 'reach' | 'steady' | 'done';
 type Key = 'a' | 'b' | 'skip' | 'gaze';

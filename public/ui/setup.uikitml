@@ -15,7 +15,7 @@
   .title { height: 8.4; font-size: 3.2; font-weight: 700; color: #eef1f5; }
   .hint { height: 5.4; font-size: 1.9; color: #c9d1db; }
   .choices { flex-direction: row; flex-grow: 1; gap: 2; }
-  .choice { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 2; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .choice { flex-grow: 1; flex-basis: 0; align-items: center; justify-content: center; border-radius: 2; background-color: #284f88; border-width: 0.3; border-color: #284f88; }
   .choice-label { font-size: 3; font-weight: 700; color: #ffffff; }
   .root:dark { background-color: #000000; }
   .step:dark { color: #ffd479; }

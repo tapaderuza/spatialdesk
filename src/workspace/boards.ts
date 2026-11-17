@@ -28,9 +28,9 @@ const COLOR = {
   dropColumn: '#183329',
   dropBorder: '#5ee0a0',
   card: '#2a313b',
-  heldCard: '#2f5f9e',
+  heldCard: '#284f88',
   heldBorder: '#9cc3ff',
-  focus: '#2f5f9e',
+  focus: '#284f88',
   // Each at least 3:1 on the card (WCAG 1.4.11): low 3.1, normal 3.8, high 5.7.
   mark: { low: '#727d8d', normal: '#7f8b9b', high: '#ff8a7a' },
 } as const;

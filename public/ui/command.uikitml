@@ -14,7 +14,7 @@
   .notice { min-height: 6.2; border-width: 0.3; border-color: #1d222a; padding-top: 1; padding-bottom: 1; padding-left: 1.2; padding-right: 1.2; border-radius: 1.2; background-color: #1d222a; font-size: 1.6; color: #eef1f5; }
   .buttons { flex-direction: row; gap: 1; }
   .btn { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
-  .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2f5f9e; border-width: 0.3; border-color: #2f5f9e; }
+  .primary { flex-grow: 1; flex-basis: 0; height: 8; align-items: center; justify-content: center; border-radius: 1.4; background-color: #284f88; border-width: 0.3; border-color: #284f88; }
   .chips-title { margin-bottom: -0.4; font-size: 1.4; font-weight: 700; color: #9cc3ff; }
   .memory-link { flex-grow: 1; flex-basis: 0; height: 6.4; align-items: center; justify-content: center; border-radius: 1.4; background-color: #2a313b; border-width: 0.3; border-color: #2a313b; }
   .label { font-size: 1.8; font-weight: 700; color: #eef1f5; }

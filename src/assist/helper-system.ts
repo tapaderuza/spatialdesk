@@ -43,7 +43,7 @@ const SIZE = { width: 0.52, height: 0.38 } as const;
 const AHEAD = 0.55;
 const LIFT = 0.07;
 const CHECK_EVERY_MS = 250;
-const COLOR = { choice: '#2f5f9e', stop: '#7a3b3b', quiet: '#2a313b' } as const;
+const COLOR = { choice: '#284f88', stop: '#7a3b3b', quiet: '#2a313b' } as const;
 
 type Key = 'a' | 'b' | 'skip';
 interface Page { step: string; title: string; hint: string; a: string; b: string; aColor: string }
