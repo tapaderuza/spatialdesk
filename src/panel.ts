@@ -30,7 +30,8 @@ const VOICE_COLUMNS: readonly (readonly string[])[] = [
   ['doing', 'in progress', 'en curso', 'haciendo'],
   ['done', 'hecho', 'hechas', 'terminado', 'terminadas'],
 ];
-import { accessPreferences, setAccessPreference } from './accessibility/preferences.js';
+import { accessPreferences, GAZE_STEPS_MS, SCAN_STEPS_MS, setAccessPreference, setGazeTime, stepTiming } from './accessibility/preferences.js';
+import { FrameMeter, showFrameRate } from './perf/frame-meter.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
 
 const engine = Workspaces.getInstance();
@@ -90,6 +91,9 @@ export class PanelSystem extends createSystem({}) {
   private exitLabel: UIKit.Text | null = null;
   private exitArmedUntil = 0;
   private exitDisarm: ReturnType<typeof setTimeout> | null = null;
+  /** ?fps: the frame rate on the panel's own line (src/perf/frame-meter.ts); null when not asked for. */
+  private frameMeter: FrameMeter | null = null;
+  private fpsLine: UIKit.Text | null = null;
 
   init(): void {
     const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
@@ -106,6 +110,11 @@ export class PanelSystem extends createSystem({}) {
     const undoLabel = element('undo-label');
     this.notice = notice;
     this.talkLabel = element('talk-label');
+    if (showFrameRate) {
+      this.fpsLine = element('fps-line');
+      this.fpsLine?.setProperties({ display: 'flex', text: 'Measuring the frame rate...' });
+      this.frameMeter = new FrameMeter();
+    }
     // Tests and the demo say things without a microphone: the same path from the words on.
     (window as unknown as { __voice: { say: (said: string) => void } }).__voice = { say: (said) => this.runVoice(said) };
 
@@ -266,7 +275,11 @@ export class PanelSystem extends createSystem({}) {
     );
   }
 
-  update(): void {
+  update(delta: number): void {
+    if (this.frameMeter) {
+      const line = this.frameMeter.add(delta, (this.world.session as (XRSession & { frameRate?: number }) | undefined)?.frameRate);
+      if (line) this.fpsLine?.setProperties({ text: line });
+    }
     if (this.placeFrames > 0) {
       this.placeFrames--;
       this.placeCommandPanel(this.placeSmooth);
@@ -458,6 +471,24 @@ export class PanelSystem extends createSystem({}) {
         const on = command.value ?? !accessPreferences.tremorTolerance;
         setAccessPreference('tremorTolerance', on);
         tell(on ? 'Steady aim on: the button you aim at is the one pressed, even if your hand shakes.' : 'Steady aim off.');
+        return;
+      }
+      case 'timing': {
+        const steps = command.what === 'gaze' ? GAZE_STEPS_MS : SCAN_STEPS_MS;
+        const current = command.what === 'gaze' ? accessPreferences.dwellMs : accessPreferences.scanIntervalMs;
+        const ms = stepTiming(steps, current, command.slower);
+        if (command.what === 'gaze') setGazeTime(ms);
+        else setAccessPreference('scanIntervalMs', ms);
+        const end = ms === steps[command.slower ? steps.length - 1 : 0] ? (command.slower ? ' (the slowest)' : ' (the fastest)') : '';
+        const seconds = (ms / 1000).toFixed(1);
+        tell(command.what === 'gaze' ? `Gaze: a held look presses after ${seconds} s${end}.` : `Switch scan: each control stays lit ${seconds} s${end}.`);
+        return;
+      }
+      case 'access': {
+        const on = command.value ?? !accessPreferences[command.key];
+        setAccessPreference(command.key, on);
+        if (command.key === 'reducedMotion') tell(on ? 'Less motion on: panels move without gliding, and nothing pulses.' : 'Less motion off.');
+        else tell(on ? 'Mono audio on: every sound plays in both ears.' : 'Mono audio off.');
         return;
       }
       case 'setting':

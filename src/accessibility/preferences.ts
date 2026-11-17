@@ -63,7 +63,50 @@ export function readAccessPreferences(storage?: StorageAccess): AccessPreference
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('steady')) clean.tremorTolerance = true;
   // ?switch: a link that starts in one-switch mode (src/accessibility/switch-system.ts), set up by whoever helps.
   if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('switch')) clean.switchEnabled = true;
+  if (typeof location !== 'undefined') applyTimingLink(clean, new URLSearchParams(location.search));
   return clean;
+}
+
+/** How long a held gaze takes to press, in the steps "slower gaze" and "faster gaze" move along (ms). */
+export const GAZE_STEPS_MS: readonly number[] = [700, 1000, 1600, 2400, 3200];
+/** How long each control stays lit in one-switch scanning, in the steps "slower scan" and "faster scan" move along (ms). */
+export const SCAN_STEPS_MS: readonly number[] = [1000, 1500, 2500, 4000];
+/** Cards, columns and the notice line are read as well as pressed, so they wait this much longer than buttons. */
+const READ_FACTOR = 1.6;
+
+/** The next step slower (or faster) than [current]; at either end it stays there. */
+export function stepTiming(steps: readonly number[], current: number, slower: boolean): number {
+  if (slower) return steps.find((s) => s > current) ?? steps[steps.length - 1];
+  for (let i = steps.length - 1; i >= 0; i--) if (steps[i] < current) return steps[i];
+  return steps[0];
+}
+
+function readDwellFor(dwellMs: number): number {
+  return Math.min(ranges.readDwellMs[1], Math.round(dwellMs * READ_FACTOR));
+}
+
+/** The gaze's press time for buttons; what is also read waits 1.6 times as long. False: outside 0.4 to 5 s. */
+export function setGazeTime(dwellMs: number): boolean {
+  if (!validAccessPreference('dwellMs', dwellMs)) return false;
+  accessPreferences.readDwellMs = readDwellFor(dwellMs);
+  return setAccessPreference('dwellMs', dwellMs);
+}
+
+/**
+ * Links set up by whoever helps, for someone who cannot say "slower gaze": ?dwell=2400 (a held gaze presses after
+ * 2.4 s), ?scan=2500 (one-switch scanning lights each control for 2.5 s), ?calm (less motion: nothing glides or
+ * pulses), ?mono (every sound in both ears). Out-of-range values are ignored.
+ */
+function applyTimingLink(prefs: AccessPreferences, params: URLSearchParams): void {
+  const dwell = Number(params.get('dwell'));
+  if (params.has('dwell') && validAccessPreference('dwellMs', dwell)) {
+    prefs.dwellMs = dwell;
+    prefs.readDwellMs = readDwellFor(dwell);
+  }
+  const scan = Number(params.get('scan'));
+  if (params.has('scan') && validAccessPreference('scanIntervalMs', scan)) prefs.scanIntervalMs = scan;
+  if (params.has('calm')) prefs.reducedMotion = true;
+  if (params.has('mono')) prefs.monoAudio = true;
 }
 
 export const accessPreferences: AccessPreferences = readAccessPreferences();

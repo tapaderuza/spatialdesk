@@ -31,6 +31,8 @@ export type VoiceCommand =
   | { kind: 'setting'; setting: keyof Settings; value?: boolean }
   | { kind: 'steady'; value?: boolean }
   | { kind: 'switch'; value?: boolean }
+  | { kind: 'timing'; what: 'gaze' | 'scan'; slower: boolean }
+  | { kind: 'access'; key: 'reducedMotion' | 'monoAudio'; value?: boolean }
   | { kind: 'reach' }
   /** "Speak Spanish", "habla inglés": the app answers, listens and reads aloud in that language (src/i18n/language.ts). */
   | { kind: 'language'; tag: string }
@@ -181,6 +183,24 @@ export function parseCommand(said: string): VoiceCommand | null {
   if (oneSwitch) {
     const value = (oneSwitch[1] ?? oneSwitch[2])?.trim();
     return value ? { kind: 'switch', value: value === 'on' } : { kind: 'switch' };
+  }
+  // "slower gaze", "gaze faster", "mirada mas lenta": how long a held gaze takes to press (src/ui/gaze.ts).
+  const gaze = /^(?:(slower|faster|quicker|longer|shorter) (?:gaze|look|dwell)(?: time)?|(?:gaze|look|dwell)(?: time)? (slower|faster|quicker|longer|shorter)|(?:la )?mirada (mas lenta|mas rapida)|(mas lenta|mas rapida) la mirada)$/.exec(text);
+  if (gaze) return { kind: 'timing', what: 'gaze', slower: /^(?:slower|longer|mas lenta)$/.test(gaze[1] ?? gaze[2] ?? gaze[3] ?? gaze[4]) };
+  // "slower scan", "barrido mas lento": how long one-switch scanning lights each control.
+  const scan = /^(?:(slower|faster|quicker) (?:scan|scanning)|(?:scan|scanning) (slower|faster|quicker)|(?:el )?barrido (mas lento|mas rapido)|(mas lento|mas rapido) el barrido)$/.exec(text);
+  if (scan) return { kind: 'timing', what: 'scan', slower: /^(?:slower|mas lento)$/.test(scan[1] ?? scan[2] ?? scan[3] ?? scan[4]) };
+  // "less motion", "reduced motion off", "menos movimiento": nothing glides, breathes or pulses.
+  const calm = /^(?:turn |switch )?(on |off )?(?:less motion|reduced motion|reduce motion|menos movimiento)( on| off)?$/.exec(text);
+  if (calm) {
+    const value = (calm[1] ?? calm[2])?.trim();
+    return value ? { kind: 'access', key: 'reducedMotion', value: value === 'on' } : { kind: 'access', key: 'reducedMotion' };
+  }
+  // "mono audio", "mono sound off", "audio mono": every sound in both ears.
+  const mono = /^(?:turn |switch )?(on |off )?(?:mono|mono audio|mono sound|audio mono|sonido mono)( on| off)?$/.exec(text);
+  if (mono) {
+    const value = (mono[1] ?? mono[2])?.trim();
+    return value ? { kind: 'access', key: 'monoAudio', value: value === 'on' } : { kind: 'access', key: 'monoAudio' };
   }
   // Said on its own; a longer sentence ("... and I can't turn my neck") goes to the agent, which adapts the space too.
   if (/^(?:my hands? (?:shake|shakes|tremble)|i have (?:a )?tremor|me tiemblan las manos|tengo temblor)$/.test(text)) return { kind: 'steady', value: true };

@@ -38,6 +38,7 @@
     <div id="status-text" class="status">Connecting to the command server...</div>
   </div>
   <div id="status-detail" class="detail">-</div>
+  <div id="fps-line" class="detail" style="display: none">-</div>
   <div class="week">
     <div class="week-label">Last 7 days</div>
     <div id="day-0" class="day"><div id="day-0-mark" class="mark">-</div></div>
