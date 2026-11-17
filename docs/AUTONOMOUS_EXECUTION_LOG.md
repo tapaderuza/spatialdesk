@@ -1187,3 +1187,23 @@ change and restored afterwards.
 - **Devpost, on the owner's order.** The story (493 words) gains "Built for accessibility and fatigue": arms that tire, eyes
   and attention, motion, help and memory, each line a feature that exists; "prevents motion sickness" was not used. Two
   English gallery captures from production with real Nova now open the gallery. Still Submitted, 5 of 5.
+
+## Block 50: every judge path verified, and the two weak spots closed (2026-11-16 to 2026-11-17)
+
+Asked: "¿Podemos ganar? O hace falta algo más? Verifícalo", then "Hazlos todos" and "Autorizo, publícalo". The freeze was
+lifted for these two changes and restored afterwards.
+
+- **Verified on production, with real services.** 19 of 19: the setup by gaze and by voice; gaze alone from the first
+  screen to the leaf; Read aloud with the whole proposal; the three bad-day buttons, 9 of 9 from Nova on the first attempt
+  (0.9 to 1.3 s); the leaf with `?fast` at 29 s; high contrast; a spoken plan through Amazon Transcribe. The forum post had
+  6 views and no reply.
+- **Two weak spots.** Plan my day with no words came from Nova 1 time in 3: the model copied a starter card, then named it
+  ambiguously, and the validator refused it twice ("Several cards are called 'Plan my day with the AI agent'"). With the
+  start page's example words: 3 of 3. And "Neck hurts" asked for "closer and lower", which Nova had once sent with the tilt
+  the wrong way round.
+- **The fixes, client only.** The start page offers "Use the example", which fills Describe your day; "Neck hurts" asks for
+  "closer, and keep my head turns small". The guide and README point judges at the example. CI 239 passed, 0 failed.
+- **Published and verified.** Invalidation `I24N9VB1KMV3E69DFOM0E0G33L`, live `main-BIaOAPvN.js`. With real Nova in fresh
+  browsers: Use the example then Plan my day, 3 of 3 from Nova (1.8 to 2.0 s); Neck hurts, 3 of 3, closer and less turn, with
+  no tilt. The server-side cure for an empty day (the validator preferring a card the same plan created) still waits for a
+  server deploy.
