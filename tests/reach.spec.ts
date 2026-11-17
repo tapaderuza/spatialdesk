@@ -36,6 +36,18 @@ test('nearer, the panels shrink by as much: they look the size they did, and as 
   expect(scaleForReach(1.3, 1)).toBe(1); // further: kept as it was
 });
 
+test("a proposal that brings the space nearer without a size gets the step that keeps the panels' size", async () => {
+  const { nearerPanelsStep } = await import('../src/accessibility/reach.js');
+  const body = { reach: 1, scale: 1, side: 'both' as const, turnDeg: 120, tiltDeg: 0 };
+  expect(nearerPanelsStep([{ op: 'set_comfort', reach: 0.75 }, { op: 'set_comfort', turnDeg: 25 }], body, false))
+    .toEqual({ op: { op: 'set_comfort', scale: 0.8 }, why: 'Smaller panels, so up close they look the same size' });
+  expect(nearerPanelsStep([{ op: 'set_comfort', reach: 0.9 }], { ...body, scale: 1.4 }, true)?.op).toEqual({ op: 'set_comfort', scale: 1.25 });
+  expect(nearerPanelsStep([{ op: 'set_comfort', reach: 0.8 }, { op: 'set_comfort', scale: 1.3 }], body, false)).toBeNull(); // it says its size
+  expect(nearerPanelsStep([{ op: 'set_comfort', reach: 1.2 }], body, false)).toBeNull(); // further
+  expect(nearerPanelsStep([{ op: 'set_comfort', side: 'left' }], body, false)).toBeNull(); // no distance
+  expect(nearerPanelsStep([{ op: 'set_comfort', reach: 0.75 }], { ...body, reach: 0.8, scale: 0.8 }, false)).toBeNull(); // already smallest
+});
+
 test('fit to my reach by voice, in English and Spanish', async () => {
   const { parseCommand } = await import('../src/voice/commands.js');
   for (const said of ['Fit to my reach', 'fit it to me', 'Measure my reach.', 'Ponlo a mi alcance', 'mide mi alcance', 'hasta dónde llego']) {

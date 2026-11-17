@@ -38,10 +38,15 @@ test('a bad day without a microphone: one press asks for comfort, the reasons sh
   expect(asked).toHaveLength(1);
   expect(asked[0]).toMatchObject({ intent: 'comfort', text: 'My neck hurts today. Bring everything closer, and keep my head turns small.' });
   expect(await comfort(), 'nothing moves before Apply').toEqual(before);
+  // Nearer without a size: the card adds a step that shrinks the panels by as much, so they do not fill the view.
+  const steps = await page.evaluate(() => (window as Win).__agent.state.plan.steps as { op: any; why: string }[]);
+  expect(steps.at(-1)).toEqual({ op: { op: 'set_comfort', scale: 0.8 }, why: 'Smaller panels, so up close they look the same size' });
 
   await tap(page, 'agent:plan-apply');
   await expect.poll(async () => (await comfort()).reach).toBe(0.8);
   expect((await comfort()).tiltDeg).toBe(-10);
+  expect((await comfort()).scale).toBe(0.8);
+  expect(await page.evaluate(() => (window as Win).__workspace.panelScale)).toBeCloseTo(0.8, 2);
   await page.evaluate(() => (window as Win).__voice.say('undo'));
   expect(await comfort(), 'one Undo takes it back').toEqual(before);
   expect(errors).toEqual([]);

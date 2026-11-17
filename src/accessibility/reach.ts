@@ -7,7 +7,7 @@
  * FOCUS_DISTANCE from the eyes, FOCUS_ELEVATION_DEG below them, the whole layout turned [tiltDeg] up round the eyes.
  * So the pinch point's distance gives reach, its elevation gives tilt, and its bearing gives the side. Pure: no World.
  */
-import type { Comfort } from '../workspace/model.js';
+import type { Comfort, Op } from '../workspace/model.js';
 
 /** The focus board's slot in Layout.kt: 0.62 m ahead, 0.17 m below the eyes. */
 const FOCUS_DISTANCE = Math.hypot(0.62, 0.17);
@@ -29,6 +29,27 @@ const LIMITS = { reach: [0.8, 1.8], tiltDeg: [-25, 30], scale: [0.8, 1.8] } as c
 export function scaleForReach(reach: number, scale: number): number {
   if (reach >= 1) return scale;
   return Math.round(clamp(scale * reach, LIMITS.scale) * 20) / 20;
+}
+
+/**
+ * A proposal that brings the space nearer (a bad day's "closer", or the AI's own choice) and says nothing about the
+ * panels' size: the step that shrinks them by as much, so up close they look the size they did, or null. The card
+ * shows it like any other step, Read aloud says it, and one Undo takes the whole plan back.
+ */
+export function nearerPanelsStep(ops: readonly Op[], comfort: Comfort, es: boolean): { op: Op; why: string } | null {
+  let reach: number | undefined;
+  for (const op of ops) {
+    if (op.op !== 'set_comfort') continue;
+    if (op.scale !== undefined) return null; // the plan already says how large
+    if (op.reach !== undefined) reach = op.reach;
+  }
+  if (reach === undefined || reach >= comfort.reach) return null;
+  const scale = Math.round(clamp((comfort.scale * reach) / comfort.reach, LIMITS.scale) * 20) / 20;
+  if (scale === comfort.scale) return null;
+  return {
+    op: { op: 'set_comfort', scale },
+    why: es ? 'Paneles más pequeños, para que de cerca se vean del mismo tamaño' : 'Smaller panels, so up close they look the same size',
+  };
 }
 
 /** While measuring, a pinch is a measurement: it must not also press what its ray points at (src/ui/panel-hits.ts). */

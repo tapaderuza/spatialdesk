@@ -34,6 +34,7 @@ import { Conversation } from './conversation.js';
 import { readComfortMemory, saveComfortMemory, forgetComfortMemory } from './comfort-memory.js';
 import { DEFAULT_SESSION, type Energy, type SessionChoice } from './session-input.js';
 import { accessPreferences, onAccessPreferences } from '../accessibility/preferences.js';
+import { nearerPanelsStep } from '../accessibility/reach.js';
 import { claimPanel, onPanelClaim } from '../accessibility/panel-focus.js';
 import { forgetResumeNote, nextStepText, readResumeNote, resumeContext, returnTasks, saveResumeNote, type ResumeNote } from './resume-note.js';
 import { progress } from '../workspace/progress.js';
@@ -450,7 +451,7 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
     this.startedAt = this.timings.requested = performance.now();
     if (!this.quiet) this.show();
     const requestedWorkspace = workspace.state;
-    const plan = await requestPlan(intent, text, requestedWorkspace, deskPose(this.world), options.context, this.quiet ? [] : this.conversation.snapshot(), options.sessionChoice);
+    let plan = await requestPlan(intent, text, requestedWorkspace, deskPose(this.world), options.context, this.quiet ? [] : this.conversation.snapshot(), options.sessionChoice);
     if (requestId !== this.requestId || this.mode !== 'thinking') return; // cancelled or superseded
     if (plan.network) {
       // The network or the AI is out of reach (or slower than AI_PATIENCE_MS): "thinking" ends now, the card goes away
@@ -465,6 +466,10 @@ export class AgentSystem extends createSystem({ ready: { required: [AgentPanel, 
       if (!plan.ok) workspace.notify({ text: 'The AI could not suggest a next step right now.', error: false });
       return;
     }
+    // Nearer without a size: one more step shrinks the panels by as much, or a bad day's "closer" would bring them against
+    // the face at full size (a tester's Quest 3 found that from the setup's pinch, 2026-11-17).
+    const smaller = plan.ok ? nearerPanelsStep(plan.steps.map((s) => s.op), requestedWorkspace.comfort, this.language().startsWith('es')) : null;
+    if (smaller) plan = { ...plan, steps: [...plan.steps, smaller] };
     this.plan = plan;
     if (intent === 'session' && plan.ok) {
       const timer = plan.steps.find((s) => s.op.op === 'start_timer')?.op;
