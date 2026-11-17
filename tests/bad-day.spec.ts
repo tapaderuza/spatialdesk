@@ -36,7 +36,7 @@ test('a bad day without a microphone: one press asks for comfort, the reasons sh
 
   await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
   expect(asked).toHaveLength(1);
-  expect(asked[0]).toMatchObject({ intent: 'comfort', text: 'My neck hurts today. Bring everything closer and lower.' });
+  expect(asked[0]).toMatchObject({ intent: 'comfort', text: 'My neck hurts today. Bring everything closer, and keep my head turns small.' });
   expect(await comfort(), 'nothing moves before Apply').toEqual(before);
 
   await tap(page, 'agent:plan-apply');
@@ -44,5 +44,25 @@ test('a bad day without a microphone: one press asks for comfort, the reasons sh
   expect((await comfort()).tiltDeg).toBe(-10);
   await page.evaluate(() => (window as Win).__voice.say('undo'));
   expect(await comfort(), 'one Undo takes it back').toEqual(before);
+  expect(errors).toEqual([]);
+});
+
+test('"Use the example" fills Describe your day, so Plan my day plans real words rather than the starter boards alone', async ({ page }) => {
+  await page.route('**/api/sessions', (route) => route.fulfill({ json: { sessionId: 'test-session-0000000000', protocol: 1 } }));
+  const asked: any[] = [];
+  await page.route('**/api/agent/plan', async (route) => {
+    asked.push(route.request().postDataJSON());
+    await route.fulfill({ json: { ok: true, summary: 'Your day as one board.', steps: [{ op: { op: 'start_timer', minutes: 25, label: 'Report' }, why: 'The report first' }], source: 'us.amazon.nova-2-lite-v1:0' } });
+  });
+  const errors = await openWorkspace(page);
+  const example = await page.locator('#day-text').getAttribute('placeholder');
+  expect(await page.locator('#day-text').inputValue()).toBe('');
+  await page.locator('#day-example').click();
+  expect(await page.locator('#day-text').inputValue()).toBe(example);
+  expect(await page.evaluate(() => localStorage.getItem('spatialdesk.day'))).toBe(example);
+  await expect(page.locator('#day-status')).toContainText('Example added');
+  await page.locator('#day-plan').click();
+  await page.waitForFunction(() => (window as Win).__agent.state.phase === 'preview', null, { timeout: 10_000 });
+  expect(asked[0]).toMatchObject({ intent: 'plan_my_day', text: example });
   expect(errors).toEqual([]);
 });

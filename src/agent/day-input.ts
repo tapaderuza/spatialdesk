@@ -34,7 +34,8 @@ function saveDayText(text: string): void {
  * (reach, height and tilt, text size, side): no brightness, which the app does not control.
  */
 export const BAD_DAY: readonly { label: string; text: string }[] = [
-  { label: 'Neck hurts', text: 'My neck hurts today. Bring everything closer and lower.' },
+  // No "lower": the sign of tilt is easy for the model to get backwards, and this request needs none.
+  { label: 'Neck hurts', text: 'My neck hurts today. Bring everything closer, and keep my head turns small.' },
   { label: 'Tired eyes', text: 'My eyes are tired today. Make the text bigger.' },
   { label: 'Left hand only', text: 'Only my left hand works today. Put everything on my left.' },
 ];
@@ -53,7 +54,11 @@ export function installDayInput(world: World, onPlan: () => void, onComfort: (te
     '<button id="day-vr" type="button" hidden style="flex:1;min-height:44px;background:#f2b84b;color:#1a1203;border:0;border-radius:8px;font:inherit;font-weight:700;font-size:15px;cursor:pointer">Enter VR</button>' +
     '<button id="day-room" type="button" hidden style="flex:1;min-height:44px;background:#2a313b;color:#eef1f5;border:1px solid #4a5666;border-radius:8px;font:inherit;font-weight:700;cursor:pointer">In my room</button>' +
     '</div>' +
-    '<label for="day-text" style="display:block;font-weight:700;margin-bottom:6px">Describe your day</label>' +
+    // A day in words plans far better than none (the agent then plans from the starter boards alone), so the example is one press away.
+    '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">' +
+    '<label for="day-text" style="font-weight:700">Describe your day</label>' +
+    '<button id="day-example" type="button" style="background:transparent;color:#9cc3ff;border:0;padding:0;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer">Use the example</button>' +
+    '</div>' +
     '<textarea id="day-text" rows="2" maxlength="600" placeholder="Finish the report, review two pull requests, call the dentist, gym at 18:00"' +
     ' style="width:100%;box-sizing:border-box;resize:vertical;background:#1d222a;color:#eef1f5;border:1px solid #2c333d;border-radius:8px;padding:8px;font:inherit"></textarea>' +
     '<div style="display:flex;gap:8px;margin-top:8px">' +
@@ -104,6 +109,11 @@ export function installDayInput(world: World, onPlan: () => void, onComfort: (te
   plan.addEventListener('click', () => {
     saveDayText(text.value);
     onPlan();
+  });
+  box.querySelector<HTMLButtonElement>('#day-example')!.addEventListener('click', () => {
+    text.value = text.placeholder;
+    saveDayText(text.value);
+    status.textContent = 'Example added. Press Plan my day here, or on your panel in VR.';
   });
   BAD_DAY.forEach((prompt, i) => {
     box.querySelector<HTMLButtonElement>(`#day-badday-${i}`)!.addEventListener('click', () => {
