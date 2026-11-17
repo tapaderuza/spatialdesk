@@ -27,9 +27,10 @@ and no card operation waits for a server, so losing the network in mid-session c
 network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
 replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 237 browser scenarios, a performance gate and 13 synthetic
-rooms run before every push. The proof still to come is the one only hardware can give: SpatialDesk has not yet run on a physical
-headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is written down.
+session. Every AI and speech call sits behind session and daily caps, and 246 browser scenarios, a performance gate and 13 synthetic
+rooms run before every push. Hardware has now had its say once: a tester's Quest 3 found four problems the emulator could not
+show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits. One person
+on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17) is written down.
 
 **[Watch the two-minute demo](https://youtu.be/FWbl6vpkiH4)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Quick look, timers in seconds](https://d2p3027seoreck.cloudfront.net/?fast)** · **[Without hands](https://d2p3027seoreck.cloudfront.net/?fast&handsfree)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
@@ -41,7 +42,7 @@ headset, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md) is wri
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 237 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 246 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 22.2 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5). The video quotes 24.6 ms, from an earlier run |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -50,8 +51,8 @@ accessibility-focused productivity prototype: it does not diagnose, prescribe tr
 ## Judge's guide
 
 For the engineering evaluation: the [technical judge's guide](docs/JUDGE_GUIDE.md) (network loss, performance, hardware
-tolerance, in about 15 minutes), [hardware risk mitigation](docs/HARDWARE_MITIGATION.md) (no physical headset yet, and what that
-leaves open) and [five hard questions](docs/JUDGE_FAQ.md) (latency, Bedrock limits, anchors, voice data, abuse).
+tolerance, in about 15 minutes), [hardware risk mitigation](docs/HARDWARE_MITIGATION.md) (one tester's Quest 3 so far, and what
+that leaves open) and [five hard questions](docs/JUDGE_FAQ.md) (latency, Bedrock limits, anchors, voice data, abuse).
 
 ### On Meta Quest
 
@@ -170,7 +171,8 @@ section maps what the shipped build does to two W3C documents: the
 **Scope of this mapping.** It is informative and is not a conformance claim. WCAG 2.2 is written for web content, and an
 immersive WebXR canvas falls outside its testable model, so its criteria are applied here by analogy; XAUR is the more direct
 reference, but it states requirements, not a conformance scheme. No third party has audited the product, no study with disabled
-participants has been run, and nothing here has been validated on a physical headset. Where a mechanism is verified, it was verified in
+participants has been run, and beyond one tester's Quest 3 (layout, comfort and stability), nothing here has been validated on a
+physical headset. Where a mechanism is verified, it was verified in
 Meta's IWER emulator by the named tests. The steady-aim model is measured with synthetic tremor and is not a clinical instrument.
 
 ### Capabilities in the shipped build
@@ -187,7 +189,7 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 | **Target geometry** | Every interactive target is at least 6 x 6 cm in the world, and every direct-touch target is within arm's reach. | 2.5.8 Target Size (Minimum) (AA); CSS pixels have no direct meaning in XR | REQ 4b | `tests/interaction.spec.ts` |
 | **Calibration and field of view** | A guided setup records seating position and a comfortable reach measured by a pinch, and can be reopened at any time. The layout is fitted to the field of view the headset reports. | No direct criterion | REQ 13a, 13b | `tests/setup.spec.ts`, `tests/reach.spec.ts`, `tests/glasses.spec.ts` |
 | **Motion restraint** | The viewer is never moved: locomotion is disabled. Panels move only on request, on a critically damped spring without overshoot. Motion sickness has not been measured. | No direct criterion | REQ 16a | `tests/glide.spec.ts` |
-| **High contrast and spatial audio** | High contrast is a control and a voice command; contrast ratios have not been audited. Cues sound from the position of their panel. | Not assessed (1.4.3, 1.4.11) | REQ 6a, 17a | `tests/accessibility.spec.ts`, `tests/spatial-ai.spec.ts` |
+| **High contrast and spatial audio** | High contrast is a control and a voice command. Every text on the headset panels measures at least 7.23:1 against its background in the normal theme and 8.19:1 in high contrast; a test fails the build below 7:1. Cues sound from the position of their panel. | 1.4.3 Contrast (Minimum) (AA) and 1.4.6 Contrast (Enhanced) (AAA), for panel text; 1.4.11 not assessed | REQ 6a, 17a | `tests/contrast.spec.ts`, `tests/accessibility.spec.ts`, `tests/spatial-ai.spec.ts` |
 
 ### Known limitations
 
@@ -266,7 +268,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 237 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 246 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.

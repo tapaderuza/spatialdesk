@@ -28,6 +28,8 @@ our own judgement of the effect on a person using the app during judging.
 | 19 | Fixed | **Fit room dead-ended on a headset with no Space Setup.** It advised looking around, which cannot help there, and Meta's guide says few people run that setup. | After: with no planes 3 s after entering, it calls `initiateRoomCapture`, once a session, as the guide recommends; a cancelled scan gets one plain line; a headset with a room is never asked. IWER lacks the call, so `tests/room.spec.ts` stands in for it. **Not run on a headset** | In my room on a Quest with no room set up | `nothingToFit()` in `room-system.ts` |
 
 The largest finding is one no test here can address: **it has not run on a physical headset**. See the [hardware document](HARDWARE_MITIGATION.md).
+Update, 2026-11-17: one tester has since run it on a Quest 3; the four problems found there are fixed, each with a test, and
+listed in the [hardware document](HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17).
 
 ## Checked, and found sound
 

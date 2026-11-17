@@ -1,6 +1,7 @@
 # Hardware risk mitigation
 
-**SpatialDesk has not run on a physical headset.** This document deals with that directly. It takes each way a real Meta Quest
+**SpatialDesk has run on one physical headset, a tester's Quest 3** (next section). This document deals with what that leaves
+open. It takes each way a real Meta Quest
 3 could differ from the emulator, shows what in the architecture limits the damage, gives the evidence, and names what only a
 headset can settle. It does not claim that the app reaches 60 fps on a Quest 3. It claims something narrower that can be checked:
 **the architecture makes each hardware risk small, separate and survivable, and no single one of them can stop the workspace
@@ -16,6 +17,23 @@ All tests run Meta's IWER emulator (Quest 3 profile) on the production build. Co
 | GPU cost per frame | Draw-call and triangle budgets only | `tests/perf.spec.ts` | **Everything else: not measured** |
 | Hand-tracking noise | Noise-tolerant targets; optional steady aim | `tests/interaction.spec.ts`, `tests/tremor.spec.ts` | The real tracker's noise |
 | Network degrades or disappears | Local-first workspace; a 10 s ceiling on every wait | `tests/resilience.spec.ts`, `tests/edge-cases.spec.ts`, production probes | The Quest's own Wi-Fi behaviour |
+
+## What one real Quest 3 showed (2026-11-17)
+
+A tester from Meta's developer forum ran the production build on a Quest 3, in VR and in passthrough, first with controllers
+and then with hands, over three rounds. Each report led to a client fix with a test:
+
+| Reported on the headset | Cause, from the code and the emulator | Fix | Test |
+| --- | --- | --- | --- |
+| The command console overlapped the centre board until a restart | The space was placed around the head at frame 10, while the tracked pose was still settling | A second check a second or two in; a head turn alone never moves the space | `tests/seated.spec.ts` |
+| The gaze ring pressed whatever was looked at for a second | Hands-free had been turned on by a 2-second look at the setup's **No hands? Look here** | That look takes 3 seconds, and hands-free says how to stop | `tests/setup.spec.ts` |
+| Panels about a metre wide, too close to the face | The setup's reach pinch could bring the space 31 cm away at full size | A pinch brings it at most 20% nearer and the panels shrink by as much; an AI proposal that brings the space nearer does the same | `tests/reach.spec.ts` |
+| The app went back to the browser page by itself | Not measured; most likely a fingertip on Exit, with the console by the hands | The layout fixes above; then Exit asks for a second press | `tests/seated.spec.ts` |
+
+After the layout fixes the tester wrote: "the panels are positioned much better now. The app no longer closes unexpectedly."
+
+**What this does not show:** frame time and thermals on the headset, the accessibility paths used on purpose, or anyone but
+one person. The rest of this document still holds for them.
 
 ## 1. API tolerance: `requiredFeatures` is empty
 

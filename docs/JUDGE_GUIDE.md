@@ -3,8 +3,9 @@
 About 15 minutes on a Meta Quest. Each test says what to do, what should happen, and where that behaviour has been
 verified, so you can separate what we measured from what only your headset can show.
 
-**How far this has been verified:** SpatialDesk has not yet run on a physical headset. Results below come from Meta's IWER
-emulator (Quest 3 profile) running the production build, and from the live production service.
+**How far this has been verified:** SpatialDesk has run on one physical headset, a tester's Quest 3; what it showed and what
+was fixed is in the [hardware document](HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17). Everything else below
+comes from Meta's IWER emulator (Quest 3 profile) running the production build, and from the live production service.
 
 | | |
 | --- | --- |
@@ -25,12 +26,14 @@ The award names four things. Each one can be tried from the links above.
 | --- | --- | --- |
 | Voice alternatives for hand interactions | **Talk** takes every button's name, the setup's answers, *"bigger text"* and *"move focus mode to Done"*; anything longer goes to the AI as a plan you approve | **Talk**, then *"focus"*, *"bigger text"*, *"undo"* |
 | Eyes-only navigation for limited mobility | Hands-free: a held gaze presses any control. On the setup's first screen, **No hands? Look here** turns it on by gaze alone | A 3-second look at **No hands? Look here**, or the *without hands* link |
-| High-contrast modes | **Contrast** on the command panel, or *"high contrast on"* | Press **Contrast** |
+| High-contrast modes | **Contrast** on the command panel, or *"high contrast on"*: black panels, white text, a white outline on every target. Every panel text is at least 8.19:1 against its background (7.23:1 in the normal theme) | Press **Contrast** |
 | Inclusive by default | The first-run setup fits every panel to the person's seat and reach and offers steady aim for tremor; one-switch scanning (`/?switch`) and a carer's phone (after **Allow**) are there for whoever needs them | Enter VR for the first time |
 
 On Quest 3 and 3S, which have no eye tracking, hands-free aims with the head; where the headset tracks the eyes, it uses them.
 **Verified:** in the emulator (`tests/setup.spec.ts`, `tests/handsfree.spec.ts`, `tests/voice-direct.spec.ts`,
-`tests/accessibility.spec.ts`). **Not verified:** on a physical headset.
+`tests/accessibility.spec.ts`, `tests/contrast.spec.ts`). **On a physical headset:** only hands-free, met by accident on the
+tester's Quest 3, where a held look pressed what it rested on; that is why the setup's invitation now needs 3 seconds. The
+other paths have not been tried there yet.
 
 ## Start here: the first five minutes
 
@@ -187,8 +190,7 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 227 browser scenarios: the 199 quoted in the video, plus seven in `tests/edge-cases.spec.ts`, 20 in
-`tests/failure-modes.spec.ts` and one in `tests/room.spec.ts`.
+The suite has 246 browser scenarios; the video quotes 199, from an earlier run.
 
 ## 6. Known limits
 

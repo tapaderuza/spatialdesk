@@ -2,7 +2,8 @@
 
 The questions a senior XR engineer is most likely to ask after reading this code, answered from the architecture as it ships. Each
 answer gives the short version, the evidence, and the limit. Figures were measured on 2026-11-04 and 2026-11-05 against the emulator or the
-production service, as stated. Nothing here has run on a physical headset; the [hardware document](HARDWARE_MITIGATION.md) deals with that.
+production service, as stated. None of these figures comes from a physical headset; since then, one tester's Quest 3 has run the app, and the
+[hardware document](HARDWARE_MITIGATION.md) says what it showed and what it leaves open.
 
 ## 1. Every headset holds a WebSocket to one Fargate task. What does latency do to the frame loop, and what happens when that task dies?
 

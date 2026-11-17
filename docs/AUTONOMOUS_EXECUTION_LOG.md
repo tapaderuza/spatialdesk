@@ -1324,3 +1324,38 @@ and restored afterwards.
   - Neck hurts with the smaller panels; the setup's close pinch at 0.8.
   - Gaze alone to the leaf, one switch, high contrast.
   - The bad-day buttons; Use the example then Plan my day, 3 of 3; Read aloud.
+
+## Block 55: every panel text at 7:1, and the docs catch up with the Quest 3 (2026-11-17)
+
+Asked: "Cono podemos ser favoritos claros?", then "Haz todo lo que has dicho". The freeze was lifted for this change.
+
+- **Where we stood.** Rivals for Accessibility Forward state measured AAA contrast and answer the award's four items one by
+  one. Our high contrast had never been measured.
+- **Measured,** each text on each panel against the background it sits on:
+  - High contrast: 19 under 7:1. Twelve labels on the primary blue were at 6.46:1. The seven day marks, which the app
+    replaces before the first frame, were the rest.
+  - Normal theme: 27 under 7:1.
+  - Colours painted at runtime: the idle notice was 6.93:1 in high contrast, and error text 6.97:1 in the normal theme.
+- **The fix** (159089f) changes four colour constants in `src/` and `public/ui`:
+  - Primary blue #2f5f9e to #284f88.
+  - Dim grey #8b95a3 to #a7b0bd.
+  - Board counts #96a0ae to #a7b0bd.
+  - Error text #ff8a7a to #ff9385.
+  - Every panel text is now at least 7.23:1 in the normal theme and 8.19:1 in high contrast.
+  - Runtime paints outrank the panels' classes, but `:dark` outranks runtime paints. A `:dark` rule would therefore have
+    frozen the hover fade, so the fix is in the constants.
+  - `tests/contrast.spec.ts` (two tests) fails the build under 7:1, and it failed on the old blue. Locally, the 244
+    tests passed before it was added, then the two new ones.
+- **Found while writing the Devpost text: the gaze dwell time cannot be adjusted in this build.** The Spanish
+  accessibility hub that sets it (`src/accessibility/hub-controller.ts`) is never mounted. The README already lists it
+  under "Preferences not exposed", and the draft does not claim it.
+- **The docs catch up.**
+  - The README, the judge's guide, the hardware document, the FAQ and the audit no longer say the app has never run on
+    a headset.
+  - The hardware document has a section on what the tester's Quest 3 showed: each report with its cause, fix and test.
+  - The README's XAUR table states the measured contrast.
+- **Drafts for the owner, not committed:**
+  - The Devpost text.
+  - A third question for the tester (hands-free, voice and one switch on their Quest 3), to post only on the owner's
+    order.
+- **Not published.** Waiting for "Autorizo, publícalo".
