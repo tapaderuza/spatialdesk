@@ -1207,3 +1207,36 @@ lifted for these two changes and restored afterwards.
   browsers: Use the example then Plan my day, 3 of 3 from Nova (1.8 to 2.0 s); Neck hurts, 3 of 3, closer and less turn, with
   no tilt. The server-side cure for an empty day (the validator preferring a card the same plan created) still waits for a
   server deploy.
+
+## Block 51: the first report from a real headset (2026-11-17)
+
+Asked: "Autorizo, publícalo" (Read aloud with no speech), then "Sí, hazlos" (two fixes from a tester's report) and
+"Autorizo, publícalo". The freeze was lifted for these changes and restored afterwards.
+
+- **Read aloud with no speech.** A browser without speech now says "Read aloud is not available in this browser" instead
+  of a toggle that stays silent (3695315). Published: invalidation `IB0UESH84TJDEPACLO9QM4O8QX`, live `main-Cs9BTsO1.js`.
+- **The report.** A tester answered the forum thread with a Quest 3. In VR and in MR, the command console on the left
+  overlapped the centre board until a restart. After the restart, the gaze ring pressed whatever they looked at for more
+  than a second. Diagnosis:
+  - The space was checked against the head only once, at frame 10; on a real headset the tracked pose can still be
+    settling then.
+  - The ring is hands-free. The setup's "No hands? Look here" turned it on after a 2-second look, or the *without hands*
+    link starts with it on.
+- **The fixes, client only.**
+  - A second check about 100 frames in, a second or two. It rearranges only if the head is more than 35 cm from where the
+    space was placed; a turn alone does not, so looking at the console never swings the workspace.
+  - "No hands? Look here" needs 3 seconds.
+  - Turning hands-free on says: Say "hands free off" or press Hands-free to stop. Spanish too.
+  - Tests: a new case in `tests/seated.spec.ts`; the setup test asserts no press at 2.2 s and the new notice. The guide and
+    README say 3 seconds. CI 241 passed, 0 failed (96f2155).
+- **Published and verified.** Invalidation `I3813BG5YVEGC18TZLPR7NB9LA`, live `main-DV33vxwe.js`. On production, 13 of 13
+  in fresh browsers:
+  - Gaze alone to the first leaf, with the setup done in 17 s.
+  - At "No hands? Look here", a 2.2 s look turns nothing on; the full look does, with the new notice.
+  - A head that settles 80 cm to the side is followed: "Arranged around you."
+  - One switch and high contrast.
+  - The three bad-day buttons, from Nova on the first attempt in 1.0 to 1.2 s; Neck hurts with no tilt.
+  - Use the example then Plan my day, 3 of 3 (1.6 to 2.0 s).
+  - Read aloud with the whole proposal.
+- **Not verified.** Nothing on a physical headset: that the overlap came from the settling pose is a diagnosis, not a
+  measurement. A reply to the tester is drafted and waits for the owner.
