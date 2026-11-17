@@ -12,6 +12,7 @@ comes from Meta's IWER emulator (Quest 3 profile) running the production build, 
 | App | <https://d2p3027seoreck.cloudfront.net/> (Meta Quest Browser) |
 | A quick look | <https://d2p3027seoreck.cloudfront.net/?fast> (timers run in seconds: Focus 25 lasts 25 seconds, and the panel says so) |
 | Without hands | <https://d2p3027seoreck.cloudfront.net/?fast&handsfree> (the quick look with hands-free on: rest your head's aim on a control until its ring fills) |
+| Frame rate | <https://d2p3027seoreck.cloudfront.net/?fast&fps> (the command panel shows frames per second and the slowest frame, once a second) |
 | Phone companion | <https://d2p3027seoreck.cloudfront.net/companion.html> |
 | Without a headset | <https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US> (any current Chromium browser) |
 | Code | <https://github.com/tapaderuza/spatialdesk> |
@@ -171,6 +172,8 @@ Each of the first three opens with a link, so it can be set up in advance by who
 | Steady aim | `/?steady` | Shake your hand while aiming: the press goes to the control you aimed at most over the last 450 ms |
 | One switch | `/?switch` | First pinch anywhere starts the scan; the next selects the control lit |
 | Hands-free | `/?handsfree` | Rest your head's aim on a control: a ring fills and presses it (1 s for buttons, 1.6 s for cards) |
+| Slower or faster gaze | `/?handsfree&dwell=2400` | Say *"slower gaze"* or *"faster gaze"* (0.7 to 3.2 s), or set it in the link; *"slower scan"* does the same for one switch (`?scan=2500`) |
+| Less motion, mono audio | `/?calm`, `/?mono` | Or say *"less motion"*, *"mono audio"*: nothing glides or pulses; every sound plays in both ears |
 | Voice | any link | **Talk**, then *"Bring everything closer and make the text bigger"*; review, **Apply**, **Undo** |
 | Voice, at once | any link | **Talk**, then *"bigger text"* (or *"smaller text"*), or *"move focus mode to Done"*: done at once without asking the AI, and **Undo** puts it back. Words that fit several cards, or *"this"*, go to the AI instead |
 
@@ -190,7 +193,7 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 246 browser scenarios; the video quotes 199, from an earlier run.
+The suite has 253 browser scenarios; the video quotes 199, from an earlier run.
 
 ## 6. Known limits
 
