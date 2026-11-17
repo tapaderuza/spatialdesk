@@ -1375,3 +1375,6 @@ Asked: "Cono podemos ser favoritos claros?", then "Haz todo lo que has dicho". T
   - Devpost answered "Your edits have been saved!" and the entry still shows under the competition. The public page has
     every new phrase and none of the old ones.
   - `docs/META_SUBMISSION.md` mirrors the story. Additional info (the declarations) was not touched.
+- **One more caption, on "Autorizo, publícalo".** Photo 1 said the board comes "closer and lower" after Apply. Since
+  block 50, Neck hurts no longer asks for lower, so the caption now reads "comes closer". Saved, and checked on the
+  public page; the story was unchanged (4,872 characters).
