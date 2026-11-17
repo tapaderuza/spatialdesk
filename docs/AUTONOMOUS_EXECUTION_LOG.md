@@ -1284,3 +1284,20 @@ afterwards.
   - "Neck hurts" from Nova sets reach 0.75 with the scale unchanged, so its panels come nearer at full size. That
     path is not covered by the setup's fix.
   - Nothing has run on a physical headset since these fixes.
+
+## Block 53: the AI's "closer" keeps the panels' size (2026-11-17)
+
+Asked: "Sí, hazlo" and "Autorizo, publícalo". The freeze was lifted for this change and restored afterwards.
+
+- **The gap.** "Neck hurts" from Nova asks for reach 0.75 and says nothing about size. The panels came about 46 cm
+  away at full size: the crowding the tester saw from the setup's pinch, by another path.
+- **The fix, client only** (81e66a6). When a proposal brings the space nearer and sets no scale, the client adds one
+  step, "Smaller panels, so up close they look the same size" (`nearerPanelsStep` in `src/accessibility/reach.ts`).
+  - It is on the card, read aloud with the rest, and undone with the plan in one Undo.
+  - A proposal that sets its own size, or moves the space further, is left as it is.
+  - CI 243 passed, 0 failed.
+- **Published and verified.** Invalidation `I38JCLMEFSJ3SAYGP0U3RJTCMK`, live `main-IvfaUxdn.js`. On production, 14 of 14
+  with real Nova:
+  - Neck hurts: reach 0.75, turn 25° and the added step; after Apply, scale 0.8. Read aloud said it as step 3.
+  - Tired eyes, Left hand only, Use the example then Plan my day (3 of 3), the setup's close pinch, gaze alone to the
+    leaf, one switch, high contrast.
