@@ -256,7 +256,10 @@ export class WorkspaceStore {
     const previous = this.state;
     this.json = json;
     this.state = JSON.parse(json) as Workspace;
-    const view = this.state.view ? `${this.state.view.halfWidthDeg},${this.state.view.upDeg},${this.state.view.downDeg}` : '';
+    // The panels' scale depends on the view and on the body (Layout.fit): "bigger text", a bad day's larger panels and a
+    // nearer reach change it at once, not only after a reload (found from a tester's Quest 3 report, 2026-11-17).
+    const c = this.state.comfort;
+    const view = `${this.state.view ? `${this.state.view.halfWidthDeg},${this.state.view.upDeg},${this.state.view.downDeg}` : ''}|${c ? `${c.scale},${c.reach},${c.side},${c.turnDeg},${c.tiltDeg}` : ''}`;
     if (view !== this.scaledView) {
       this.scaledView = view;
       this.panelScale = engine.panelScale(json);

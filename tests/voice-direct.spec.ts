@@ -28,11 +28,14 @@ test('"bigger text" by voice: every panel a step larger at once, Undo puts it ba
   const errors = await openWorkspace(page);
   const scale = () => page.evaluate(() => (window as Win).__workspace.state.comfort.scale as number);
   expect(await scale()).toBe(1);
+  const drawn = () => page.evaluate(() => (window as Win).__workspace.panelScale as number);
   await say(page, 'bigger text');
   expect(await scale()).toBeCloseTo(1.2, 5);
+  expect(await drawn(), 'the panels are drawn larger at once, not after a reload').toBeGreaterThan(1);
   expect(await notice(page)).toContain('Text larger');
   await say(page, 'undo');
   expect(await scale()).toBe(1);
+  expect(await drawn()).toBe(1);
   for (let i = 0; i < 6; i++) await say(page, 'letra más grande');
   expect(await scale()).toBeCloseTo(1.8, 5);
   expect(await notice(page)).toContain('as large as it goes');
