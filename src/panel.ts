@@ -68,6 +68,8 @@ function turnAbout(pose: Pose, centre: Pose, angle: number): Pose {
 }
 
 /** Entering XR this far from the stored anchor re-arranges the workspace around the user. */
+/** How long Exit waits for its second press before it is just Exit again. */
+const EXIT_CONFIRM_MS = 4000;
 const REANCHOR_METRES = 0.35;
 const REANCHOR_RADIANS = (30 * Math.PI) / 180;
 
@@ -85,6 +87,9 @@ export class PanelSystem extends createSystem({}) {
   private placeSmooth = false;
   private anchorCheckFrames = 0;
   private anchorRecheckFrames = 0;
+  private exitLabel: UIKit.Text | null = null;
+  private exitArmedUntil = 0;
+  private exitDisarm: ReturnType<typeof setTimeout> | null = null;
 
   init(): void {
     const panel = this.world.getSceneObject<UIKitMLAsset>('command-panel');
@@ -165,6 +170,10 @@ export class PanelSystem extends createSystem({}) {
     const roomButton = element('room-button');
     const fitButton = element('fit-button');
     const exitButton = element('exit-button');
+    this.exitLabel = element('exit-label');
+    this.cleanupFuncs.push(() => {
+      if (this.exitDisarm) clearTimeout(this.exitDisarm);
+    });
     const buttons: Record<string, { element: UIKit.Text | null; base: string; action: () => void }> = {
       // Intent chips: the AI ones open a plan to review; Focus 25 and Clear done act at once (no AI needed).
       plan: { element: element('plan-button'), base: BUTTON.primary, action: () => void this.world.getSystem(AgentSystem)?.run('plan_my_day') },
@@ -195,7 +204,7 @@ export class PanelSystem extends createSystem({}) {
       xr: { element: xrButton, base: BUTTON.primary, action: () => launchVR(this.world) },
       room: { element: roomButton, base: BUTTON.primary, action: () => launchRoom(this.world) },
       fit: { element: fitButton, base: BUTTON.primary, action: () => void this.world.getSystem(RoomSystem)?.requestFit() },
-      exit: { element: exitButton, base: BUTTON.base, action: () => this.world.exitXR() },
+      exit: { element: exitButton, base: BUTTON.base, action: () => this.exitPressed() },
     };
     if (root) {
       // One listener on the panel root (see PanelHits); hover is a fade of the control's own colour (src/ui/hover.ts).
@@ -594,6 +603,30 @@ export class PanelSystem extends createSystem({}) {
    * [turnToo] false for the later check: by then the person may have turned to look at the console, and a turn must not
    * swing the workspace (tests/seated.spec.ts); only a head far from the space's place (the pose settling) rearranges it.
    */
+  /**
+   * Exit leaves VR only on a second press within a few seconds. On a Quest 3 the session ended with no warning while a
+   * tester's hands moved near the console's bottom row, where Exit sits (2026-11-17); a fingertip, a resting pinch or a
+   * long look can press it once by accident, not twice. "Exit" said aloud still leaves at once.
+   */
+  private exitPressed(): void {
+    if (this.exitDisarm) clearTimeout(this.exitDisarm);
+    this.exitDisarm = null;
+    if (performance.now() < this.exitArmedUntil) {
+      this.exitArmedUntil = 0;
+      this.exitLabel?.setProperties({ text: 'Exit' });
+      void this.world.exitXR();
+      return;
+    }
+    this.exitArmedUntil = performance.now() + EXIT_CONFIRM_MS;
+    this.exitLabel?.setProperties({ text: 'Press again' });
+    workspace.notify({ text: 'Press Exit again to leave VR.', error: false });
+    this.exitDisarm = setTimeout(() => {
+      this.exitArmedUntil = 0;
+      this.exitDisarm = null;
+      this.exitLabel?.setProperties({ text: 'Exit' });
+    }, EXIT_CONFIRM_MS);
+  }
+
   private reanchorIfFar(turnToo = true): void {
     this.fitView();
     // In the room, a remembered layout is restored to its real place (RoomSystem): never rearranged around the head.

@@ -78,6 +78,6 @@
     <div id="xr-button" class="primary"><div class="label">Enter VR</div></div>
     <div id="room-button" class="primary"><div class="label">In my room</div></div>
     <div id="fit-button" class="primary" style="display: none"><div class="label">Fit room</div></div>
-    <div id="exit-button" class="btn" style="display: none"><div class="label">Exit</div></div>
+    <div id="exit-button" class="btn" style="display: none"><div id="exit-label" class="label">Exit</div></div>
   </div>
 </div>

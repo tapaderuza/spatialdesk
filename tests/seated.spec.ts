@@ -44,3 +44,18 @@ test('a headset pose that settles late: a second or two in, the space is arrange
   expect(anchor.z).toBeCloseTo(start.z, 1);
   expect(errors).toEqual([]);
 });
+
+test('Exit leaves VR only on a second press: one press by accident says so and stays, and it is forgotten after a few seconds', async ({ page }) => {
+  // A tester's Quest 3 left the session with no warning while their hands moved near the console's bottom row (2026-11-17).
+  const errors = await enterXR(page);
+  const immersive = () => page.evaluate(() => (window as Win).__world.visibilityState.value !== 'non-immersive');
+  await pressXR(page, 'command:exit-button', 'left');
+  expect(await immersive(), 'one press stays').toBe(true);
+  expect(await page.evaluate(() => (window as Win).__notice?.text)).toBe('Press Exit again to leave VR.');
+  await page.waitForTimeout(4_300); // forgotten: the next press is a first press again
+  await pressXR(page, 'command:exit-button', 'left');
+  expect(await immersive()).toBe(true);
+  await pressXR(page, 'command:exit-button', 'left'); // a second press while it waits: out of VR
+  await page.waitForFunction(() => (window as Win).__world.visibilityState.value === 'non-immersive', null, { timeout: 10_000 });
+  expect(errors).toEqual([]);
+});
