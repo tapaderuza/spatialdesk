@@ -1301,3 +1301,26 @@ Asked: "Sí, hazlo" and "Autorizo, publícalo". The freeze was lifted for this c
   - Neck hurts: reach 0.75, turn 25° and the added step; after Apply, scale 0.8. Read aloud said it as step 3.
   - Tired eyes, Left hand only, Use the example then Plan my day (3 of 3), the setup's close pinch, gaze alone to the
     leaf, one switch, high contrast.
+
+## Block 54: the tester confirms, and Exit asks twice (2026-11-17)
+
+Asked: "mira si ha respondido en el foro", "Sí, hazlo" and "Autorizo, publícalo". The freeze was lifted for this change
+and restored afterwards.
+
+- **The tester's answers.**
+  - The quit went back to the browser page with no message, in XR, without Fit room; the room scan was already set
+    up. They had started with controllers, then switched to hands.
+  - Then, on `main-IvfaUxdn.js`: "the panels are positioned much better now. The app no longer closes unexpectedly."
+    The first confirmation on a real Quest.
+- **Likely cause of the quit.** Only two things end the session: the console's Exit button and "exit" said aloud. Exit
+  sits on the console's bottom row, next to Hands-free, and fingertips press controls (`src/ui/poke.ts`). With the
+  cramped layout, the console was by the hands. This is a diagnosis that fits every report, not a measurement.
+- **The safety net, client only** (96fd352).
+  - A first press of Exit changes its label to "Press again" and says "Press Exit again to leave VR."
+  - Only a second press within four seconds leaves. "Exit" said aloud still leaves at once.
+  - CI 244 passed, 0 failed.
+- **Published and verified.** Invalidation `I7HNECDVPNOK8JH5Q11VQJY70Q`, live `main-fF5z4EuM.js`. On production, 15 of 15:
+  - Exit: one press stays in VR, the second leaves.
+  - Neck hurts with the smaller panels; the setup's close pinch at 0.8.
+  - Gaze alone to the leaf, one switch, high contrast.
+  - The bad-day buttons; Use the example then Plan my day, 3 of 3; Read aloud.
