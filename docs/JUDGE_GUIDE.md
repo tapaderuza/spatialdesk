@@ -4,7 +4,8 @@ About 15 minutes on a Meta Quest. Each test says what to do, what should happen,
 verified, so you can separate what we measured from what only your headset can show.
 
 **How far this has been verified:** SpatialDesk has run on one physical headset, a tester's Quest 3; what it showed and what
-was fixed is in the [hardware document](HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17). Everything else below
+was fixed is in the [hardware document](HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17), and the tester's own reports, with
+our replies, are in [the public forum thread](https://communityforums.atmeta.com/what-i-m-building-27/have-a-quest-3-or-3s-5-minute-test-of-a-webxr-workspace-no-install-182440). Everything else below
 comes from Meta's IWER emulator (Quest 3 profile) running the production build, and from the live production service.
 
 | | |

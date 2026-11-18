@@ -1462,3 +1462,17 @@ for these two changes and restored afterwards.
 - **Forum.** On the owner's order, an update in the Start Developer Lounge topic asks again for five minutes on a Quest
   and the `?fps` number.
 - **Not verified:** any frame rate on a real Quest.
+
+## Block 59: the Quest 3 thread linked for judges, and one more ask to the tester (2026-11-18)
+
+- **Asked.** Write to the forum tester in the thread and in private, asking for one more run and feedback; then, from
+  another assistant's review, "Sí, enlázalo" for linking the thread where judges look.
+- **Forum.** A reply under the tester's last comment, with the @mention, asks for one run without hands
+  (`?fast&handsfree&fps`: a card by gaze, the Doing column, Focus 25; the Gaze button if the ring is too quick) and the
+  frame rate. A private message was not possible: the tester takes messages only from members they follow. The opening
+  post cannot be edited (its menu offers only Copy link and Report), so its "only the emulator" line stays; the thread
+  itself shows what changed.
+- **Linked.** The public thread is now linked from the judge's guide, the README, the hardware document, and the Devpost
+  story's "Tested on a real Quest 3" (checked on the public page; `docs/META_SUBMISSION.md` mirrors it).
+- **Not done, by choice.** A WebGL 2 fallback page (judges use a Quest; no build change on the last day) and the lost pinch
+  after a slide-off (it lives in the core press path; left for after judging).

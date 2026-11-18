@@ -20,7 +20,7 @@ All tests run Meta's IWER emulator (Quest 3 profile) on the production build. Co
 
 ## What one real Quest 3 showed (2026-11-17)
 
-A tester from Meta's developer forum ran the production build on a Quest 3, in VR and in passthrough, first with controllers
+A tester from Meta's developer forum ([the thread](https://communityforums.atmeta.com/what-i-m-building-27/have-a-quest-3-or-3s-5-minute-test-of-a-webxr-workspace-no-install-182440)) ran the production build on a Quest 3, in VR and in passthrough, first with controllers
 and then with hands, over three rounds. Each report led to a client fix with a test:
 
 | Reported on the headset | Cause, from the code and the emulator | Fix | Test |

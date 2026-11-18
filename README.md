@@ -29,7 +29,8 @@ replaced under one. A slow or invalid model answer is cut at 6 seconds or correc
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
 session. Every AI and speech call sits behind session and daily caps, and 255 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. Hardware has now had its say once: a tester's Quest 3 found four problems the emulator could not
-show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits. One person
+show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits (their
+reports are in [the public forum thread](https://communityforums.atmeta.com/what-i-m-building-27/have-a-quest-3-or-3s-5-minute-test-of-a-webxr-workspace-no-install-182440)). One person
 on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17) is written down.
 
 **[Watch the demo, 2:26](https://youtu.be/Na4Lad3Izns)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Quick look, timers in seconds](https://d2p3027seoreck.cloudfront.net/?fast)** · **[Without hands](https://d2p3027seoreck.cloudfront.net/?fast&handsfree)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**

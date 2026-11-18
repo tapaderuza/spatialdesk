@@ -39,7 +39,7 @@ SpatialDesk is a seated, hands-first workspace for Quest: boards, focus timers a
 
 **Tested on a real Quest 3**
 
-A tester from Meta's developer forum ran SpatialDesk on a Quest 3, in VR and in passthrough, and found what the emulator could not show: the console over the board until a restart, panels too close after a near pinch, a gaze ring too easy to start, and the app quitting by itself. Each has a client fix and a test: the space re-checks your head a second or two in, a near pinch brings it at most 20% closer and shrinks the panels to match, and "No hands? Look here" needs a 3-second look. Their next run: "the panels are positioned much better now. The app no longer closes unexpectedly." Exit now also asks for a second press, against the likely cause of those quits: a fingertip on it.
+A tester from [Meta's developer forum](https://communityforums.atmeta.com/what-i-m-building-27/have-a-quest-3-or-3s-5-minute-test-of-a-webxr-workspace-no-install-182440) ran SpatialDesk on a Quest 3, in VR and in passthrough, and found what the emulator could not show: the console over the board until a restart, panels too close after a near pinch, a gaze ring too easy to start, and the app quitting by itself. Each has a client fix and a test: the space re-checks your head a second or two in, a near pinch brings it at most 20% closer and shrinks the panels to match, and "No hands? Look here" needs a 3-second look. Their next run: "the panels are positioned much better now. The app no longer closes unexpectedly." Exit now also asks for a second press, against the likely cause of those quits: a fingertip on it.
 
 ## How we built it
 
