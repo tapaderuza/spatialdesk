@@ -328,7 +328,7 @@ function bindSlots(document: UIKitDocument, view: BoardView): Slots {
     },
     hover: (key, hovered) => view.setHover(key, hovered),
     refer: (key) => view.refer(key),
-  }, view.cleanups);
+  }, view.cleanups, { name: `board:${view.id}` }); // named for one-switch scanning (src/accessibility/switch-system.ts)
   return slots;
 }
 

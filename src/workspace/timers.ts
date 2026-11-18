@@ -136,7 +136,7 @@ class TimerView {
         hoverFades.paint(button, COLOR.button, hovered); // src/ui/hover.ts
       },
       refer: () => ({ timer: this.timer.id, title: this.timer.label }),
-    }, this.cleanups);
+    }, this.cleanups, { name: `timer:${this.timer.id}` }); // named for one-switch scanning (src/accessibility/switch-system.ts)
     return { box, label: get('label'), time: get('time'), toggle: get('toggle-label') };
   }
 }

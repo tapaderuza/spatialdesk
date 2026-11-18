@@ -27,7 +27,7 @@ and no card operation waits for a server, so losing the network in mid-session c
 network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
 replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 253 browser scenarios, a performance gate and 13 synthetic
+session. Every AI and speech call sits behind session and daily caps, and 254 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. Hardware has now had its say once: a tester's Quest 3 found four problems the emulator could not
 show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits. One person
 on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17) is written down.
@@ -42,7 +42,7 @@ on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_M
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 253 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 254 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 22.2 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5). The video quotes 24.6 ms, from an earlier run |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -179,7 +179,7 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 
 | Capability | Mechanism | WCAG 2.2 (by analogy) | XAUR | Verification |
 | --- | --- | --- | --- | --- |
-| **One-switch scanning** | The command panel's controls, or the agent's card while it is open, are highlighted in turn; a first press arms the scan and a later, separate press selects. A held or repeated press cannot select. Input is Space or Enter on a screen, and any pinch or trigger in XR. Enabled by `?switch` or "switch mode on". | 2.1.1 Keyboard (A), in part: on a screen, for the controls scanned | REQ 4a, 4c | `tests/switch.spec.ts`, `tests/accessibility-switch.spec.ts` |
+| **One-switch scanning** | The command panel's controls, then each board lit whole (chosen, it walks that board's Focus, cards and columns, so a card is picked up and dropped with the same press, then Back) and a focus timer's buttons, or the agent's card while it is open, are highlighted in turn; a first press arms the scan and a later, separate press selects. A held or repeated press cannot select. Input is Space or Enter on a screen, and any pinch or trigger in XR. Enabled by `?switch` or "switch mode on". | 2.1.1 Keyboard (A), in part: on a screen, for the controls scanned | REQ 2b, 4a, 4c | `tests/switch.spec.ts`, `tests/accessibility-switch.spec.ts` |
 | **Steady aim** | A press selects the control holding the largest share (at least 40%) of the preceding 450 ms of aim, rather than the one under the ray at that instant; a press between controls snaps to the nearest within 1.5 cm. Enabled in the guided setup, by `?steady`, or by voice. | No direct criterion | REQ 4a | `tests/tremor.spec.ts` |
 | **Voice control** | Speech through Amazon Transcribe drives commands and free-form requests, in English and Spanish. | No direct criterion | REQ 2a, 5a | `tests/voice.spec.ts`, `tests/e2e-voice.spec.ts` |
 | **Hands-free dwell** | Resting the head's aim, or the eyes where tracked, presses a control after 1 s, or 1.6 s for cards. A control cannot repeat until the gaze has left it, and sweeping across controls selects nothing. Enabled by `?handsfree`, by voice, or by a 3 s gaze on the guided setup's "No hands? Look here", the one control a look presses before hands-free is on. | No direct criterion | REQ 2a, 2c | `tests/handsfree.spec.ts`, `tests/edge-cases.spec.ts` |
@@ -196,8 +196,8 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 
 - **Lost pinch.** After a pinch slides off a control into empty space, the next pinch is lost; the following one works.
 - **Direct touch** presses on contact by design, so it has no cancellation: 2.5.2 applies to ray input only.
-- **Scanning coverage.** One-switch scanning reaches the command panel and the agent's card, not the cards on the boards, so
-  XAUR REQ 2b (all areas reachable by one input method) is only partly met.
+- **Scanning pace.** One-switch scanning reaches every panel control, but a board's cards are one level down (choose the board,
+  then its card): moving a card takes more presses than a direct pinch.
 - **Assistive technology.** The immersive canvas exposes no accessibility tree, so screen readers are not supported, and the
   programmatic-access criteria (1.3.1, 4.1.2, 4.1.3) are not met.
 - **Timing by voice or link only.** Gaze time, scan speed, less motion and mono audio have no button: they are set by voice
@@ -269,7 +269,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 253 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 254 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.

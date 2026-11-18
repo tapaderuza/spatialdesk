@@ -170,7 +170,7 @@ Each of the first three opens with a link, so it can be set up in advance by who
 | Mode | Link | What to try |
 | --- | --- | --- |
 | Steady aim | `/?steady` | Shake your hand while aiming: the press goes to the control you aimed at most over the last 450 ms |
-| One switch | `/?switch` | First pinch anywhere starts the scan; the next selects the control lit |
+| One switch | `/?switch` | First pinch anywhere starts the scan; the next selects the control lit. After the console, each board is lit whole: choose it to walk its cards and columns (pick a card up, drop it), then Back |
 | Hands-free | `/?handsfree` | Rest your head's aim on a control: a ring fills and presses it (1 s for buttons, 1.6 s for cards) |
 | Slower or faster gaze | `/?handsfree&dwell=2400` | Say *"slower gaze"* or *"faster gaze"* (0.7 to 3.2 s), or set it in the link; *"slower scan"* does the same for one switch (`?scan=2500`) |
 | Less motion, mono audio | `/?calm`, `/?mono` | Or say *"less motion"*, *"mono audio"*: nothing glides or pulses; every sound plays in both ears |
@@ -193,12 +193,12 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 253 browser scenarios; the video quotes 199, from an earlier run.
+The suite has 254 browser scenarios; the video quotes 253, from an earlier run.
 
 ## 6. Known limits
 
 - **After a pinch that slides off a control into empty space, the next pinch is lost.** The one after it works.
-- **One-switch scanning covers the command panel and the agent's card**, not the cards on the boards.
+- **One-switch scanning reaches the boards one level down**: choose a board, then its card, so moving a card takes more presses than a pinch.
 - **Voice and the AI need the network**, and listening starts from the **Talk** control: there is no wake word.
 - **Each network can open 200 new sessions per hour.** Past that, the link retries, the AI gives the calm line, and the cards keep working.
 - **The AI has 300 plans per day across all users, and voice 600 listens.** Past that, a plain line says so, and the cards keep working.

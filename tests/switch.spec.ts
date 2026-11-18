@@ -5,7 +5,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { parseCommand } from '../src/voice/commands.js';
-import { enterXR, openWorkspace, pressXR, screenPoint, type Win } from './helpers.js';
+import { enterXR, frames, openWorkspace, pressXR, screenPoint, type Win } from './helpers.js';
 
 /** A brisk scan for the test (the user's own pace is a preference, 0.6 to 6 s). */
 const fastScan = (page: Page) =>
@@ -82,6 +82,57 @@ test('one switch in XR: a trigger anywhere is the switch, and the agent card tak
   await page.waitForFunction(() => (window as Win).__switch.view.surface === 'agent', null, { timeout: 5_000 });
   await page.evaluate(() => (window as Win).__agent.close());
   await page.waitForFunction(() => (window as Win).__switch.view.surface === 'command', null, { timeout: 5_000 });
+  expect(errors).toEqual([]);
+});
+
+test('one switch reaches the boards: a board lit whole is entered, a card moves to another column, and the board lit again leads back out', async ({ page }) => {
+  await fastScan(page);
+  const errors = await enterXR(page, '&switch');
+  await skipGuide(page, () => page.keyboard.press('Space'));
+  const cardsIn = (column: number) =>
+    page.evaluate((c) => (window as Win).__workspace.state.boards[0].columns[c].cards.map((k: any) => k.title) as string[], column);
+  const outlined = () => page.evaluate(() => (window as Win).__switch.view.outlined as boolean);
+
+  // After the console's controls, the first board is lit whole, framed in amber; choosing it walks its own controls.
+  await page.keyboard.press('Space');
+  await waitLit(page, 'board:b1');
+  expect(await outlined()).toBe(true);
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => (window as Win).__switch.view.surface === 'board:b1', null, { timeout: 5_000 });
+
+  // The same one press picks a card up, then drops it where the scan has reached.
+  const moved = (await cardsIn(0))[0];
+  await page.keyboard.press('Space');
+  await waitLit(page, 'card-0-0');
+  expect(await outlined()).toBe(true);
+  await page.keyboard.press('Space');
+  await expect.poll(() => page.evaluate(() => (window as Win).__notice?.text ?? '')).toContain('Holding');
+  await page.keyboard.press('Space');
+  await waitLit(page, 'col-2');
+  await page.keyboard.press('Space');
+  await expect.poll(() => cardsIn(2)).toContain(moved);
+  await frames(page, 30); // the scan rebuilds its list a few times a second: a press before that only restarts it
+
+  // The board lit whole again, last, leads back out to the console.
+  await page.keyboard.press('Space');
+  await waitLit(page, 'back');
+  expect(await outlined()).toBe(true);
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => (window as Win).__switch.view.surface === 'command', null, { timeout: 5_000 });
+
+  // A focus timer's own buttons are lit directly, after the boards: one press closes it.
+  const timers = () => page.evaluate(() => (window as Win).__workspace.state.timers.length as number);
+  await page.keyboard.press('Space');
+  await waitLit(page, 'focus');
+  await page.keyboard.press('Space');
+  await expect.poll(timers).toBe(1);
+  const timer = await page.evaluate(() => (window as Win).__workspace.state.timers[0].id as string);
+  await frames(page, 30);
+  await page.keyboard.press('Space');
+  await waitLit(page, `timer:${timer}:dismiss`);
+  expect(await outlined()).toBe(true);
+  await page.keyboard.press('Space');
+  await expect.poll(timers).toBe(0);
   expect(errors).toEqual([]);
 });
 

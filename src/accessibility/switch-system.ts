@@ -6,6 +6,10 @@
  * not aim, can use every control. Pointer taps on panels are ignored meanwhile (src/ui/panel-hits.ts), so a pinch
  * never also presses what its ray is on.
  *
+ * The boards are reached the same way, one level down: after the console's controls, each board shown is lit whole;
+ * choosing it walks that board's own controls (its Focus, its cards, its columns), so a card is picked up and dropped
+ * in another column with the same one press, and the board lit whole again, last, leads back out to the console.
+ *
  * The surface is checked a few times a second (a short list of keys, rebuilt only when it changes); the highlight is
  * the panels' own hover plus a thick amber frame around the control lit. Hover alone is a deliberately faint lift
  * (src/ui/hover.ts), right for eyes that aim but too faint to follow a scan by: scanning wants a focus that cannot be
@@ -26,7 +30,7 @@ import {
 import { livePanels, type GazeTarget } from '../ui/panel-hits.js';
 import { accessPreferences, onAccessPreferences, setAccessPreference } from './preferences.js';
 import { reachState } from './reach.js';
-import { SwitchAccess } from './switch-access.js';
+import { SwitchAccess, type SwitchControl } from './switch-access.js';
 
 const CHECK_EVERY_FRAMES = 15;
 /** The scan frame: amber on the panels' blues and greys, 6 mm thick, 4 mm outside the control, 3 mm in front of it. */
@@ -43,10 +47,22 @@ const label = (key: string) => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
+/** What a scan key lights and frames: [key] of [target] (a board's whole frame, 'board', to enter or leave it). */
+interface ScanItem {
+  target: GazeTarget;
+  key: string;
+}
+const BOARD_PREFIX = 'board:';
+const TIMER_PREFIX = 'timer:';
+const BACK = 'back';
+
 export class SwitchSystem extends createSystem({}) {
   private access!: SwitchAccess;
-  private surface: GazeTarget | null = null;
+  /** The board whose own controls are being walked; null while the scan is on the console (or a modal card). */
+  private board: GazeTarget | null = null;
+  private readonly items = new Map<string, ScanItem>();
   private lit: GazeTarget | null = null;
+  private litKey: string | null = null;
   private signature = '';
   private frame = 0;
   private readonly keys: string[] = [];
@@ -103,39 +119,87 @@ export class SwitchSystem extends createSystem({}) {
     } else {
       this.access.stop();
       this.signature = '';
-      this.surface = null;
+      this.board = null;
+      this.items.clear();
       this.place();
     }
   }
 
-  /** The agent's card alone while it is shown, else the command panel; rebuilt only when its controls change. */
+  /**
+   * A modal card alone while it is shown; else the board entered, its controls then "back"; else the console's
+   * controls then each board shown, lit whole. Rebuilt only when what can be lit changes.
+   */
   private refresh(): void {
-    let surface: GazeTarget | null = null;
-    for (const panel of livePanels) if (panel.modal && panel.isShown()) surface = panel;
-    if (!surface) for (const panel of livePanels) if (panel.name === 'command' && panel.isShown()) surface = panel;
-    const keys = surface ? surface.visibleKeys(this.keys) : this.keys.splice(0);
-    const signature = surface ? `${surface.name}:${keys.join(',')}` : '';
+    let modal: GazeTarget | null = null;
+    let command: GazeTarget | null = null;
+    for (const panel of livePanels) {
+      if (panel.modal && panel.isShown()) modal = panel;
+      if (panel.name === 'command' && panel.isShown()) command = panel;
+    }
+    if (this.board && (modal || !this.board.isShown() || livePanels.indexOf(this.board) < 0)) this.board = null;
+    const controls: SwitchControl[] = [];
+    this.items.clear();
+    const add = (scanKey: string, target: GazeTarget, key: string, activate: () => void, name = label(scanKey)) => {
+      this.items.set(scanKey, { target, key });
+      controls.push({ key: scanKey, label: name, activate });
+    };
+    let surface = '';
+    if (modal) {
+      const card = modal;
+      surface = card.name;
+      for (const key of card.visibleKeys(this.keys)) add(key, card, key, () => card.press(key));
+    } else if (this.board) {
+      const board = this.board;
+      surface = board.name;
+      for (const key of board.visibleKeys(this.keys)) if (key !== 'board') add(key, board, key, () => board.press(key));
+      add(BACK, board, 'board', () => this.enter(null), 'Back to the console');
+    } else {
+      if (command) {
+        const panel = command;
+        surface = panel.name;
+        for (const key of panel.visibleKeys(this.keys)) add(key, panel, key, () => panel.press(key));
+      }
+      for (const panel of livePanels) {
+        if (!panel.name.startsWith(BOARD_PREFIX) || !panel.isShown()) continue;
+        const board = panel;
+        add(board.name, board, 'board', () => this.enter(board), 'Board');
+        if (!surface) surface = 'boards';
+      }
+      // A focus timer's few buttons (pause, five more minutes, close) are lit directly, after the boards.
+      for (const panel of livePanels) {
+        if (!panel.name.startsWith(TIMER_PREFIX) || !panel.isShown()) continue;
+        const timer = panel;
+        for (const key of timer.visibleKeys(this.keys)) add(`${timer.name}:${key}`, timer, key, () => timer.press(key), label(key));
+        if (!surface) surface = 'boards';
+      }
+    }
+    const signature = `${surface}:${controls.map((c) => c.key).join(',')}`;
     if (signature === this.signature) return;
     this.signature = signature;
-    this.surface = surface;
-    this.view.surface = surface?.name ?? '';
-    const target = surface;
-    this.access.setSurface(target?.name ?? '', target ? keys.map((key) => ({ key, label: label(key), activate: () => target.press(key) })) : []);
+    this.view.surface = surface;
+    this.access.setSurface(surface, controls);
   }
 
-  private paint(key: string | null): void {
-    if (this.lit && this.lit !== this.surface) this.lit.setScanHover(null);
-    this.lit = this.surface;
-    this.lit?.setScanHover(key);
-    this.view.highlighted = key;
+  /** Into a board's own controls, or back out to the console (null): the next press starts that scan. */
+  private enter(board: GazeTarget | null): void {
+    this.board = board;
+    this.refresh();
+  }
+
+  private paint(scanKey: string | null): void {
+    const item = scanKey == null ? null : (this.items.get(scanKey) ?? null);
+    if (this.lit && this.lit !== item?.target) this.lit.setScanHover(null);
+    this.lit = item?.target ?? null;
+    this.litKey = item?.key ?? null;
+    this.lit?.setScanHover(this.litKey);
+    this.view.highlighted = scanKey;
     this.place(); // at once: the scan's clock is not the frame's
   }
 
   /** The frame follows the control lit every frame (panels move with the body's comfort); hidden when none is. */
   private place(): void {
     const outline = this.outline.object3D!;
-    const key = this.view.highlighted;
-    const shown = accessPreferences.switchEnabled && key != null && !!this.surface?.matrixOf(key, this.matrix);
+    const shown = accessPreferences.switchEnabled && this.litKey != null && !!this.lit?.matrixOf(this.litKey, this.matrix);
     this.view.outlined = shown;
     if (!shown) {
       outline.visible = false;
