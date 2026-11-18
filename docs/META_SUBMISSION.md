@@ -30,10 +30,10 @@ SpatialDesk is a seated, hands-first workspace for Quest: boards, focus timers a
 - **First five minutes.** Setup, then three guided steps learned by doing. With `?fast`, the closing focus block lasts 25 seconds and grows your plant's first leaf.
 - **Seated, anywhere.** No install; once loaded it works offline, and a built-in planner answers if Nova cannot.
 
-**Accessibility Forward, as the award names it**
+**Accessibility Forward, as the award names it** (in the video from 2:04: high contrast and the gaze, in the headset)
 
 - **Voice alternatives for hand interactions.** Press **Talk** and say any button's name, a setup answer, "bigger text", "high contrast on" or "move focus mode to Done", in English or Spanish; anything longer becomes an AI proposal you approve. No microphone? On the start page, **Neck hurts**, **Tired eyes** or **Left hand only** asks in one press.
-- **Eyes-only navigation for limited mobility.** Hands-free: a held gaze presses any control while a ring fills (1 s for buttons, 1.6 s for cards). Too fast or too slow? Say "slower gaze" or "faster gaze" (0.7 to 3.2 s), or set it in the link. A 3-second look at **No hands? Look here** turns it on from the first screen; the setup, a card into Doing and a focus block then need no hands. On Quest 3 and 3S, which have no eye tracking, the head aims; where the headset tracks the eyes, it uses them.
+- **Eyes-only navigation for limited mobility.** Hands-free: a held gaze presses any control while a ring fills (1 s for buttons, 1.6 s for cards). Too fast or too slow? A held look at the console's **Gaze** button makes it slower, or say "slower gaze" or "faster gaze" (0.7 to 3.2 s), or set it in the link. A 3-second look at **No hands? Look here** turns it on from the first screen; the setup, a card into Doing and a focus block then need no hands. On Quest 3 and 3S, which have no eye tracking, the head aims; where the headset tracks the eyes, it uses them.
 - **High-contrast modes.** **Contrast**, or "high contrast on": black panels, white text, a white outline on every target. Every panel text measures at least 8.19:1 against its background (7.23:1 in the normal theme; WCAG AAA asks 7:1), and a test fails the build below 7:1.
 - **Inclusive by default.** Seated, with locomotion off; one pinch fits every panel to your seat and reach; steady aim for tremor; one-switch scanning of every control, cards and timers included, at your own pace ("slower scan"); "less motion" and "mono audio"; Read aloud speaks each proposed change with its reason. After you press Allow, a carer's phone can open the setup in your headset.
 
@@ -43,7 +43,7 @@ A tester from Meta's developer forum ran SpatialDesk on a Quest 3, in VR and in 
 
 ## How we built it
 
-Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 254 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene. With `?fps`, the console shows the frame rate on the headset itself.
+Meta's Immersive Web SDK over WebXR. One Kotlin Multiplatform engine runs in the headset and on a Spring Boot server that validates every Nova plan before you see it; scene understanding uses WebXR planes and anchors. 255 Playwright scenarios drive the production build in Meta's IWER emulator, and a CI gate keeps frame time under Meta's IWSDK starter scene. With `?fps`, the console shows the frame rate on the headset itself.
 
 ## Challenges we ran into
 

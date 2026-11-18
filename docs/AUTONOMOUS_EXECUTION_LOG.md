@@ -1442,3 +1442,23 @@ for these two changes and restored afterwards.
   and its limits say a card sits one level down; the one-switch image's caption matches. Checked on the public page;
   `docs/META_SUBMISSION.md` mirrors it.
 - **Not verified:** any frame rate on a real Quest; no tester has answered since 2026-11-17.
+
+## Block 58: a Gaze button for timing without voice, chapters on the video, and Start re-checked (2026-11-18)
+
+- **Asked.** "Puedes mejorarlo de alguna manera más?", then "hazlas todas" to three proposals: a timing button, video
+  chapters, and another call for a Quest tester. Mid-way, the owner asked whether Start membership was in order.
+- **Start.** Re-checked in the owner's browser: Start's application page leads to the members' page, and the developer
+  dashboard opens on the owner's account with the SpatialDesk team. Both conditions of the rules hold.
+- **Chapters.** The video's YouTube description (https://youtu.be/Na4Lad3Izns) gained six chapters, each at least 10 s,
+  the last at 2:04 for accessibility.
+- **The Gaze / Scan button** (2e9254b): while hands-free or one switch is on, the console shows the current gaze time
+  (or scan pace); each press, by a held look or by the switch, sets the next slower step and says it, from the fastest
+  again after the slowest. Hidden otherwise. A test in the emulated headset sets 1.6 s by gaze alone and the scan pace by
+  the switch. README now names only less motion and mono audio as voice-or-link settings. CI 255 passed, pushed.
+- **Published and verified.** Invalidation `I5JD4JDXQD355IFIX2IAZ5NTCB`, live `main-CO8HwSfe.js`. On production 19 of 19,
+  with `.work/verify/timing-button-live.spec.ts`. The console's last row in VR reads Hands-free, Gaze 1 s, Exit.
+- **Devpost.** The story names the Gaze button, points to the video from 2:04, and reads 255 scenarios. Checked on the
+  public page; `docs/META_SUBMISSION.md` mirrors it.
+- **Forum.** On the owner's order, an update in the Start Developer Lounge topic asks again for five minutes on a Quest
+  and the `?fps` number.
+- **Not verified:** any frame rate on a real Quest.
