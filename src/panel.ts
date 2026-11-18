@@ -30,7 +30,7 @@ const VOICE_COLUMNS: readonly (readonly string[])[] = [
   ['doing', 'in progress', 'en curso', 'haciendo'],
   ['done', 'hecho', 'hechas', 'terminado', 'terminadas'],
 ];
-import { accessPreferences, GAZE_STEPS_MS, SCAN_STEPS_MS, setAccessPreference, setGazeTime, stepTiming } from './accessibility/preferences.js';
+import { accessPreferences, GAZE_STEPS_MS, onAccessPreferences, SCAN_STEPS_MS, setAccessPreference, setGazeTime, stepTiming } from './accessibility/preferences.js';
 import { FrameMeter, showFrameRate } from './perf/frame-meter.js';
 import { isListening, listen, stopListening } from './voice/listen.js';
 
@@ -89,6 +89,7 @@ export class PanelSystem extends createSystem({}) {
   private anchorCheckFrames = 0;
   private anchorRecheckFrames = 0;
   private exitLabel: UIKit.Text | null = null;
+  private timingLabel: UIKit.Text | null = null;
   private exitArmedUntil = 0;
   private exitDisarm: ReturnType<typeof setTimeout> | null = null;
   /** ?fps: the frame rate on the panel's own line (src/perf/frame-meter.ts); null when not asked for. */
@@ -180,6 +181,9 @@ export class PanelSystem extends createSystem({}) {
     const fitButton = element('fit-button');
     const exitButton = element('exit-button');
     this.exitLabel = element('exit-label');
+    // Shown while hands-free or one switch is on: the gaze time (or scan pace) set without voice or a helper's link.
+    const timingButton = element('timing-button');
+    this.timingLabel = element('timing-label');
     this.cleanupFuncs.push(() => {
       if (this.exitDisarm) clearTimeout(this.exitDisarm);
     });
@@ -209,6 +213,7 @@ export class PanelSystem extends createSystem({}) {
       sound: { element: element('sound-button'), base: BUTTON.base, action: () => toggleSetting('sound') },
       voice: { element: element('voice-button'), base: BUTTON.base, action: () => this.toggleReadAloud() },
       handsfree: { element: element('handsfree-button'), base: BUTTON.base, action: () => this.toggleHandsFree() },
+      timing: { element: timingButton, base: BUTTON.base, action: () => this.nextTiming() },
       wrap: { element: element('wrap-button'), base: BUTTON.base, action: () => this.world.getSystem(AgentSystem)?.wrapUp() },
       xr: { element: xrButton, base: BUTTON.primary, action: () => launchVR(this.world) },
       room: { element: roomButton, base: BUTTON.primary, action: () => launchRoom(this.world) },
@@ -244,6 +249,14 @@ export class PanelSystem extends createSystem({}) {
       repaintCommand = paint;
       this.cleanupFuncs.push(() => (repaintCommand = null));
     }
+    const paintTiming = () => {
+      const scan = accessPreferences.switchEnabled;
+      timingButton?.setProperties({ display: settings.handsFree || scan ? 'flex' : 'none' });
+      const ms = scan ? accessPreferences.scanIntervalMs : accessPreferences.dwellMs;
+      this.timingLabel?.setProperties({ text: `${scan ? 'Scan' : 'Gaze'} ${ms / 1000} s` });
+    };
+    paintTiming();
+    this.cleanupFuncs.push(onSettings(paintTiming), onAccessPreferences(paintTiming));
 
     if (!this.world.xrEnabled) {
       for (const button of [xrButton, roomButton, fitButton, exitButton]) button?.setProperties({ display: 'none' });
@@ -639,6 +652,23 @@ export class PanelSystem extends createSystem({}) {
    * tester's hands moved near the console's bottom row, where Exit sits (2026-11-17); a fingertip, a resting pinch or a
    * long look can press it once by accident, not twice. "Exit" said aloud still leaves at once.
    */
+  /**
+   * The console's timing button, for someone who can neither speak nor edit a link: each press sets the next slower
+   * gaze time (the scan pace while one switch is on), and after the slowest it starts again from the fastest.
+   */
+  private nextTiming(): void {
+    const scan = accessPreferences.switchEnabled;
+    const steps = scan ? SCAN_STEPS_MS : GAZE_STEPS_MS;
+    const current = scan ? accessPreferences.scanIntervalMs : accessPreferences.dwellMs;
+    const ms = steps.find((s) => s > current) ?? steps[0];
+    if (scan) setAccessPreference('scanIntervalMs', ms);
+    else setGazeTime(ms);
+    const seconds = (ms / 1000).toFixed(1);
+    const said = scan ? `Switch scan: each control stays lit ${seconds} s.` : `Gaze: a held look presses after ${seconds} s.`;
+    const next = ms === steps[steps.length - 1] ? ' The slowest: press again to start from the fastest.' : ' Press again for slower.';
+    workspace.notify({ text: said + next, error: false });
+  }
+
   private exitPressed(): void {
     if (this.exitDisarm) clearTimeout(this.exitDisarm);
     this.exitDisarm = null;

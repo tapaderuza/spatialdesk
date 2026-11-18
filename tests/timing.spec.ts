@@ -122,3 +122,43 @@ test('?fps in the headset: the command panel shows the frame rate; without it th
   await enterXR(page);
   expect((await fpsLine()).display).not.toBe('flex');
 });
+
+test('the timing button: hidden by default; hands-free, a held gaze on it alone sets the next slower gaze; with one switch, the scan pace', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('spatialdesk.onboarded', '1'));
+  const control = (name: string) =>
+    page.evaluate((n) => {
+      let found: any = null;
+      (window as Win).__world.scene.traverse((o: any) => {
+        if (o.name === n) found = o;
+      });
+      return { text: String(found?.properties.value.text ?? ''), display: String(found?.properties.value.display ?? '') };
+    }, name);
+
+  // Off by default: the console is as it was.
+  const errors = await enterXR(page, '&lang=en-US');
+  expect((await control('command:timing-button')).display).not.toBe('flex');
+
+  // Hands-free: the eyes alone make the gaze one step slower, and the button says the new time.
+  errors.push(...(await enterXR(page, '&lang=en-US&handsfree')));
+  expect((await control('command:timing-button')).display).toBe('flex');
+  expect((await control('command:timing-label')).text).toBe('Gaze 1 s');
+  await lookAt(page, 'command:timing-button');
+  await page.waitForFunction(() => ((window as Win).__notice?.text ?? '').includes('Gaze: a held look presses after 1.6 s.'), null, { timeout: 4_000 });
+  await lookAt(page, 'command:status-text'); // away, before the slower ring could fill again
+  expect((await control('command:timing-label')).text).toBe('Gaze 1.6 s');
+  expect(await stored(page)).toMatchObject({ dwellMs: 1600, readDwellMs: 2560 });
+
+  // One switch: the same button sets the scan pace, chosen like any other control.
+  await page.addInitScript(() => {
+    localStorage.removeItem('spatialdesk.settings');
+    localStorage.setItem('spatialdesk.access-preferences', JSON.stringify({ scanIntervalMs: 600 }));
+  });
+  errors.push(...(await enterXR(page, '&lang=en-US&switch')));
+  expect((await control('command:timing-label')).text).toBe('Scan 0.6 s');
+  await page.keyboard.press('Space');
+  await page.waitForFunction(() => (window as Win).__switch.view.highlighted === 'timing', null, { timeout: 30_000 });
+  await page.keyboard.press('Space');
+  await expect.poll(async () => (await control('command:timing-label')).text).toBe('Scan 1 s');
+  expect(await stored(page)).toMatchObject({ scanIntervalMs: 1000 });
+  expect(errors).toEqual([]);
+});

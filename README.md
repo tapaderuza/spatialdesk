@@ -27,7 +27,7 @@ and no card operation waits for a server, so losing the network in mid-session c
 network, with no reload. An open page also comes back by itself when the server restarts: 2.2 seconds, when the production server was
 replaced under one. A slow or invalid model answer is cut at 6 seconds or corrected once with the exact error, then replaced by
 a deterministic planner that labels itself. No WebXR capability is required, so a headset that lacks one loses that feature, not the
-session. Every AI and speech call sits behind session and daily caps, and 254 browser scenarios, a performance gate and 13 synthetic
+session. Every AI and speech call sits behind session and daily caps, and 255 browser scenarios, a performance gate and 13 synthetic
 rooms run before every push. Hardware has now had its say once: a tester's Quest 3 found four problems the emulator could not
 show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits. One person
 on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17) is written down.
@@ -42,7 +42,7 @@ on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_M
 | **Runs on** | Meta Quest Browser (WebXR), or any current Chromium browser with Meta's IWER emulator |
 | **Assistant** | Amazon Transcribe (streaming speech) and Amazon Nova 2 Lite on Amazon Bedrock (structured, reviewable proposals) |
 | **Helper** | A phone web page: approved, time-limited, read-only board plus one large Help / Recalibrate button |
-| **Automated checks** | 254 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
+| **Automated checks** | 255 browser scenarios in Meta's IWER emulator (Playwright), plus JVM tests for the server and shared engine |
 | **Performance gate** | Whole-frame p95 22.2 ms with the CPU throttled 3x (budget: Meta's IWSDK starter scene, 29.4 ms), 78 draw calls (budget 80), 2.32 MB gzipped (budget 2.5). The video quotes 24.6 ms, from an earlier run |
 
 Performance figures are measured in the emulator by the CI gate, not on a physical headset. SpatialDesk is an
@@ -188,7 +188,7 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
 | **Selection over dragging** | Moving a card is two discrete selections: pick, then drop. Repositioning a panel by hand does use a drag, on its grab bar; Fit room and spoken requests reposition panels without one. | 2.5.1 Pointer Gestures (A); 2.5.7 Dragging Movements (AA), in part | REQ 4c | `tests/interaction.spec.ts` |
 | **Target geometry** | Every interactive target is at least 6 x 6 cm in the world, and every direct-touch target is within arm's reach. | 2.5.8 Target Size (Minimum) (AA); CSS pixels have no direct meaning in XR | REQ 4b | `tests/interaction.spec.ts` |
 | **Calibration and field of view** | A guided setup records seating position and a comfortable reach measured by a pinch, and can be reopened at any time. The layout is fitted to the field of view the headset reports. | No direct criterion | REQ 13a, 13b | `tests/setup.spec.ts`, `tests/reach.spec.ts`, `tests/glasses.spec.ts` |
-| **Timing, motion and sound, set by the person** | *"Slower gaze"* and *"faster gaze"* step a held gaze's press time through 0.7, 1, 1.6, 2.4 and 3.2 s (cards wait 1.6 times as long); *"slower scan"* steps one-switch scanning through 1, 1.5, 2.5 and 4 s; *"less motion"* stops every glide and pulse; *"mono audio"* plays every sound in both ears. English and Spanish, said back on the panel, kept for the next visit. A helper can set them in a link instead: `?dwell=2400`, `?scan=2500`, `?calm`, `?mono`. | 2.2.1 Timing Adjustable (A); 2.3.3 Animation from Interactions (AAA) | REQ 15b, 18a | `tests/timing.spec.ts` |
+| **Timing, motion and sound, set by the person** | *"Slower gaze"* and *"faster gaze"* step a held gaze's press time through 0.7, 1, 1.6, 2.4 and 3.2 s (cards wait 1.6 times as long); *"slower scan"* steps one-switch scanning through 1, 1.5, 2.5 and 4 s; *"less motion"* stops every glide and pulse; *"mono audio"* plays every sound in both ears. English and Spanish, said back on the panel, kept for the next visit. A helper can set them in a link instead: `?dwell=2400`, `?scan=2500`, `?calm`, `?mono`. Without voice or a helper, the console shows a **Gaze** button while hands-free is on (a **Scan** button with one switch): each press, by gaze or by switch, sets the next slower time and says it. | 2.2.1 Timing Adjustable (A); 2.3.3 Animation from Interactions (AAA) | REQ 15b, 18a | `tests/timing.spec.ts` |
 | **Motion restraint** | The viewer is never moved: locomotion is disabled. Panels move only on request, on a critically damped spring without overshoot. Motion sickness has not been measured. | No direct criterion | REQ 16a | `tests/glide.spec.ts` |
 | **High contrast and spatial audio** | High contrast is a control and a voice command. Every text on the headset panels measures at least 7.23:1 against its background in the normal theme and 8.19:1 in high contrast; a test fails the build below 7:1. Cues sound from the position of their panel. | 1.4.3 Contrast (Minimum) (AA) and 1.4.6 Contrast (Enhanced) (AAA), for panel text; 1.4.11 not assessed | REQ 6a, 17a | `tests/contrast.spec.ts`, `tests/accessibility.spec.ts`, `tests/spatial-ai.spec.ts` |
 
@@ -200,8 +200,8 @@ Meta's IWER emulator by the named tests. The steady-aim model is measured with s
   then its card): moving a card takes more presses than a direct pinch.
 - **Assistive technology.** The immersive canvas exposes no accessibility tree, so screen readers are not supported, and the
   programmatic-access criteria (1.3.1, 4.1.2, 4.1.3) are not met.
-- **Timing by voice or link only.** Gaze time, scan speed, less motion and mono audio have no button: they are set by voice
-  or by a link. Reading scale and caption size belong to a 2D page this build does not include; text in the headset is sized
+- **Motion and stereo by voice or link only.** Gaze time and scan speed have a console button (shown while hands-free or
+  one switch is on); less motion and mono audio are set by voice or by a link. Reading scale and caption size belong to a 2D page this build does not include; text in the headset is sized
   by *"bigger text"*.
 - **Network.** Voice control and the AI need a connection, and listening starts from the Talk control, with no wake word.
 - **Room memory.** The app remembers one room per browser profile, and a new fit replaces the last.
@@ -269,7 +269,7 @@ npm run check:size
 npm run test:xr
 ```
 
-`npm run ci` runs the type check, the 254 Playwright scenarios (including the performance gate) and the size budget; a
+`npm run ci` runs the type check, the 255 Playwright scenarios (including the performance gate) and the size budget; a
 pre-push hook runs it before every push. The Playwright configuration builds the app and serves it on port **4173**
 (free it first) and uses the installed **Microsoft Edge**; elsewhere, set `PW_CHANNEL` (for example `chrome`).
 Real-service end-to-end tests (`npm run test:e2e`) also need the backend and AWS access.

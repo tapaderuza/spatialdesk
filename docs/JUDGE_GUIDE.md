@@ -172,7 +172,7 @@ Each of the first three opens with a link, so it can be set up in advance by who
 | Steady aim | `/?steady` | Shake your hand while aiming: the press goes to the control you aimed at most over the last 450 ms |
 | One switch | `/?switch` | First pinch anywhere starts the scan; the next selects the control lit. After the console, each board is lit whole: choose it to walk its cards and columns (pick a card up, drop it), then Back |
 | Hands-free | `/?handsfree` | Rest your head's aim on a control: a ring fills and presses it (1 s for buttons, 1.6 s for cards) |
-| Slower or faster gaze | `/?handsfree&dwell=2400` | Say *"slower gaze"* or *"faster gaze"* (0.7 to 3.2 s), or set it in the link; *"slower scan"* does the same for one switch (`?scan=2500`) |
+| Slower or faster gaze | `/?handsfree&dwell=2400` | Say *"slower gaze"* or *"faster gaze"* (0.7 to 3.2 s), or set it in the link; *"slower scan"* does the same for one switch (`?scan=2500`). With no voice, the console's **Gaze** button (hands-free) or **Scan** button (one switch) sets the next slower time |
 | Less motion, mono audio | `/?calm`, `/?mono` | Or say *"less motion"*, *"mono audio"*: nothing glides or pulses; every sound plays in both ears |
 | Voice | any link | **Talk**, then *"Bring everything closer and make the text bigger"*; review, **Apply**, **Undo** |
 | Voice, at once | any link | **Talk**, then *"bigger text"* (or *"smaller text"*), or *"move focus mode to Done"*: done at once without asking the AI, and **Undo** puts it back. Words that fit several cards, or *"this"*, go to the AI instead |
@@ -193,7 +193,7 @@ npm run test:perf                                                          # the
 `E2E_URL=https://d2p3027seoreck.cloudfront.net` and run `tests/e2e.spec.ts`, `tests/e2e-voice.spec.ts` and `tests/assist-real.spec.ts`. These
 make real Amazon Nova and Amazon Transcribe calls.
 
-The suite has 254 browser scenarios; the video quotes 253, from an earlier run.
+The suite has 255 browser scenarios; the video quotes 253, from an earlier run.
 
 ## 6. Known limits
 

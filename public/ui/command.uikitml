@@ -76,6 +76,7 @@
   </div>
   <div class="buttons">
     <div id="handsfree-button" class="btn"><div class="label">Hands-free</div></div>
+    <div id="timing-button" class="btn" style="display: none"><div id="timing-label" class="label">Gaze 1 s</div></div>
     <div id="xr-button" class="primary"><div class="label">Enter VR</div></div>
     <div id="room-button" class="primary"><div class="label">In my room</div></div>
     <div id="fit-button" class="primary" style="display: none"><div class="label">Fit room</div></div>
