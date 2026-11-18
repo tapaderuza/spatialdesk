@@ -32,7 +32,7 @@ rooms run before every push. Hardware has now had its say once: a tester's Quest
 show, each now fixed with a test, and their next run reported the panels "positioned much better" and no more quits. One person
 on one headset is not proof, and [exactly what that leaves open](docs/HARDWARE_MITIGATION.md#what-one-real-quest-3-showed-2026-11-17) is written down.
 
-**[Watch the two-minute demo](https://youtu.be/FWbl6vpkiH4)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Quick look, timers in seconds](https://d2p3027seoreck.cloudfront.net/?fast)** · **[Without hands](https://d2p3027seoreck.cloudfront.net/?fast&handsfree)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
+**[Watch the demo, 2:26](https://youtu.be/Na4Lad3Izns)** · **[Open SpatialDesk](https://d2p3027seoreck.cloudfront.net/)** · **[Quick look, timers in seconds](https://d2p3027seoreck.cloudfront.net/?fast)** · **[Without hands](https://d2p3027seoreck.cloudfront.net/?fast&handsfree)** · **[Try it without a headset](https://d2p3027seoreck.cloudfront.net/?emulate&lang=en-US)** · **[Open the mobile companion](https://d2p3027seoreck.cloudfront.net/companion.html)**
 
 ## At a glance
 

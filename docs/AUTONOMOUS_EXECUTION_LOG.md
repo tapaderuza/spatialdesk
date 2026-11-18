@@ -1413,3 +1413,32 @@ for these two changes and restored afterwards.
   - The last reply to the forum tester could no longer be edited, so one line under their confirmation asks for the
     `?fps` number.
 - **Not verified:** any frame rate on a real Quest; that waits for a tester.
+
+## Block 57: high contrast and gaze in the gallery and the video, and one switch reaches the boards (2026-11-18)
+
+- **Asked.** "Puedes mejorarlo de alguna manera más?", then "Galería y vídeo", then "te doy autorizacion para todo,
+  hazlo todo".
+- **Gallery.** No image showed high contrast, one of the award's four named items. Three frames were captured from
+  production in the emulator: normal and high contrast side by side, a held gaze filling its ring on Focus 25, and
+  "slower gaze" said back. Devpost allows 15 images, so on the owner's choice "Her companion asks how it feels" and
+  "A return point" made room; both are kept, with their captions, in `.work/submission-package/gallery-removed-2026-11-18/`.
+  High contrast now leads the gallery, before the video. A caption over 140 characters was refused once and shortened.
+- **Video.** The pitch gained 17 s before its end card, recorded from production in Spanish and hands-free: a held gaze
+  presses Contrast, she asks for "mirada más lenta" and the console answers 1.6 s, and a longer gaze starts a focus block.
+  Same narrator (Piper, lessac), captions and disclosure as the rest; the segment sits at -16.3 LUFS beside the original's
+  -16.6. The end card now quotes 253 tests (`docs/video/pitch-2026.json`). 2:26 in all. Published public on YouTube as
+  https://youtu.be/Na4Lad3Izns with the same title, audience and answers (no AI-altered content), and the description notes
+  the new part and that the narration is synthesized. The file went to the page in six parts under 10 MB and was joined
+  there; its SHA-256 matched before upload. Devpost now embeds it. The old video stays on the channel.
+- **One switch reaches the boards and the timer** (7593e83, freeze lifted by the owner's "autorización para todo"):
+  - After the console's controls each board is lit whole; choosing it walks its Focus, cards and columns, so a card is
+    picked up and dropped with the same press, and the board lit whole again leads back. A focus timer's buttons are lit
+    directly after the boards. Boards and timers are named panels; nothing changes unless switch mode is on.
+  - `tests/switch.spec.ts` gains a test: enter a board, move a card to Done, come back, start and close a focus timer.
+  - README (XAUR REQ 2b) and the judge's guide updated. CI 254 passed, pushed.
+- **Published and verified.** Invalidation `IB465M0ZEYK0V59C90FBZ5LC0`, live `main-Bl8Qhb8F.js`. On production 18 of 18:
+  the 17 earlier checks plus `.work/verify/switch-live.spec.ts` (the same path on the live site).
+- **Devpost.** The story says one-switch scanning covers every control, cards and timers included, reads 254 scenarios,
+  and its limits say a card sits one level down; the one-switch image's caption matches. Checked on the public page;
+  `docs/META_SUBMISSION.md` mirrors it.
+- **Not verified:** any frame rate on a real Quest; no tester has answered since 2026-11-17.
